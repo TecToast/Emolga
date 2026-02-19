@@ -61,17 +61,17 @@ object ShinyEvent {
                     components = listOf(
                         ShinyAdminButton(
                             "Bestätigen".k18n, ButtonStyle.SUCCESS, emoji = Emoji.fromUnicode("✅")
-                    ) {
-                        this.eventName = config.name
-                        this.mode = ShinyAdminButton.Mode.APPROVE
-                        this.user = iData.user
-                        game = e.game
-                        method = e.method
-                        points = configuration.points
+                        ) {
+                            this.eventName = config.name
+                            this.mode = ShinyAdminButton.Mode.APPROVE
+                            this.user = iData.user
+                            game = e.game
+                            method = e.method
+                            points = configuration.points
                         }, ShinyAdminButton("Ablehnen".k18n, ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
-                        this.mode = ShinyAdminButton.Mode.REJECT
-                        this.user = iData.user
-                    }).into()
+                            this.mode = ShinyAdminButton.Mode.REJECT
+                            this.user = iData.user
+                        }).into()
                 ).queue()
         }
     }

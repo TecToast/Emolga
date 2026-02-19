@@ -245,6 +245,7 @@ fun K18nLanguage.toDiscordLocale() = when (this) {
     K18nLanguage.DE -> DiscordLocale.GERMAN
     K18nLanguage.EN -> DiscordLocale.ENGLISH_US
 }
+
 fun K18nLanguage.translateTo(language: K18nLanguage) = when (this) {
     K18nLanguage.DE -> K18n_German
     K18nLanguage.EN -> K18n_English

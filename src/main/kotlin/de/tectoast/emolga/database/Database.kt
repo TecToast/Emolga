@@ -22,10 +22,7 @@ class Database(
     val db = R2dbcDatabase.connect {
         connectionFactoryOptions {
             option(DRIVER, "pool")
-            option(
-                PROTOCOL,
-                "postgresql"
-            ) // driver identifier, PROTOCOL is delegated as DRIVER by the pool.
+            option(PROTOCOL, "postgresql")
             option(HOST, cred.host)
             option(PORT, cred.port)
             option(USER, cred.username)

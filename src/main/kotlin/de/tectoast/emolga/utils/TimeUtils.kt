@@ -70,11 +70,11 @@ object TimeUtils {
 
     fun secondsToTimePretty(timesec: Long, language: K18nLanguage) =
         secondsToTimeBase(timesec).entries.joinToString { (k, v) ->
-        "**$v** ${
-            pluralise(
-                v.toLong(), shortToPretty[k]!!
-            ).translateTo(language)
-        }"
+            "**$v** ${
+                pluralise(
+                    v.toLong(), shortToPretty[k]!!
+                ).translateTo(language)
+            }"
         }.ifEmpty { "**0** ${K18n_TimeUtils.SecondPlural.translateTo(language)}" }
 
     fun secondsToTimeShort(timesec: Long): String {

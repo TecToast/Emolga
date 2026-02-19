@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import java.util.*
 
 private val Long.f get() = defaultTimeFormat.format(this)
+
 class TimeUtilsTest : FunSpec({
 
     test("parseShortTimeNew") {

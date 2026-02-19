@@ -181,6 +181,7 @@ data object ABLStyle : TeamGraphicStyle {
         9 to Pair(1270, 781),
         10 to Pair(1601, 793)
     )
+
     override fun getDataForIndex(
         index: Int,
         data: DrawData

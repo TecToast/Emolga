@@ -137,6 +137,7 @@ abstract class InteractionData(
         )
         return null
     }
+
     fun <T> replyNull(
         content: K18nMessage,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
@@ -174,6 +175,7 @@ abstract class InteractionData(
             replace = replace
         )
     )
+
     fun edit(
         contentK18n: K18nMessage? = null,
         embeds: Collection<MessageEmbed>? = null,
@@ -189,7 +191,6 @@ abstract class InteractionData(
             replace = replace
         )
     )
-
 
 
     suspend fun replyAwait(
@@ -210,6 +211,7 @@ abstract class InteractionData(
             mentions = mentions
         )
     )
+
     suspend fun replyAwait(
         content: K18nMessage,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,

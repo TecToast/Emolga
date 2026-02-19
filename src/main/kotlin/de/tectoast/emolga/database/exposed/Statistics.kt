@@ -157,6 +157,8 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 object Start : Table("st_start") {
     val REPLAYID = varchar("replayid", 128)
     val TIMESTAMP = timestamp("timestamp")
+
+    override val primaryKey = PrimaryKey(REPLAYID)
 }
 
 object Time : AnalysisStatistics("time") {

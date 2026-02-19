@@ -189,16 +189,13 @@ class Tierlist(
          * All tierlists
          */
         val GUILD = long("guild")
+        val IDENTIFIER = varchar("identifier", 30)
         val POKEMON = varchar("pokemon", 64)
         val TIER = varchar("tier", 8)
         val TYPE = varchar("type", 10).nullable()
         val POINTS = integer("points").nullable()
-        val IDENTIFIER = varchar("identifier", 30)
 
-        init {
-            index(isUnique = false, GUILD, IDENTIFIER, POKEMON)
-        }
-
+        override val primaryKey = PrimaryKey(GUILD, IDENTIFIER, POKEMON)
         private var setupCalled = false
 
         val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()

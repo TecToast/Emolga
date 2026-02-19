@@ -133,6 +133,7 @@ object SignupManager {
         uid: Long,
         data: Map<String, String>,
         logoAttachment: Message.Attachment? = null,
+        teammates: List<Long>? = null,
         isChange: Boolean = false,
         iData: InteractionData? = null
     ): Unit? {
@@ -154,10 +155,19 @@ object SignupManager {
         signupMutex.withLock {
             with(mdb.signups.get(gid)!!) {
                 if (!isChange && full) return iData?.reply(K18n_Signup.SignupFull)
+                teammates?.let {
+                    for (u in it) {
+                        if (getDataByUser(u) != null) {
+                            return iData?.reply(K18n_AddTeammate.PartnerAlreadySignedUp(u))
+                        }
+                    }
+                }
                 val jda = iData?.jda ?: jda
                 if (isChange) {
                     val oldData = getDataByUser(uid) ?: return iData?.reply(K18n_Signup.NotSignedUp)
                     oldData.data.putAll(data)
+                    oldData.users += uid
+                    teammates?.let { oldData.users += it }
                     handleSignupChange(oldData)
                     signupScope.launch {
                         logoAttachment?.handleLogo(uid, iData)
@@ -167,7 +177,7 @@ object SignupManager {
                 }
                 iData?.reply(K18n_Signup.SignupSuccess)
                 val signUpData = SignUpData(
-                    users = mutableSetOf(uid), data = data.toMutableMap()
+                    users = mutableSetOf(uid).apply { teammates?.let { addAll(it) } }, data = data.toMutableMap()
                 ).apply {
                     signupmid = jda.getTextChannelById(config.signupChannel)!!.sendMessage(
                         toMessage(this@with)

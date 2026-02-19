@@ -455,7 +455,9 @@
               "LogoTooBig": "Das Logo darf nicht größer als {maxSize:Int}MB sein!",
               "LogoNoValidImage": "Die Datei ist kein gültiges Bild! (Bestenfalls sollte es eine PNG sein)",
               "YTChannelLabel": "YT-Channel",
-              "YTChannelInvalid": "Dieser YT-Channel-Link (`{data}`) ist entweder ungültig oder der Channel existiert nicht (mehr)!"
+              "YTChannelInvalid": "Dieser YT-Channel-Link (`{data}`) ist entweder ungültig oder der Channel existiert nicht (mehr)!",
+              "TeammateLabel": "Teammate",
+              "TeammateDescription": "Mit wem du teamen möchtest"
             }
           },
           "showdown": {

@@ -51,6 +51,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.components.attachmentupload.AttachmentUpload
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
@@ -379,6 +380,7 @@ sealed class SignUpInput {
         const val OFLIST_PREFIX_ID = "oflist_"
         const val LOGO_ID = "logo"
         const val YT_CHANNEL_ID = "ytchannel"
+        const val TEAMMATE_ID = "teammate"
     }
 }
 
@@ -480,6 +482,11 @@ data class LigaStartConfig(
     )
     var hideUserCount: Boolean = false,
     @Config(
+        "Teams erlaubt",
+        "Hier kannst du einstellen, ob man teamen darf",
+    )
+    var allowTeams: Boolean = false,
+    @Config(
         "Teilnehmerrolle",
         "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
         LongType.ROLE
@@ -532,6 +539,18 @@ data class LigaStartData(
                     )
                 )
             }
+            config.allowTeams.ifTrue {
+                label(
+                    label = K18n_SignupInput.TeammateLabel.translateTo(lang),
+                    description = K18n_SignupInput.TeammateDescription.translateTo(lang),
+                    child = EntitySelectMenu(
+                        customId = SignUpInput.TEAMMATE_ID,
+                        types = listOf(EntitySelectMenu.SelectTarget.USER),
+                    ) {
+                        isRequired = false
+                    }
+                )
+            }
             config.logoSettings?.let { _ ->
                 label(
                     label = K18n_SignupInput.LogoLabel.translateTo(lang),
@@ -553,11 +572,16 @@ data class LigaStartData(
             val change = e.modalId.substringAfter(";").isNotBlank()
             val errors = mutableListOf<String>()
             var logoAttachment: Message.Attachment? = null
-            val data = e.values.associate {
+            var teammates: List<Long>? = null
+            val data = e.values.mapNotNull {
                 val id = it.customId
                 if (id == SignUpInput.LOGO_ID) {
                     logoAttachment = it.asAttachmentList.firstOrNull()
-                    return@associate "" to ""
+                    return@mapNotNull null
+                }
+                if (id == SignUpInput.TEAMMATE_ID) {
+                    teammates = it.asLongList
+                    return@mapNotNull null
                 }
                 val config = getInputConfig(id) ?: error("Modal key $id not found")
                 when (val result = config.validate(
@@ -570,14 +594,14 @@ data class LigaStartData(
                     is SignUpValidateResult.Error -> {
                         errors += K18n_SignupInput.Error(config.getModalInputOptions().label.t(), result.message.t())
                             .t()
-                        "" to ""
+                        null
                     }
 
                     is SignUpValidateResult.Success -> {
                         id to result.data
                     }
                 }
-            }
+            }.toMap()
             if (errors.isNotEmpty()) {
                 iData.sendSignupErrors(errors)
                 return
@@ -585,8 +609,9 @@ data class LigaStartData(
             SignupManager.signupUser(
                 gid = gid,
                 uid = e.user.idLong,
-                data = data.filterKeys { it.isNotEmpty() },
+                data = data,
                 logoAttachment = logoAttachment,
+                teammates = teammates,
                 isChange = change,
                 iData = iData
             )
@@ -817,7 +842,7 @@ data class SignUpData(
     suspend fun toMessage(lsData: LigaStartData): String {
         return K18n_Signup.SignupConfirmMessage(formatName(), data.entries.mapNotNull { (k, v) ->
             val inputConfig = lsData.getInputConfig(k) ?: return@mapNotNull null
-            val displayTitle = inputConfig.getDisplayTitle()
+            val displayTitle = inputConfig.getDisplayTitle()?.translateTo(lsData.language()) ?: return@mapNotNull null
             val displayValue = inputConfig.mapValueForDisplay(v)
             "${displayTitle}: **$displayValue**"
         }.joinToString("\n")).translateTo(lsData.language())

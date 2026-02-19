@@ -286,7 +286,7 @@
               "OwnVotesLeagueNotFound": "There is no league with the name {league}!",
               "OwnVotesGamedayNotFound": "There is no matchday {gameday:Int} in the league {league}!",
               "OwnVotesNoVotes": "You haven’t submitted any tips for {league} on matchday {gameday:Int} yet!",
-              "OwnVotesSuccess": "# Your tips for {league} on matchday {gameday:Int}\n{list}"
+              "OwnVotesSuccess": "# Your tips for {league} on matchday {gameday:Int}\n{tips}"
             }
           },
           "showdown": {
@@ -453,7 +453,9 @@
               "LogoMustBeImage": "The logo must be an image file!",
               "LogoDownloadError": "The logo could not be downloaded!",
               "LogoTooBig": "The logo must not be larger than {maxSize:Int}MB!",
-              "LogoNoValidImage": "The file is not a valid image! (Ideally it should be a PNG)"
+              "LogoNoValidImage": "The file is not a valid image! (Ideally it should be a PNG)",
+              "YTChannelLabel": "YT-Channel",
+              "YTChannelInvalid": "This YT-Channel-URL (`{data}`) is either invalid or the channel doesn't exist (anymore)!"
             }
           },
           "showdown": {

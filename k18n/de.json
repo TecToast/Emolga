@@ -284,9 +284,9 @@
               "OwnVotesArgLeague": "Die Liga",
               "OwnVotesArgGameday": "Der Spieltag, für den du deine Tipps sehen möchtest",
               "OwnVotesLeagueNotFound": "Keine Liga unter dem Namen `{league}` gefunden!",
-              "OwnVotesGamedayNotFound": "Diese Liga hat keinen Spieltag mit der Nummer {gameday:Int}!",
+              "OwnVotesGamedayNotFound": "Liga {league} hat keinen Spieltag mit der Nummer {gameday:Int}!",
               "OwnVotesNoVotes": "Du hast noch keine Tipps für {league} an Spieltag {gameday:Int} abgegeben!",
-              "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday}\n{tips}"
+              "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday:Int}\n{tips}"
             }
           },
           "showdown": {
@@ -453,7 +453,9 @@
               "LogoMustBeImage": "Das Logo muss eine Bilddatei sein!",
               "LogoDownloadError": "Das Logo konnte nicht heruntergeladen werden!",
               "LogoTooBig": "Das Logo darf nicht größer als {maxSize:Int}MB sein!",
-              "LogoNoValidImage": "Die Datei ist kein gültiges Bild! (Bestenfalls sollte es eine PNG sein)"
+              "LogoNoValidImage": "Die Datei ist kein gültiges Bild! (Bestenfalls sollte es eine PNG sein)",
+              "YTChannelLabel": "YT-Channel",
+              "YTChannelInvalid": "Dieser YT-Channel-Link (`{data}`) ist entweder ungültig oder der Channel existiert nicht (mehr)!"
             }
           },
           "showdown": {

@@ -3,11 +3,13 @@ package de.tectoast.emolga.features.draft
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
+import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.draft.during.generic.K18n_NoSignupInGuild
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.*
+import de.tectoast.emolga.utils.mapToChannelIdPair
 import de.tectoast.emolga.utils.translateToGuildLanguage
 import de.tectoast.generic.K18n_AlreadySignedUp
 import de.tectoast.generic.K18n_SignupVerb
@@ -152,24 +154,18 @@ object SignupManager {
         signupMutex.withLock {
             with(mdb.signups.get(gid)!!) {
                 if (!isChange && full) return iData?.reply(K18n_Signup.SignupFull)
-                @Suppress("DeferredResultUnused")
-                data[SignUpInput.SDNAME_ID]?.let {
-                    SDNamesDB.addIfAbsent(it, uid)
-                }
                 val jda = iData?.jda ?: jda
                 if (isChange) {
                     val oldData = getDataByUser(uid) ?: return iData?.reply(K18n_Signup.NotSignedUp)
                     oldData.data.putAll(data)
                     handleSignupChange(oldData)
-                    logoAttachment?.handleLogo(uid, iData)
+                    signupScope.launch {
+                        logoAttachment?.handleLogo(uid, iData)
+                    }
                     iData?.reply(K18n_Signup.DataChangeSuccessful)
                     return null
                 }
                 iData?.reply(K18n_Signup.SignupSuccess)
-                giveParticipantRole {
-                    (iData?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!
-                        .await()
-                }
                 val signUpData = SignUpData(
                     users = mutableSetOf(uid), data = data.toMutableMap()
                 ).apply {
@@ -184,18 +180,29 @@ object SignupManager {
                     closeSignup()
                 }
                 save()
-                logoAttachment?.handleLogo(uid, iData)
+                signupScope.launch {
+                    logoAttachment?.handleLogo(uid, iData)
+                    @Suppress("DeferredResultUnused")
+                    data[SignUpInput.SDNAME_ID]?.let {
+                        SDNamesDB.addIfAbsent(it, uid)
+                    }
+                    data[SignUpInput.YT_CHANNEL_ID]?.let {
+                        YTChannelsDB.insertSingle(uid, it.mapToChannelIdPair())
+                    }
+                    giveParticipantRole {
+                        (iData?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!
+                            .await()
+                    }
+                }
             }
         }
         return null
     }
 
     context(lsData: LigaStartData)
-    private fun Message.Attachment.handleLogo(uid: Long, iData: InteractionData?) {
-        signupScope.launch {
-            lsData.insertLogo(uid, this@handleLogo)?.let { errorStr ->
-                iData?.reply(K18n_Signup.LogoError(errorStr.translateTo(iData.language)), ephemeral = true)
-            }
+    private suspend fun Message.Attachment.handleLogo(uid: Long, iData: InteractionData?) {
+        lsData.insertLogo(uid, this@handleLogo)?.let { errorStr ->
+            iData?.reply(K18n_Signup.LogoError(errorStr.translateTo(iData.language)), ephemeral = true)
         }
     }
 }

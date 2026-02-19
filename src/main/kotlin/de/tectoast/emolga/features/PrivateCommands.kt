@@ -11,7 +11,6 @@ import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.GuildAuthorizeButton
-import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -35,9 +34,11 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.future.await
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.components.ActionComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -263,22 +264,13 @@ object PrivateCommands {
         TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
 
-    private fun Flow<String>.mapIdentifierToChannelIDs() = map {
-        val base = it.substringBefore("?")
-        val result =
-            if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
-        if (result == null) logger.warn("No channel found for $base")
-        result
-    }
-
     context(iData: InteractionData)
-    suspend fun fetchYTChannelsForLeague(args: PrivateData) {
-        val league = mdb.league(args[0])
-        YTChannelsDB.insertAll(
-            league.table.asFlow().zip(
-                args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
-            ).mapNotNull { it.second?.let { cid -> it.first to cid } }.toList<Pair<@Contextual Long, String>>()
-        )
+    suspend fun addYTChannelsWithModal() {
+        awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.map {
+            val (idStr, url) = it.split(" ")
+            val (channelId, handle) = url.mapToChannelIdPair()
+            Triple(idStr.toLong(), channelId, handle)
+        }.toList().also { YTChannelsDB.insertAll(it) }
     }
 
     context(iData: InteractionData)
@@ -291,7 +283,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun addSingleYTChannel(args: PrivateData) {
-        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()!!))
+        YTChannelsDB.insertSingle(args[0].toLong(), args[1].mapToChannelIdPair())
     }
 
     context(iData: InteractionData)
@@ -301,8 +293,8 @@ object PrivateCommands {
         YTNotificationsDB.addData(
             id,
             dm,
-            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs()
-                .filterNotNull().toList()
+            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.map { it.mapToChannelIdPair().first }
+                .toList()
         )
     }
 
@@ -485,13 +477,8 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    suspend fun subscribeToYT(args: PrivateData) {
-        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first()!!)
-    }
-
-    context(iData: InteractionData)
     suspend fun getChannelIdFromUrl(args: PrivateData) {
-        iData.reply(args.asFlow().mapIdentifierToChannelIDs().toList().joinToString())
+        iData.reply(args.asFlow().map { it.mapToChannelIdPair() }.joinToString())
     }
 
     context(iData: InteractionData)

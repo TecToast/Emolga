@@ -153,8 +153,7 @@ inline fun String.ifNotEmpty(block: (String) -> String): String {
 }
 
 fun String.surroundWith(surround: String) = surround + this + surround
-fun String.surroundWithIf(surround: String, condition: Boolean) =
-    if (condition) surroundWith(surround) else this
+fun String.surroundWithIf(surround: String, condition: Boolean) = if (condition) surroundWith(surround) else this
 
 inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 
@@ -213,28 +212,22 @@ inline fun ignoreDuplicatesMongo(block: () -> Unit) =
 fun <T> Iterable<T>.reversedIf(condition: Boolean) = if (condition) reversed() else this.toList()
 
 enum class Language(
-    val translationCol: Column<String>,
-    val otherCol: Column<String>,
-    val ncSpecifiedCol: Column<String>
+    val translationCol: Column<String>, val otherCol: Column<String>, val ncSpecifiedCol: Column<String>
 ) {
-    GERMAN(TypesDB.GERMANNAME, TypesDB.ENGLISHNAME, NameConventionsDB.SPECIFIED),
-    ENGLISH(TypesDB.ENGLISHNAME, TypesDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH)
+    GERMAN(TypesDB.GERMANNAME, TypesDB.ENGLISHNAME, NameConventionsDB.SPECIFIED), ENGLISH(
+        TypesDB.ENGLISHNAME, TypesDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH
+    )
 }
 
 val String.isMega get() = "-Mega" in this
 
 fun Member.hasRole(roleId: Long) = unsortedRoles.any { it.idLong == roleId }
 
-fun InlineModal.short(customId: String, label: String, required: Boolean, placeholder: String? = null) =
-    label(
-        label = label,
-        child = TextInput(
-            customId = customId,
-            style = TextInputStyle.SHORT,
-            required = required,
-            placeholder = placeholder
-        )
+fun InlineModal.short(customId: String, label: String, required: Boolean, placeholder: String? = null) = label(
+    label = label, child = TextInput(
+        customId = customId, style = TextInputStyle.SHORT, required = required, placeholder = placeholder
     )
+)
 
 suspend fun K18nMessage.translateToGuildLanguage(guildId: Long?) = translateTo(GuildLanguageDB.getLanguage(guildId))
 fun K18nMessage.default() = translateTo(K18N_DEFAULT_LANGUAGE)
@@ -281,3 +274,16 @@ inline fun b(crossinline builder: context(K18nLanguage) () -> String) = object :
 }
 
 inline fun Boolean.ifTrueOrEmpty(builder: () -> String) = if (this) builder() else ""
+
+suspend fun String.mapToChannelIdPair(): Pair<String, String?> {
+    val base = substringBefore("?")
+    val result =
+        if ("@" !in base) base.substringAfter("channel/").takeIf { Google.validateChannelIdExists(it) }
+            ?.let { it to null }
+        else {
+            val channelHandle = base.substringAfter("@")
+            Google.fetchChannelId(channelHandle)?.let { it to channelHandle }
+        }
+    if (result == null) error("No channel found for $base")
+    return result
+}

@@ -293,7 +293,7 @@ sealed class SignUpInput {
             return ModalInputOptions(label = K18n_SignupInput.SDNAME, required = true, requiredLength = 1..18)
         }
 
-        override fun validate(data: String) = SignUpValidateResult.wrapNullable(
+        override suspend fun validate(data: String) = SignUpValidateResult.wrapNullable(
             data.takeIf { data.toUsername().length in 1..18 }, K18n_SignupInput.SDNAMEInvalid
         )
 
@@ -332,7 +332,7 @@ sealed class SignUpInput {
             return ModalInputOptions(label = name.k18n, required = true, placeholder = null, list = list)
         }
 
-        override fun validate(data: String) = SignUpValidateResult.wrapNullable(
+        override suspend fun validate(data: String) = SignUpValidateResult.wrapNullable(
             list.firstOrNull { it.equals(data, ignoreCase = true) },
             K18n_SignupInput.OF_LIST_Allowed(list.joinToString(", ") { opt -> "`$opt`" })
         )
@@ -340,15 +340,45 @@ sealed class SignUpInput {
         override fun getDisplayTitle() = name.takeIf { visibleForAll }?.k18n
     }
 
+    @Serializable
+    @SerialName("YTChannel")
+    @Config(
+        "YT-CHannel",
+        "Wenn dies eine YouTube-Liga ist, können die Teilnehmenden hier ihren Kanal angeben, damit später die Automatisierungen funktionieren"
+    )
+    data object YTChannel : SignUpInput() {
+        override val id = YT_CHANNEL_ID
+
+        override fun getModalInputOptions(): ModalInputOptions {
+            return ModalInputOptions(
+                label = K18n_SignupInput.YTChannelLabel,
+                required = true,
+                placeholder = "https://youtube.com/@tectoast".k18n
+            )
+        }
+
+        override suspend fun validate(data: String): SignUpValidateResult {
+            val (channelId, handle) = runCatching { data.mapToChannelIdPair() }.getOrNull()
+                ?: return SignUpValidateResult.Error(K18n_SignupInput.YTChannelInvalid(data))
+            return SignUpValidateResult.Success(handle?.let { "@$it" } ?: channelId)
+        }
+
+        override fun getDisplayTitle() = K18n_SignupInput.YTChannelLabel
+        override fun mapValueForDisplay(data: String) =
+            "https://youtube.com/${if (data.startsWith("@")) data else "channel/$data"}"
+    }
+
     abstract fun getModalInputOptions(): ModalInputOptions
-    open fun validate(data: String): SignUpValidateResult = SignUpValidateResult.Success(data)
+    open suspend fun validate(data: String): SignUpValidateResult = SignUpValidateResult.Success(data)
     open fun getDisplayTitle(): K18nMessage? = null
+    open fun mapValueForDisplay(data: String): String = data
 
     companion object {
         const val SDNAME_ID = "sdname"
         const val TEAMNAME_ID = "teamname"
         const val OFLIST_PREFIX_ID = "oflist_"
         const val LOGO_ID = "logo"
+        const val YT_CHANNEL_ID = "ytchannel"
     }
 }
 
@@ -786,8 +816,10 @@ data class SignUpData(
 ) {
     suspend fun toMessage(lsData: LigaStartData): String {
         return K18n_Signup.SignupConfirmMessage(formatName(), data.entries.mapNotNull { (k, v) ->
-            val displayTitle = lsData.getInputConfig(k)?.getDisplayTitle() ?: return@mapNotNull null
-            "${displayTitle}: **$v**"
+            val inputConfig = lsData.getInputConfig(k) ?: return@mapNotNull null
+            val displayTitle = inputConfig.getDisplayTitle()
+            val displayValue = inputConfig.mapValueForDisplay(v)
+            "${displayTitle}: **$displayValue**"
         }.joinToString("\n")).translateTo(lsData.language())
     }
 

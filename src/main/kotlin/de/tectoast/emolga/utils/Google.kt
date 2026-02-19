@@ -75,17 +75,11 @@ object Google {
      * @return The data, as a list of rows, each row being a list of cells
      */
     suspend fun get(
-        spreadsheetId: String,
-        range: String,
-        formula: Boolean,
-        majorDimension: String = "ROWS"
-    ): List<List<Any>> =
-        withContext(googleContext) {
-            sheetsService().spreadsheets()
-                .values()[spreadsheetId, range].setMajorDimension(majorDimension)
-                .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
-                .execute().getValues()
-        }
+        spreadsheetId: String, range: String, formula: Boolean, majorDimension: String = "ROWS"
+    ): List<List<Any>> = withContext(googleContext) {
+        sheetsService().spreadsheets().values()[spreadsheetId, range].setMajorDimension(majorDimension)
+            .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE").execute().getValues()
+    }
 
     /**
      * Gets the specified ranges of data from the specified spreadsheet
@@ -96,16 +90,12 @@ object Google {
      * @return The data, as a list of ranges, each list being a list of rows, each row being a list of cells
      */
     suspend fun batchGet(
-        sid: String,
-        ranges: List<String>,
-        formula: Boolean,
-        majorDimension: String = "ROWS"
-    ): List<List<List<Any?>>> =
-        withContext(googleContext) {
-            sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
-                .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
-                .execute().valueRanges.map { it.getValues() }
-        }
+        sid: String, ranges: List<String>, formula: Boolean, majorDimension: String = "ROWS"
+    ): List<List<List<Any?>>> = withContext(googleContext) {
+        sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
+            .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+            .execute().valueRanges.map { it.getValues() }
+    }
 
     /**
      * Gets the specified ranges of data from the specified spreadsheet
@@ -116,16 +106,12 @@ object Google {
      * @return The data, as a list of ranges, each list being a list of rows, each row being a list of cells
      */
     suspend fun batchGetStrings(
-        sid: String,
-        ranges: List<String>,
-        formula: Boolean,
-        majorDimension: String = "ROWS"
-    ): List<List<List<String>>> =
-        withContext(googleContext) {
-            sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
-                .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
-                .execute().valueRanges.map { it.getValues().map { row -> row.map { o -> o.toString() } } }
-        }
+        sid: String, ranges: List<String>, formula: Boolean, majorDimension: String = "ROWS"
+    ): List<List<List<String>>> = withContext(googleContext) {
+        sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
+            .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+            .execute().valueRanges.map { it.getValues().map { row -> row.map { o -> o.toString() } } }
+    }
 
 
     suspend fun getSheetData(spreadsheetId: String?, vararg range: String): Spreadsheet = withContext(googleContext) {
@@ -167,37 +153,48 @@ object Google {
     suspend fun uploadFileToDrive(parent: String, name: String, mimeType: String, data: ByteArray): String =
         withContext(googleContext) {
             val fileId = driveService().files().create(
-                File().setParents(listOf(parent)).setName(name),
-                ByteArrayContent(
-                    mimeType,
-                    data
+                File().setParents(listOf(parent)).setName(name), ByteArrayContent(
+                    mimeType, data
                 )
             ).setUploadType("media").setUseContentAsIndexableText(false).execute().id
             driveService().permissions().create(fileId, Permission().setType("anyone").setRole("reader")).execute()
             fileId
         }
 
-    suspend fun fetchChannelId(channelHandle: String) = withContext(googleContext) {
-        youtubeService().channels().list("snippet".l).apply {
-            forHandle = channelHandle
-        }.execute()?.items?.firstOrNull()?.id
+    private val channelHandleIdCache = SizeLimitedMap<String, String?>(100)
+    suspend fun fetchChannelId(channelHandle: String) = channelHandleIdCache.getOrPut(channelHandle) {
+        withContext(googleContext) {
+            youtubeService().channels().list("snippet".l).apply {
+                forHandle = channelHandle
+            }.execute()?.items?.firstOrNull()?.id
+        }
     }
+
+    private val validatedChannelIdsCache = SizeLimitedMap<String, Boolean>(100)
+    suspend fun validateChannelIdExists(channelId: String) = validatedChannelIdsCache.getOrPut(
+        channelId
+    ) {
+        withContext(googleContext) {
+            youtubeService().channels().list("snippet".l).apply {
+                id = channelId.l
+            }.execute()?.items?.isNotEmpty() == true
+        }
+    }
+
 
     suspend fun uploadLogoToCloud(
         data: LogoInputData,
         handler: (LogoChecksum) -> Unit = {},
-    ) =
-        withContext(Dispatchers.IO) {
-            val logoData = LogoChecksumDB.findByChecksum(data.checksum) ?: run {
-                val fileId = uploadFileToDrive(
-                    LOGO_PARENT_ID!!, data.fileName,
-                    "image/${data.fileExtension}", data.bytes
-                )
-                LogoChecksum(data.checksum, fileId).also { LogoChecksumDB.insertData(it) }
-            }
-            handler(logoData)
-            logoData.checksum
+    ) = withContext(Dispatchers.IO) {
+        val logoData = LogoChecksumDB.findByChecksum(data.checksum) ?: run {
+            val fileId = uploadFileToDrive(
+                LOGO_PARENT_ID!!, data.fileName, "image/${data.fileExtension}", data.bytes
+            )
+            LogoChecksum(data.checksum, fileId).also { LogoChecksumDB.insertData(it) }
         }
+        handler(logoData)
+        logoData.checksum
+    }
 
     /**
      * Generates an access token with the stored credentials

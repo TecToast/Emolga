@@ -42,6 +42,7 @@ import dev.minn.jda.ktx.messages.into
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.sync.Mutex
@@ -76,6 +77,7 @@ import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.roundToInt
+import kotlin.random.Random
 import kotlin.reflect.KProperty1
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -1170,9 +1172,15 @@ data class LadderTournament(
 
     private suspend fun fetchDataForUsers(): Map<Long, SDUserResponse> {
         return users.filter { it.value.verified }.mapValues {
-            delay(5000)
-            httpClient.get("https://pokemonshowdown.com/users/${it.value.sdName.toUsername()}.json")
-                .body<SDUserResponse>()
+            delay(Random.nextLong(5000, 10000))
+            repeat(5) { _ ->
+                val response = httpClient.get("https://pokemonshowdown.com/users/${it.value.sdName.toUsername()}.json")
+                if (response.status.isSuccess()) {
+                    return@mapValues response.body<SDUserResponse>()
+                }
+                delay(Random.nextLong(5000, 15000))
+            }
+            error("Failed to fetch data for user ${it.value.sdName}")
         }
     }
 

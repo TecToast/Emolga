@@ -133,7 +133,7 @@ class NDS(val rr: Boolean) : League() {
                         gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"
                     )
                 }
-                if (winnerIndex == i) {
+                if (fullGameData.winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
                     b.addSingle(getTeamname(fullGameData.uindices[i]) + s, "$higherNumber:0")
                     b.addSingle(getTeamname(fullGameData.uindices[1 - i]) + s, "0:$higherNumber")

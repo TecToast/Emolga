@@ -110,8 +110,16 @@ class DocEntry private constructor(val league: League) {
         val store = config.replayDataStore
         val gamedayData = fullGameData.gamedayData
         league.config.tipgame?.let { _ ->
+            val gameday = gamedayData.gameday
+            val battleindex = gamedayData.battleindex
             league.executeTipGameLockButtonsIndividual(
-                gamedayData.gameday, gamedayData.battleindex
+                gameday, battleindex
+            )
+            TipGameVotesDB.updateCorrectBattles(
+                league.leaguename,
+                gameday,
+                battleindex,
+                fullGameData.winnerIdx
             )
         }
         if (store != null || config.hideGames != null) {
@@ -166,7 +174,6 @@ class DocEntry private constructor(val league: League) {
         val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
-        val uindices = fullGameData.uindices
         val matchResultJobs = StatProcessorService.execute(
             AdditionalDataProvider(NameConventionsProviderCache(league.guild), BuiltInAnalysisProvider),
             customB ?: b,
@@ -181,17 +188,9 @@ class DocEntry private constructor(val league: League) {
             }
         }
         val (gameday, battleindex) = gamedayData
-        val winnerIdx: Int
-        val winnerIndex: Int
         val bo3 = fullGameData.games.size > 1
         if (bo3) {
-            val groupBy = fullGameData.games.groupBy { it.winnerIndex }
-            winnerIndex = groupBy.maxBy { it.value.size }.key
-            winnerIdx = uindices[winnerIndex]
-            league.config.tipgame?.let { _ ->
-                TipGameVotesDB.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
-            }
-            val numbers = (0..1).map { groupBy[it]?.size ?: 0 }
+            val numbers = (0..1).map { fullGameData.groupedByWinnerIndex[it]?.size ?: 0 }
             resultCreator?.let {
                 AdvancedResult(
                     b = b,
@@ -201,18 +200,11 @@ class DocEntry private constructor(val league: League) {
                     numberTwo = numbers[1],
                     url = "",
                     fullGameData = fullGameData,
-                    league = league,
-                    winnerIdx = winnerIdx,
-                    winnerIndex = winnerIndex
+                    league = league
                 ).it()
             }
         } else {
             val replayData = fullGameData.games.first()
-            winnerIndex = replayData.winnerIndex
-            winnerIdx = uindices[winnerIndex]
-            league.config.tipgame?.let { _ ->
-                TipGameVotesDB.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
-            }
             val numbers = replayData.kd.map { kdMap ->
                 kdMap.values.count { it.deaths == 0 }
             }
@@ -226,8 +218,6 @@ class DocEntry private constructor(val league: League) {
                     url = replayData.url,
                     fullGameData = fullGameData,
                     league = league,
-                    winnerIdx = winnerIdx,
-                    winnerIndex = winnerIndex,
                 ).it()
             }
         }
@@ -521,6 +511,16 @@ data class FullGameData(
     val games: List<ReplayData>,
     val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
 ) {
+    val groupedByWinnerIndex by lazy {
+        games.groupBy { it.winnerIndex }
+    }
+    val winnerIndex by lazy {
+        groupedByWinnerIndex.maxBy { it.value.size }.key
+    }
+    val winnerIdx by lazy {
+        uindices[winnerIndex]
+    }
+
     suspend fun checkIfBothVideosArePresent(league: League) {
         val ytSave = ytVideoSaveData
         val shouldExecute = ytSave.vids.size == uindices.size
@@ -577,8 +577,6 @@ data class AdvancedResult(
     val url: String,
     val fullGameData: FullGameData,
     val league: League,
-    val winnerIdx: Int,
-    val winnerIndex: Int,
 ) {
     val firstReplayData = fullGameData.games.first()
     val idxs by lazy {

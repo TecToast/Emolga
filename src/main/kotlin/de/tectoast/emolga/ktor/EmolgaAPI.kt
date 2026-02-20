@@ -240,6 +240,7 @@ fun Route.emolgaAPI() {
             val resultId = call.parameters["resultid"] ?: return@post call.respond(HttpStatusCode.BadRequest)
             val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
             val body = call.receive<List<List<Map<String, KD>>>>()
+            if (body.size > 3 || body.isEmpty()) return@post call.respond(HttpStatusCode.BadRequest)
             // TODO: Maybe combine with ResultEntry? and clean up
             val idx1 = resData[ResultCodesDB.P1]
             val idx2 = resData[ResultCodesDB.P2]
@@ -251,6 +252,13 @@ fun Route.emolgaAPI() {
                 val (gamedayData, u1IsSecond) = getGamedayData(idx1, idx2)
                 val officialNameCache = mutableMapOf<String, String>()
                 val games = body.map { singleGame ->
+                    if (singleGame.size != 2 || singleGame.any { it.size > 6 }) return@post call.respond(HttpStatusCode.BadRequest)
+                    for (i in 0..1) {
+                        if (singleGame[i].values.any { it.deaths !in 0..1 }) return@post call.respond(HttpStatusCode.BadRequest)
+                        if (singleGame[i].values.sumOf { it.kills } != singleGame[1 - i].values.sumOf { it.deaths }) return@post call.respond(
+                            HttpStatusCode.BadRequest
+                        )
+                    }
                     ReplayData(
                         kd = singleGame.reversedIf(u1IsSecond).map { p ->
                             p.map {

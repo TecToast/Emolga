@@ -1065,7 +1065,7 @@ sealed class League {
             }
         }
 
-        suspend fun executeOnFreshLock(name: String, block: suspend League.() -> Unit) = getLock(name).withLock {
+        suspend inline fun executeOnFreshLock(name: String, block: suspend League.() -> Unit) = getLock(name).withLock {
             val league = mdb.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
             league.block()
             league.lockCleanup()

@@ -54,9 +54,10 @@ object TipGameAnalyseService {
     suspend fun getTipGameStatsWithAboveAndBelow(gid: Long, userId: Long) = dbTransaction {
         with(TipGameVotesDB) {
             val leaguePredicate = leaguePredicate(gid)
-            val correctVotes = getCorrectExpression().alias("correct_votes")
+            val correctVotesWithoutAlias = getCorrectExpression()
+            val correctVotes = correctVotesWithoutAlias.alias("correct_votes")
             val totalVotes = getTotalExpression().alias("total_votes")
-            val rankExpression = Rank().over().orderBy(correctVotes, SortOrder.DESC).alias("rank")
+            val rankExpression = Rank().over().orderBy(correctVotesWithoutAlias, SortOrder.DESC).alias("rank")
             val leaderboardAlias = select(USERID, correctVotes, totalVotes, rankExpression)
                 .where { leaguePredicate }
                 .groupBy(USERID)
@@ -68,9 +69,7 @@ object TipGameAnalyseService {
             val totalCol = leaderboardAlias[totalVotes]
 
             val targetRank = leaderboardAlias.select(rankCol).where { userCol eq userId }.singleOrNull()?.get(rankCol)
-            if (targetRank == null) {
-                return@dbTransaction null
-            }
+                ?: return@dbTransaction null
             leaderboardAlias
                 .select(rankCol, userCol, correctCol, totalCol)
                 .where { rankCol.between(targetRank - ABOVE_BELOW, targetRank + ABOVE_BELOW) }

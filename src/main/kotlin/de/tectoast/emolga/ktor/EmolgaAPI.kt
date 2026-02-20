@@ -65,6 +65,9 @@ fun Route.emolgaAPI() {
         get("/validateuser") {
             call.respond(GuildManagerDB.isUserAuthorized(call.userId))
         }
+        route("/sixvspokeworld") {
+            sixVsPokeworld()
+        }
         Ktor.injectedRouteHandlers.forEach { (path, handler) ->
             get(path) {
                 handler(call)

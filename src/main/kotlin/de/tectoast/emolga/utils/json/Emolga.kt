@@ -113,7 +113,7 @@ data class SixVsPokeworldConfig(
     )
 
     @Serializable
-    data class ExerciseData(val title: String, val text: String, val fileBase64: String, val reward: String)
+    data class ExerciseData(val title: String, val text: String, val fileKey: String = "", val reward: String)
 }
 
 

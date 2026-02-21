@@ -187,17 +187,14 @@ object Analysis {
                 } else {
                     resultChannel.sendMessage(description).queue()
                 }
-                var shouldSendZoro = false
+                var illusionMonPresent = false
                 for (ga in game) {
                     if (ga.containsZoro()) {
                         resultchannelParam.sendMessage(
                             K18n_Analysis.IllusionWarning(ga.nickname).translateTo(lang)
                         ).queue()
-                        shouldSendZoro = true
+                        illusionMonPresent = true
                     }
-                }
-                if (shouldSendZoro) {
-                    jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
                 }
                 if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
                         val (kills, deaths) = game[i].totalKDCount
@@ -205,12 +202,12 @@ object Analysis {
                     }.let { it.first != it.second }) {
                     resultchannelParam.send(
                         K18n_Analysis.KillsDeathsNotMatching(
-                            (if (shouldSendZoro) K18n_Analysis.PotentialZoroark else K18n_Analysis.OtherIssue).translateTo(
+                            (if (illusionMonPresent) K18n_Analysis.PotentialZoroark else K18n_Analysis.OtherIssue).translateTo(
                                 lang
                             )
                         ).translateTo(lang)
                     ).queue()
-                    SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
+                    SendFeatures.sendToMe((if (illusionMonPresent) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
                 }
             }
 

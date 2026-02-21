@@ -92,6 +92,7 @@ private var delegateDb: MongoEmolga? = null
 private val logger = KotlinLogging.logger {}
 
 fun initMongo(dbUrl: String = Credentials.tokens.mongoDB, dbName: String = DEFAULT_DB_NAME) {
+    mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
     delegateDb?.let { error("MongoDB already initialized!") }
     delegateDb = MongoEmolga(dbUrl, dbName)
 }
@@ -119,10 +120,8 @@ data class SixVsPokeworldConfig(
 class MongoEmolga(dbUrl: String, dbName: String) {
     private val logger = KotlinLogging.logger {}
     val client = KMongo.createClient(dbUrl).coroutine
-    val db = run {
-        mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
-        client.getDatabase(dbName)
-    }
+    val db = client.getDatabase(dbName)
+
     val sixVsPokeworld = client.getDatabase("sixvspokeworld")
     val sixVsPokeworldChallenges by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("challenges") }
 

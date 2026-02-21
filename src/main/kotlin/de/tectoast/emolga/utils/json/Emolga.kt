@@ -96,12 +96,35 @@ fun initMongo(dbUrl: String = Credentials.tokens.mongoDB, dbName: String = DEFAU
     delegateDb = MongoEmolga(dbUrl, dbName)
 }
 
+@Serializable
+data class SixVsPokeworldConfig(
+    val challenges: List<SixVsPokeworldMilestone> = listOf()
+) {
+
+    @Serializable
+    data class SixVsPokeworldMilestone(
+        val title: String,
+        val info: String,
+        val infoReward: String,
+        val easy: ExerciseData,
+        val medium: ExerciseData,
+        val hard: ExerciseData,
+    )
+
+    @Serializable
+    data class ExerciseData(val title: String, val text: String, val fileBase64: String, val reward: String)
+}
+
+
 class MongoEmolga(dbUrl: String, dbName: String) {
     private val logger = KotlinLogging.logger {}
+    val client = KMongo.createClient(dbUrl).coroutine
     val db = run {
         mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
-        KMongo.createClient(dbUrl).coroutine.getDatabase(dbName)
+        client.getDatabase(dbName)
     }
+    val sixVsPokeworld = client.getDatabase("sixvspokeworld")
+    val sixVsPokeworldChallenges by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("challenges") }
 
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 

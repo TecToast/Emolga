@@ -2,7 +2,7 @@
 
 package de.tectoast.emolga.league.config
 
-import de.tectoast.emolga.features.draft.InstantToStringSerializer
+import de.tectoast.emolga.features.league.InstantToStringSerializer
 import de.tectoast.emolga.utils.DurationSerializer
 import de.tectoast.emolga.utils.FullGameData
 import kotlinx.serialization.SerialName

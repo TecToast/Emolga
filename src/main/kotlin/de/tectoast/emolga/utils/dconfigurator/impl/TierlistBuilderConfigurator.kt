@@ -2,8 +2,8 @@ package de.tectoast.emolga.utils.dconfigurator.impl
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.draft.ExternalTierlistData
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.features.league.ExternalTierlistData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon

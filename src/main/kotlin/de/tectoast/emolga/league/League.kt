@@ -7,12 +7,12 @@ import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
-import de.tectoast.emolga.features.draft.AddToTierlistData
-import de.tectoast.emolga.features.draft.K18n_TipGame
-import de.tectoast.emolga.features.draft.TipGameCurrentStateType
-import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.features.draft.during.K18n_QueuePicks
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.features.league.AddToTierlistData
+import de.tectoast.emolga.features.league.K18n_TipGame
+import de.tectoast.emolga.features.league.TipGameCurrentStateType
+import de.tectoast.emolga.features.league.TipGameManager
+import de.tectoast.emolga.features.league.draft.K18n_QueuePicks
 import de.tectoast.emolga.league.config.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*

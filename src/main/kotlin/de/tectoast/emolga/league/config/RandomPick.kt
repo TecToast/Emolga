@@ -3,8 +3,8 @@ package de.tectoast.emolga.league.config
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.ArgumentPresence
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.draft.during.K18n_RandomPick
-import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
+import de.tectoast.emolga.features.league.draft.K18n_RandomPick
+import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftAction

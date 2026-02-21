@@ -13,10 +13,10 @@ import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
-import de.tectoast.emolga.features.draft.K18n_Signup
-import de.tectoast.emolga.features.draft.LogoCommand.allowedFileFormats
-import de.tectoast.emolga.features.draft.SignupManager
-import de.tectoast.emolga.features.draft.TipGame
+import de.tectoast.emolga.features.league.K18n_Signup
+import de.tectoast.emolga.features.league.LogoCommand.allowedFileFormats
+import de.tectoast.emolga.features.league.SignupManager
+import de.tectoast.emolga.features.league.TipGame
 import de.tectoast.emolga.features.various.ShinyEvent
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
 import de.tectoast.emolga.ktor.InstantAsDateSerializer

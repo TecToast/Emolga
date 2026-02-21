@@ -6,10 +6,10 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
-import de.tectoast.emolga.features.draft.SignupManager
-import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
+import de.tectoast.emolga.features.league.SignupManager
+import de.tectoast.emolga.features.league.draft.DraftPermissionCommand
 import de.tectoast.emolga.features.various.GuildAuthorizeButton
 import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
@@ -57,7 +57,7 @@ import java.util.regex.Pattern
 import kotlin.reflect.full.isSubclassOf
 import kotlin.time.measureTime
 import kotlin.uuid.ExperimentalUuidApi
-import de.tectoast.emolga.features.draft.LadderTournament as LadderTournamentFeature
+import de.tectoast.emolga.features.league.LadderTournament as LadderTournamentFeature
 
 @Suppress("unused")
 object PrivateCommands {

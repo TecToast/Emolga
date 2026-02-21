@@ -1,6 +1,6 @@
 package de.tectoast.emolga.league.config
 
-import de.tectoast.emolga.features.draft.TipGame
+import de.tectoast.emolga.features.league.TipGame
 import de.tectoast.emolga.utils.DraftTimer
 import kotlinx.serialization.Serializable
 

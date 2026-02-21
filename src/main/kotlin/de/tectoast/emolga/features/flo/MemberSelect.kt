@@ -4,7 +4,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
+import de.tectoast.emolga.features.league.draft.DraftPermissionCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.mdb

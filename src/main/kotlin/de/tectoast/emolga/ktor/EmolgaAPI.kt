@@ -5,7 +5,7 @@ package de.tectoast.emolga.ktor
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.GuildManagerDB.getGuildsForUser
-import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.features.league.SignupManager
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.RPL
 import de.tectoast.emolga.utils.*

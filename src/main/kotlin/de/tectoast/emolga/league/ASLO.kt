@@ -1,7 +1,7 @@
 package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.league.AddToTierlistData
 import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod

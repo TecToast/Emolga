@@ -3,9 +3,9 @@ package de.tectoast.emolga
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.TestInteractionData
-import de.tectoast.emolga.features.draft.during.MoveCommand
-import de.tectoast.emolga.features.draft.during.PickCommand
-import de.tectoast.emolga.features.draft.during.RandomPick
+import de.tectoast.emolga.features.league.draft.MoveCommand
+import de.tectoast.emolga.features.league.draft.PickCommand
+import de.tectoast.emolga.features.league.draft.RandomPick
 import de.tectoast.emolga.features.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants

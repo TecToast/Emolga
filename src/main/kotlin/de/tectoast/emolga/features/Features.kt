@@ -7,7 +7,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TypesDB
-import de.tectoast.emolga.features.draft.during.generic.K18n_PokemonNotFound
+import de.tectoast.emolga.features.league.draft.generic.K18n_PokemonNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist

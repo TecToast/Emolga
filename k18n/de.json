@@ -8,8 +8,8 @@
           }
         },
         "features": {
-          "draft": {
-            "during": {
+          "league": {
+            "draft": {
               "generic": {
                 "NoLeagueForGuildFound": "Du nimmst nicht an einer Liga auf diesem Server teil!",
                 "NoWritePermission": "Ich habe keine Schreibrechte in diesem Channel!",

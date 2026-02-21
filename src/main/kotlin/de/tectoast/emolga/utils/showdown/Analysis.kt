@@ -4,8 +4,8 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.draft.during.generic.K18n_NoWritePermissionInChannel
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.features.league.draft.generic.K18n_NoWritePermissionInChannel
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*

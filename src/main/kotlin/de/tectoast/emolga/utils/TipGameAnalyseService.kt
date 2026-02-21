@@ -4,7 +4,7 @@ import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.TipGameVotesDB
 import de.tectoast.emolga.database.exposed.joinToString
 import de.tectoast.emolga.database.exposed.toMap
-import de.tectoast.emolga.features.draft.K18n_TipGameCommand
+import de.tectoast.emolga.features.league.K18n_TipGameCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.k18n.generated.K18nLanguage

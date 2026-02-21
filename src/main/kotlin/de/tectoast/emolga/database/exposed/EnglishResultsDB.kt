@@ -3,6 +3,7 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.k18n.generated.K18nLanguage
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insert
@@ -22,7 +23,7 @@ object EnglishResultsDB : Table("english_results") {
         (select(GUILDID).where { GUILDID eq guildid }
             .union(
                 GuildLanguageDB.select(GuildLanguageDB.GUILD)
-                    .where { GuildLanguageDB.LANGUAGE eq K18nLanguage.EN })).count() > 0
+                    .where { (GuildLanguageDB.GUILD eq guildid) and (GuildLanguageDB.LANGUAGE eq K18nLanguage.EN) })).count() > 0
     }
 
     /**

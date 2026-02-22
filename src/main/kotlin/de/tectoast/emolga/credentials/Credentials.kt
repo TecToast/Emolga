@@ -2,6 +2,7 @@ package de.tectoast.emolga.credentials
 
 import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.StaticCloud
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.myJSON
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,10 @@ object Credentials {
 
     private fun injectTokens() {
         with(tokens.google) {
-            Google.setCredentials(refreshtoken, clientid, clientsecret, logoParentId)
+            Google.setCredentials(refreshtoken, clientid, clientsecret)
+        }
+        with(tokens.staticCloud) {
+            StaticCloud.init(token, baseUrl, hashLength)
         }
         Ktor.oauth2Secret = tokens.oauth2.clientsecret
         Ktor.artworkPath = tokens.artworkPath

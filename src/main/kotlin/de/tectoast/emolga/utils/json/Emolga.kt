@@ -9,7 +9,6 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
-import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
@@ -71,7 +70,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.net.URI
 import java.security.MessageDigest
 import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
@@ -542,7 +540,7 @@ data class LigaStartData(
     }
 
     suspend fun buildModal(old: SignUpData?): Modal? {
-        if (config.signupStructure.isEmpty()) return null
+        if (config.signupStructure.isEmpty() && !config.allowTeams && config.logoSettings == null) return null
         val lang = language()
         return Modal("signup;".notNullAppend(old?.let { "change" }), K18n_SignupNoun.translateToGuildLanguage(guild)) {
             config.signupStructure.forEach {
@@ -758,14 +756,14 @@ data class LigaStartData(
             }
             val signUpIndex = getIndexOfUser(uid) ?: return K18n_Signup.NotSignedUp
             val signUpData = users[signUpIndex]
-            val logoData = LogoInputData.fromAttachment(logo)
+            val logoData = LogoInputData.fromAttachment(logo, teamName = signUpData.data[SignUpInput.TEAMNAME_ID])
             if (logoData.isError()) {
                 return logoData.message
             }
             config.logoSettings.handleLogo(this, signUpData, logoData.value)
             val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
-            delay(GOOGLE_UPLOAD_DELAY_MS - timeSinceLastUpload)
-            val checksum = Google.uploadLogoToCloud(logoData.value)
+            delay(UPLOAD_DELAY_MS - timeSinceLastUpload)
+            val checksum = StaticCloud.uploadLogoToCloud(logoData.value)
             mdb.signups.updateOne(
                 LigaStartData::guild eq guild,
                 set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
@@ -787,14 +785,13 @@ data class LigaStartData(
     companion object {
         private val logoUploadMutex = Mutex()
         private var lastLogoUploadTime: Long = 0
-        private const val GOOGLE_UPLOAD_DELAY_MS = 5000
+        private const val UPLOAD_DELAY_MS = 500
     }
 
 }
 
-class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
-    val checksum = hashBytes(bytes)
-    val fileName = "$checksum.$fileExtension"
+class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamName: String? = null) {
+    val fileName = "${hashBytes(bytes)}.$fileExtension"
 
     fun toFileUpload() = FileUpload.fromData(bytes, fileName)
 
@@ -804,7 +801,8 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
 
         suspend fun fromAttachment(
             attachment: Message.Attachment,
-            ignoreRequirements: Boolean = false
+            ignoreRequirements: Boolean = false,
+            teamName: String? = null
         ): CalcResult<LogoInputData> = withContext(Dispatchers.IO) {
             attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
                 ?: return@withContext CalcResult.Error(K18n_SignupInput.LogoMustBeImage)
@@ -823,7 +821,7 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
             val baos = ByteArrayOutputStream()
             ImageIO.write(croppedImage, "png", baos)
             val finalBytes = baos.toByteArray()
-            CalcResult.Success(LogoInputData("png", finalBytes))
+            CalcResult.Success(LogoInputData("png", finalBytes, teamName))
         }
     }
 }
@@ -852,7 +850,7 @@ fun <T> CalcResult<T>.unwrap(): T {
 
 private fun hashBytes(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
     str + "%02x".format(it)
-}.take(15)
+}.take(16)
 
 @Serializable
 data class SignUpData(
@@ -876,12 +874,8 @@ data class SignUpData(
 
     suspend fun downloadLogo(): BufferedImage? {
         val checksum = logoChecksum ?: return null
-        val data = LogoChecksumDB.findByChecksum(checksum) ?: return null
-        return withContext(Dispatchers.IO) {
-            ImageIO.read(URI(data.url).toURL())
-        }
+        return StaticCloud.downloadImage(checksum)
     }
-
 }
 
 @Serializable
@@ -942,17 +936,6 @@ data class ShinyEventConfig(
         } else {
             channel.editMessage(pointMessageId.toString(), msg).queue()
         }
-    }
-}
-
-
-data class LogoChecksum(
-    val checksum: String, val fileId: String
-) {
-    val url get() = "$DOWNLOAD_URL_PREFIX${fileId}"
-
-    companion object {
-        const val DOWNLOAD_URL_PREFIX = "https://drive.google.com/uc?export=download&id="
     }
 }
 

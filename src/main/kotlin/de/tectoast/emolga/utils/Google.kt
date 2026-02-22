@@ -4,18 +4,11 @@ import com.google.api.client.auth.oauth2.BearerToken
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-import com.google.api.client.http.ByteArrayContent
 import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.drive.Drive
-import com.google.api.services.drive.model.File
-import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.model.*
 import com.google.api.services.youtube.YouTube
-import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.utils.Google.setCredentials
-import de.tectoast.emolga.utils.json.LogoChecksum
-import de.tectoast.emolga.utils.json.LogoInputData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
@@ -26,20 +19,12 @@ object Google {
     private var REFRESHTOKEN: String? = null
     private var CLIENTID: String? = null
     private var CLIENTSECRET: String? = null
-    private var LOGO_PARENT_ID: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
     @OptIn(ExperimentalTime::class)
     private val accesstoken: TimedCache<String> = TimedCache(45.minutes) { generateAccessToken() }
     private val sheetsService = MappedCache(accesstoken) {
         Sheets.Builder(
-            GoogleNetHttpTransport.newTrustedTransport(),
-            GsonFactory.getDefaultInstance(),
-            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
-        ).setApplicationName("emolga").build()
-    }
-    private val driveService = MappedCache(accesstoken) {
-        Drive.Builder(
             GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),
             Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
@@ -59,11 +44,10 @@ object Google {
      * @param clientID The client ID
      * @param clientSecret The client secret
      */
-    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String, logoParentId: String) {
+    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String) {
         REFRESHTOKEN = refreshToken
         CLIENTID = clientID
         CLIENTSECRET = clientSecret
-        LOGO_PARENT_ID = logoParentId
     }
 
     /**
@@ -142,25 +126,6 @@ object Google {
         }
     }
 
-    /**
-     * Uploads the specified file to the specified folder in Google Drive
-     * @param parent The ID of the folder
-     * @param name The name of the file
-     * @param mimeType The MIME type of the file
-     * @param data The data of the file
-     * @return The ID of the file
-     */
-    suspend fun uploadFileToDrive(parent: String, name: String, mimeType: String, data: ByteArray): String =
-        withContext(googleContext) {
-            val fileId = driveService().files().create(
-                File().setParents(listOf(parent)).setName(name), ByteArrayContent(
-                    mimeType, data
-                )
-            ).setUploadType("media").setUseContentAsIndexableText(false).execute().id
-            driveService().permissions().create(fileId, Permission().setType("anyone").setRole("reader")).execute()
-            fileId
-        }
-
     private val channelHandleIdCache = SizeLimitedMap<String, String?>(100)
     suspend fun fetchChannelId(channelHandle: String) = channelHandleIdCache.getOrPut(channelHandle) {
         withContext(googleContext) {
@@ -181,20 +146,6 @@ object Google {
         }
     }
 
-
-    suspend fun uploadLogoToCloud(
-        data: LogoInputData,
-        handler: (LogoChecksum) -> Unit = {},
-    ) = withContext(Dispatchers.IO) {
-        val logoData = LogoChecksumDB.findByChecksum(data.checksum) ?: run {
-            val fileId = uploadFileToDrive(
-                LOGO_PARENT_ID!!, data.fileName, "image/${data.fileExtension}", data.bytes
-            )
-            LogoChecksum(data.checksum, fileId).also { LogoChecksumDB.insertData(it) }
-        }
-        handler(logoData)
-        logoData.checksum
-    }
 
     /**
      * Generates an access token with the stored credentials

@@ -12,14 +12,14 @@ data class Tokens(
     val database: Database,
     val mongoDB: String,
     val oauth2: Oauth2,
-    val artworkPath: String
+    val artworkPath: String,
+    val staticCloud: StaticCloud,
 ) {
     @Serializable
     data class Google(
         val refreshtoken: String,
         val clientid: String,
         val clientsecret: String,
-        val logoParentId: String,
     )
 
     @Serializable
@@ -40,5 +40,8 @@ data class Tokens(
     data class Oauth2(
         val clientsecret: String
     )
+
+    @Serializable
+    data class StaticCloud(val token: String, val baseUrl: String, val hashLength: Int = 24)
 }
 

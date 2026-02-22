@@ -4,7 +4,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.StaticCloud
 import de.tectoast.emolga.utils.json.LogoInputData
 import de.tectoast.emolga.utils.json.unwrap
 import de.tectoast.emolga.utils.k18n
@@ -12,11 +12,9 @@ import kotlinx.coroutines.delay
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.commands.OptionType
 
-object SpecialLogoCommand :
-    CommandFeature<SpecialLogoCommand.Args>(
-        ::Args,
-        CommandSpec("speciallogo", "Speichert ein Logo in der Cloud".k18n)
-    ) {
+object SpecialLogoCommand : CommandFeature<SpecialLogoCommand.Args>(
+    ::Args, CommandSpec("speciallogo", "Speichert ein Logo in der Cloud".k18n)
+) {
 
     init {
         restrict(flo)
@@ -24,11 +22,7 @@ object SpecialLogoCommand :
 
     class Args : Arguments() {
         var logos by genericList<Message.Attachment, Message.Attachment>(
-            "Logo %s",
-            "Das Logo %s".k18n,
-            12,
-            0,
-            OptionType.ATTACHMENT
+            "Logo %s", "Das Logo %s".k18n, 12, 0, OptionType.ATTACHMENT
         )
     }
 
@@ -36,9 +30,9 @@ object SpecialLogoCommand :
     override suspend fun exec(e: Args) {
         for (logoData in e.logos) {
             val logo = LogoInputData.fromAttachment(logoData, ignoreRequirements = true).unwrap()
-            Google.uploadLogoToCloud(logo) {
-                iData.jda.getTextChannelById(447357526997073932)!!.sendMessage("${it.checksum}\n${it.url}").queue()
-            }
+            val fileName = StaticCloud.uploadLogoToCloud(logo)
+            iData.jda.getTextChannelById(447357526997073932)!!
+                .sendMessage("$fileName\n${StaticCloud.getImageDownloadLink(fileName)}").queue()
             delay(3000)
         }
     }

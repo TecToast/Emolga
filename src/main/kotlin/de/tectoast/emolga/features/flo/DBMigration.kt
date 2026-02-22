@@ -4,12 +4,14 @@ import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import net.dv8tion.jda.api.events.session.ReadyEvent
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.migration.r2dbc.MigrationUtils
 import org.jetbrains.exposed.v1.r2dbc.transactions.TransactionManager
@@ -45,11 +47,10 @@ object DBMigration {
     }
 
     object Command : CommandFeature<NoArgs>(NoArgs(), CommandSpec("dbmigration", "DB Migration".k18n)) {
-
+        private val initialMigrationScope = createCoroutineScope("InitialMigration", Dispatchers.IO)
         init {
-            registerListener<ReadyEvent> {
-                if (it.jda.selfUser.idLong != jda.selfUser.idLong) return@registerListener
-                sendMigrationStatements(it.jda.getTextChannelById(447357526997073932)!!)
+            initialMigrationScope.launch {
+                sendMigrationStatements(jda.awaitReady().getTextChannelById(447357526997073932)!!)
             }
         }
 

@@ -296,7 +296,7 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             }
             val argName = arg.name
             val argId = argName.nameToDiscordOption()
-            val required = spec?.required == true || !arg.optional
+            val required = !arg.optional
             val value = arg.parsed?.toString()
             Triple(
                 spec?.label?.translateTo(iData.language) ?: argName,
@@ -400,7 +400,6 @@ data class CommandArgSpec(
 data class ModalArgSpec(
     val argOption: ModalArgOption = ModalArgOption.Text(),
     val modalEnableKey: ModalKey?,
-    val required: Boolean,
     val label: K18nMessage?
 ) : ArgSpec
 
@@ -852,27 +851,24 @@ class Arg<DiscordType, ParsedType>(
     fun modal(
         short: Boolean = true,
         modalKey: ModalKey? = null,
-        required: Boolean = false,
         placeholder: K18nMessage? = null,
         label: K18nMessage? = null,
         builder: InlineTextInput.() -> Unit = {}
     ) {
-        modal(ModalArgOption.Text(short, placeholder, builder), modalKey, required, label)
+        modal(ModalArgOption.Text(short, placeholder, builder), modalKey, label)
     }
 
     fun modal(
         argOption: ModalArgOption = ModalArgOption.Text(),
         modalKey: ModalKey? = null,
-        required: Boolean = false,
         label: K18nMessage? = null,
     ) {
         spec = (spec as? ModalArgSpec)?.let { oldSpec ->
             oldSpec.copy(
                 argOption = argOption,
                 modalEnableKey = modalKey ?: oldSpec.modalEnableKey,
-                required = required || oldSpec.required,
             )
-        } ?: ModalArgSpec(argOption, modalKey, required, label)
+        } ?: ModalArgSpec(argOption, modalKey, label)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {

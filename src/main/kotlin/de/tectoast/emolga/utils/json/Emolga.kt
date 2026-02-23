@@ -198,7 +198,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                         }.size) > 0
                     }
                     val allSDTranslations =
-                        NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })
+                        NameConventionsDB.getAllSDTranslationOnlyOfficial(
+                            possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() },
+                            NameConventionsDB.ENGLISH, NameConventionsDB.GERMAN
+                        )
                     val otherFormesGerman = otherFormesEngl.map { (k, v) ->
                         k.official to v.map { allSDTranslations[it] ?: it }
                     }.toMap()
@@ -850,7 +853,7 @@ fun <T> CalcResult<T>.unwrap(): T {
 
 private fun hashBytes(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
     str + "%02x".format(it)
-}.take(16)
+}.take(StaticCloud.hashLength)
 
 @Serializable
 data class SignUpData(

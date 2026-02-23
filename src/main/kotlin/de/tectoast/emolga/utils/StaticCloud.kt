@@ -17,7 +17,8 @@ import javax.imageio.ImageIO
 object StaticCloud {
     private lateinit var token: String
     private lateinit var baseUrl: String
-    private var hashLength: Int = 24
+    var hashLength: Int = 24
+        private set
 
     fun init(token: String, baseUrl: String, hashLength: Int) {
         this.token = token
@@ -55,12 +56,12 @@ object StaticCloud {
     suspend fun uploadLogoToCloud(
         data: LogoInputData
     ) = withContext(Dispatchers.IO) {
-        if (LogoNameDB.fileNameExists(data.fileName)) {
-            return@withContext data.fileName
+        val fileName = data.fileName
+        if (!LogoNameDB.fileNameExists(data.fileName)) {
+            uploadFileToCloud(
+                data.fileName, "image/${data.fileExtension}", data.bytes
+            )
         }
-        val fileName = uploadFileToCloud(
-            data.fileName, "image/${data.fileExtension}", data.bytes
-        )
         LogoNameDB.insertFileName(fileName, data.teamName)
         fileName
     }

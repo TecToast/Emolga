@@ -85,14 +85,9 @@ object TeamGraphicGenerator {
                 .toMap { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
         }
         return createOneTeamGraphic(
-            teamData.teamOwner,
-            teamData.teamName,
-            teamData.logo,
-            teamData.englishNames.mapValues { (_, name) ->
+            teamData.teamOwner, teamData.teamName, teamData.logo, teamData.englishNames.mapValues { (_, name) ->
                 (monData[name] ?: error("MonData for $name not found"))
-            }.toMap(),
-            style,
-            options
+            }.toMap(), style, options
         )
     }
 
@@ -120,8 +115,7 @@ object TeamGraphicGenerator {
     private suspend fun fromCacheOrLoad(key: String) = fromCacheOrLoad(key) { key }
 
     private suspend inline fun fromCacheOrLoad(
-        key: String,
-        crossinline keyToPath: suspend (String) -> String
+        key: String, crossinline keyToPath: suspend (String) -> String
     ): BufferedImage {
         return diskImageCache.getOrPut(key) {
             withContext(Dispatchers.IO) {
@@ -153,8 +147,7 @@ object TeamGraphicGenerator {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
         g2d.drawLogo(
-            logo ?: style.logoProperties?.defaultLogoPath?.let { fromCacheOrLoad(it) },
-            style.logoProperties
+            logo ?: style.logoProperties?.defaultLogoPath?.let { fromCacheOrLoad(it) }, style.logoProperties
         )
         g2d.dispose()
         return image
@@ -193,8 +186,7 @@ object TeamGraphicGenerator {
             this, text, settings.xCoord, settings.yCoord
         )
         settings.shadow?.let { shadow ->
-            val blurredShadow =
-                ImageUtils.createBlurredShadowImage(text, this.font, shadow.color, shadow.blurRadius)
+            val blurredShadow = ImageUtils.createBlurredShadowImage(text, this.font, shadow.color, shadow.blurRadius)
             val padding = shadow.blurRadius * 2
             val shadowX = x + shadow.offset - padding
             val shadowY = y + shadow.offset - padding - this.font.size
@@ -224,8 +216,7 @@ object TeamGraphicGenerator {
     private fun BufferedImage.flipIf(doFlip: Boolean): BufferedImage {
         if (!doFlip) return this
         val tx = AffineTransform.getScaleInstance(
-            -1.0,
-            1.0
+            -1.0, 1.0
         )
 
         // Move the image back into the viewport
@@ -294,26 +285,33 @@ object TeamGraphicGenerator {
                 league: League,
                 idx: Int,
                 userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
-                overridePicks: Map<Int, String>? = null,
-                takePickCount: Int? = null // TODO: Refactor
+                takePickCount: Int? = null
             ): TeamData {
-                // TODO: Optimize (dont fetch every mon single)
-                val englishNames =
-                    overridePicks ?: league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
+                val englishNames = run {
+                    val inDocOrder = league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
                         .inDocOrder(league)
-                        .mapValues {
-                            NameConventionsDB.getSDTranslation(
-                                it.value.name,
-                                league.guild,
-                                english = true
-                            )!!.official
-                        }
+                    val lookupMap = NameConventionsDB.getAllSDTranslationOnlyOfficial(
+                        inDocOrder.values.map { it.name }, NameConventionsDB.GERMAN, NameConventionsDB.ENGLISH
+                    )
+                    inDocOrder.mapValues {
+                        lookupMap[it.value.name] ?: error("No English name found for ${it.value.name}")
+                    }
+                }
+                return singleFromLeague(league, idx, userNameProvider, englishNames)
+            }
+
+            suspend fun singleFromLeague(
+                league: League,
+                idx: Int,
+                userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
+                englishNames: Map<Int, String>
+            ): TeamData {
                 val lsData = mdb.signups.get(league.guild)!!
                 val uid = league.table[idx]
                 val userData = lsData.getDataByUser(uid)!!
                 val teamOwner = userNameProvider.getUserName(uid)
                 val teamName = userData.data[SignUpInput.TEAMNAME_ID]
-                val logo = userData.downloadLogo()?.let { ImageUtils.cropToContent(it) }
+                val logo = userData.downloadLogo()
                 return TeamData(
                     teamOwner = teamOwner, teamName = teamName, logo = logo, englishNames = englishNames
                 )

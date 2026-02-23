@@ -189,17 +189,13 @@ object NameConventionsDB : Table("nameconventions") {
      * @param list the list of official english names
      * @return a map of the official english names to the german names
      */
-    suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
+    suspend fun getAllSDTranslationOnlyOfficial(
+        list: List<String>,
+        predicateCol: Column<String>,
+        targetCol: Column<String>
+    ): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(ENGLISH inList list).toMap { it[ENGLISH] to it[GERMAN] }
-        }
-    }
-
-    @Suppress("unused")
-    // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
-    suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
-        return dbTransaction {
-            select(ENGLISH, GERMAN).where(GERMAN inList list).toMap { it[GERMAN] to it[ENGLISH] }
+            select(ENGLISH, GERMAN).where(predicateCol inList list).toMap { it[predicateCol] to it[targetCol] }
         }
     }
 

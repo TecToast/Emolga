@@ -8,6 +8,7 @@ import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
+import de.tectoast.emolga.features.gpc.GPCLeagueSubmit
 import de.tectoast.emolga.features.league.SignupManager
 import de.tectoast.emolga.features.league.draft.DraftPermissionCommand
 import de.tectoast.emolga.features.various.GuildAuthorizeButton
@@ -294,8 +295,7 @@ object PrivateCommands {
             id,
             dm,
             awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.map { it.mapToChannelIdPair().first }
-                .toList()
-        )
+                .toList())
     }
 
 
@@ -580,10 +580,10 @@ object PrivateCommands {
         iData.reply(dbTransaction {
             MigrationUtils.statementsRequiredForDatabaseMigration(
                 *ClassPath.from(Thread.currentThread().contextClassLoader)
-                    .getTopLevelClassesRecursive("de.tectoast.emolga")
-                    .map { it.load().kotlin }
+                    .getTopLevelClassesRecursive("de.tectoast.emolga").map { it.load().kotlin }
                     .filter { it.isSubclassOf(Table::class) }.mapNotNull { it.objectInstance as? Table? }
-                    .toTypedArray(), withLogs = false
+                    .toTypedArray(),
+                withLogs = false
             ).joinToString(separator = "\n", prefix = "```sql\n", postfix = "```") { "$it;" }
         })
     }
@@ -628,8 +628,7 @@ object PrivateCommands {
         dbTransaction {
             iData.reply(listOf("S", "A", "B").map {
                 Tierlist.select(Tierlist.POKEMON)
-                    .where { (Tierlist.GUILD eq 444236285905993739) and (Tierlist.TIER eq it) }
-                    .except(
+                    .where { (Tierlist.GUILD eq 444236285905993739) and (Tierlist.TIER eq it) }.except(
                         WRCMonsPickedDB.select(WRCMonsPickedDB.MON).where { WRCMonsPickedDB.WRCNAME eq "WRCTest" })
                     .orderBy(Random()).limit(10)
             }.reduce { acc, r -> UnionAll(acc, r) }.prepareSQL(QueryBuilder(false)).surroundWith("```"))
@@ -681,8 +680,7 @@ object PrivateCommands {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    context(iData: InteractionData)
-    suspend fun liveteam(args: PrivateData) {
+    context(iData: InteractionData) suspend fun liveteam(args: PrivateData) {
         iData.reply(LiveTeamDB.generateForLeague(args()).toString())
     }
 
@@ -700,6 +698,16 @@ object PrivateCommands {
     suspend fun executeLadderTournament(args: PrivateData) {
         iData.done()
         LadderTournament.executeForGuild(args().toLong())
+    }
+
+    context(iData: InteractionData)
+    fun gpcTicketChannel(args: PrivateData) {
+        iData.jda.getTextChannelById(args[0])!!.send(
+            args[2].replace("\\n", "\n"),
+            components = GPCLeagueSubmit.Button {
+                this.catId = args[1].toLong()
+            }.into()
+        ).queue()
     }
 }
 

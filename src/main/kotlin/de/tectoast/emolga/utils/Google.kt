@@ -11,11 +11,14 @@ import com.google.api.services.youtube.YouTube
 import de.tectoast.emolga.utils.Google.setCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import mu.KotlinLogging
+import java.net.SocketTimeoutException
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
 
 object Google {
+    private val logger = KotlinLogging.logger {}
     private var REFRESHTOKEN: String? = null
     private var CLIENTID: String? = null
     private var CLIENTSECRET: String? = null
@@ -110,8 +113,15 @@ object Google {
      */
     suspend fun batchUpdate(sid: String, data: List<ValueRange>, mode: String) {
         withContext(googleContext) {
-            sheetsService().spreadsheets().values()
-                .batchUpdate(sid, BatchUpdateValuesRequest().setData(data).setValueInputOption(mode)).execute()
+            for (i in 0..5) {
+                try {
+                    sheetsService().spreadsheets().values()
+                        .batchUpdate(sid, BatchUpdateValuesRequest().setData(data).setValueInputOption(mode)).execute()
+                    break
+                } catch (e: SocketTimeoutException) {
+                    logger.warn("Google API request timed out, retrying...", e)
+                }
+            }
         }
     }
 

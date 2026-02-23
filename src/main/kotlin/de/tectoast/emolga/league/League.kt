@@ -9,9 +9,9 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.features.league.AddToTierlistData
-import de.tectoast.emolga.features.league.K18n_TipGame
-import de.tectoast.emolga.features.league.TipGameCurrentStateType
-import de.tectoast.emolga.features.league.TipGameManager
+import de.tectoast.emolga.features.league.K18n_PredictionGame
+import de.tectoast.emolga.features.league.PredictionGameCurrentStateType
+import de.tectoast.emolga.features.league.PredictionGameManager
 import de.tectoast.emolga.features.league.draft.K18n_QueuePicks
 import de.tectoast.emolga.league.config.*
 import de.tectoast.emolga.utils.*
@@ -62,7 +62,7 @@ enum class DraftState {
 sealed class League {
     val sid: String = "yay"
     val leaguename: String = "ERROR"
-    val displayName get() = config.tipgame?.withName ?: leaguename
+    val displayName get() = config.predictionGame?.withName ?: leaguename
 
     @EncodeDefault
     var draftState: DraftState = DraftState.OFF
@@ -718,9 +718,9 @@ sealed class League {
 
     fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
 
-    open fun executeTipGameSending(num: Int, channelId: Long? = null) {
+    open fun executePredictionGameSending(num: Int, channelId: Long? = null) {
         launch {
-            val tip = config.tipgame ?: return@launch
+            val tip = config.predictionGame ?: return@launch
             val channel = jda.getTextChannelById(channelId ?: tip.channel)!!
             val matchups = getMatchupsIndices(num)
             val names =
@@ -736,7 +736,7 @@ sealed class League {
                 delay(2000)
                 val u1 = matchup[0]
                 val u2 = matchup[1]
-                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
+                val base: ArgBuilder<PredictionGameManager.VoteButton.Args> = {
                     this.leaguename = this@League.leaguename
                     this.gameday = num
                     this.index = index
@@ -745,18 +745,19 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
                         color = embedColor,
-                        description = if (tip.currentState == TipGameCurrentStateType.ALWAYS) K18n_TipGame.VotesUntilNow(
+                        description = if (tip.currentState == PredictionGameCurrentStateType.ALWAYS) K18n_PredictionGame.VotesUntilNow(
                             "0:0"
                         ).translateToLeague() else null
-                    ).into(), components = ActionRow.of(TipGameManager.VoteButton.withoutIData(label = names[u1].k18n) {
+                    ).into(),
+                    components = ActionRow.of(PredictionGameManager.VoteButton.withoutIData(label = names[u1].k18n) {
                         base()
                         this.userindex = u1
-                    }, TipGameManager.VoteButton.withoutIData(label = names[u2].k18n) {
+                    }, PredictionGameManager.VoteButton.withoutIData(label = names[u2].k18n) {
                         base()
                         this.userindex = u2
                     }).into()
                 ).await().idLong
-                TipGameMessagesDB.set(leaguename, num, index, messageId)
+                PredictionGameMessagesDB.set(leaguename, num, index, messageId)
             }
             tip.roleToPing?.let { roleId ->
                 channel.sendMessage("<@&$roleId>").queue()
@@ -764,9 +765,9 @@ sealed class League {
         }
     }
 
-    fun executeTipGameLockButtons(gameday: Int) {
+    fun executePredictionGameLockButtons(gameday: Int) {
         launch {
-            TipGameMessagesDB.get(leaguename, gameday).forEachIndexed { mu, mid ->
+            PredictionGameMessagesDB.get(leaguename, gameday).forEachIndexed { mu, mid ->
                 lockButtonsOnMessage(messageId = mid, gameday = gameday, mu = mu)
                 delay(2000)
             }
@@ -774,9 +775,9 @@ sealed class League {
     }
 
 
-    fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
+    fun executePredictionGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
-            TipGameMessagesDB.get(leaguename, gameday, mu).forEach {
+            PredictionGameMessagesDB.get(leaguename, gameday, mu).forEach {
                 lockButtonsOnMessage(messageId = it, gameday = gameday, mu = mu)
             }
         }
@@ -785,15 +786,15 @@ sealed class League {
     private suspend fun lockButtonsOnMessage(
         messageId: Long, gameday: Int, mu: Int
     ) {
-        val tipgame = config.tipgame ?: return
-        val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
-        val message = tipGameChannel.retrieveMessageById(messageId).await()
+        val predictionGame = config.predictionGame ?: return
+        val predictionGameChannel = jda.getTextChannelById(predictionGame.channel)!!
+        val message = predictionGameChannel.retrieveMessageById(messageId).await()
         val components = ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() })
         val editData = MessageEdit(components = components.into()) {
-            if (tipgame.currentState == TipGameCurrentStateType.ON_LOCK) {
+            if (predictionGame.currentState == PredictionGameCurrentStateType.ON_LOCK) {
                 embeds += Embed(
                     title = message.embeds[0].title,
-                    description = buildCurrentTipGameState(gameday, mu),
+                    description = buildCurrentPredictionGameState(gameday, mu),
                     color = embedColor
                 )
             }
@@ -801,11 +802,11 @@ sealed class League {
         message.editMessage(editData).queue()
     }
 
-    suspend fun buildCurrentTipGameState(
+    suspend fun buildCurrentPredictionGameState(
         gameday: Int, battleIndex: Int
     ): String {
-        val stateMap = TipGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
-        return K18n_TipGame.VotesUntilNow(battleorder.getValue(gameday)[battleIndex].joinToString(":") {
+        val stateMap = PredictionGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
+        return K18n_PredictionGame.VotesUntilNow(battleorder.getValue(gameday)[battleIndex].joinToString(":") {
             stateMap.getOrDefault(it, 0).toString()
         }).translateToLeague()
     }
@@ -889,24 +890,24 @@ sealed class League {
 
     fun setupRepeatTasks() {
         setupCustomRepeatTasks()
-        setupTipGameRepeatTasks()
+        setupPredictionGameRepeatTasks()
         setupReplayDataStoreRepeatTasks()
     }
 
-    fun setupTipGameRepeatTasks() {
-        config.tipgame?.let { tip ->
+    fun setupPredictionGameRepeatTasks() {
+        config.predictionGame?.let { tip ->
             val duration = tip.interval
-            logger.debug { "Draft $leaguename has tipgame with interval ${tip.interval} and duration $duration" }
+            logger.debug { "Draft $leaguename has prediction game with interval ${tip.interval} and duration $duration" }
             RepeatTask(
-                leaguename, TipGameSending, tip.lastSending, tip.amount, duration
+                leaguename, PredictionGameSending, tip.lastSending, tip.amount, duration
             ) {
-                executeOnFreshLock(leaguename) { executeTipGameSending(it) }
+                executeOnFreshLock(leaguename) { executePredictionGameSending(it) }
             }
             tip.lastLockButtons?.let { last ->
                 RepeatTask(
-                    leaguename, TipGameLockButtons, last, tip.amount, duration
+                    leaguename, PredictionGameLockButtons, last, tip.amount, duration
                 ) {
-                    executeOnFreshLock(leaguename) { executeTipGameLockButtons(it) }
+                    executeOnFreshLock(leaguename) { executePredictionGameLockButtons(it) }
                 }
             }
         }

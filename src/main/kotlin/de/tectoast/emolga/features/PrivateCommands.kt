@@ -80,13 +80,13 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    suspend fun tipGameLockButtons(args: PrivateData) {
-        mdb.league(args[0]).executeTipGameLockButtons(args[1].toInt())
+    suspend fun predictionGameLockButtons(args: PrivateData) {
+        mdb.league(args[0]).executePredictionGameLockButtons(args[1].toInt())
     }
 
     context(iData: InteractionData)
-    suspend fun printTipGame(args: PrivateData) {
-        iData.reply(TipGameAnalyseService.getFullTipGameResultsSummary(args()))
+    suspend fun printPredictionGame(args: PrivateData) {
+        iData.reply(PredictionGameAnalyseService.getFullResultsSummary(args()))
     }
 
     context(iData: InteractionData)
@@ -395,8 +395,8 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    suspend fun executeTipGameSending(args: PrivateData) {
-        mdb.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
+    suspend fun executePredictionGameSending(args: PrivateData) {
+        mdb.league(args[0]).executePredictionGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
     }
 
     context(iData: InteractionData)

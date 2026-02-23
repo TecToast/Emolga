@@ -51,10 +51,14 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
         features = featuresSet.groupBy { it.eventClass }
             .mapValues {
-                it.value.groupingBy { v -> v.spec.name }.eachCount().filter { v -> v.value > 1 }.forEach { (k, v) ->
-                    logger.warn { "Feature $k is registered $v times! This may cause issues!" }
+                buildMap {
+                    it.value.forEach { v ->
+                        for (name in listOf(v.spec.name) + v.spec.aliases) {
+                            if (name in this) logger.warn { "Feature $name is registered multiple times for event ${it.key.simpleName}! This may cause issues!" }
+                            this[name] = v as Feature<*, GenericInteractionCreateEvent, Arguments>
+                        }
+                    }
                 }
-                it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> }
             }
         listeners = loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
             it.value.map { v -> v.second }

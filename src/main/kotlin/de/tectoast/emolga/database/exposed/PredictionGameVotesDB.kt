@@ -9,7 +9,7 @@ import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.update
 import org.jetbrains.exposed.v1.r2dbc.upsert
 
-object TipGameVotesDB : Table("tipgamevotes") {
+object PredictionGameVotesDB : Table("predictiongamevotes") {
     val LEAGUENAME = varchar("leaguename", 31)
     val USERID = long("userid")
     val GAMEDAY = integer("gameday")

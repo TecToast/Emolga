@@ -185,14 +185,12 @@ class NDS(val rr: Boolean) : League() {
             nds.table
             val battleorder = nds.battleorder[gameday]!!
             val b = RequestBuilder(nds.sid)
-            val tipgameStats = mutableListOf<String>()
             for (users in battleorder) {
                 for (index in 0..1) {
                     val u1 = users[index]
                     val oppoIndex = users[1 - index]
                     val team = nds.getTeamname(u1)
                     val oppo = nds.getTeamname(oppoIndex)
-                    tipgameStats += "='$team'!Y2"
                     // Speed values
                     b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
                     // Icons

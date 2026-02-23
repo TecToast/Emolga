@@ -5,8 +5,8 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
 import de.tectoast.emolga.database.exposed.SwitchType
-import de.tectoast.emolga.database.exposed.TipGameVotesDB
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
@@ -109,13 +109,13 @@ class DocEntry private constructor(val league: League) {
         val config = league.config
         val store = config.replayDataStore
         val gamedayData = fullGameData.gamedayData
-        league.config.tipgame?.let { _ ->
+        league.config.predictionGame?.let { _ ->
             val gameday = gamedayData.gameday
             val battleindex = gamedayData.battleindex
-            league.executeTipGameLockButtonsIndividual(
+            league.executePredictionGameLockButtonsIndividual(
                 gameday, battleindex
             )
-            TipGameVotesDB.updateCorrectBattles(
+            PredictionGameVotesDB.updateCorrectBattles(
                 league.leaguename,
                 gameday,
                 battleindex,

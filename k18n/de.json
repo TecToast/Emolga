@@ -262,22 +262,22 @@
               "ArgType": "Der Typ, den du suchen möchtest",
               "Success": "All diese Mons aus dem {tier}-Tier besitzen den Typen {type}:\n{list}"
             },
-            "TipGame_nested": {
-              "TipSaved": "Dein Tipp wurde gespeichert!",
-              "TipgameMissing": "Dieses Tippspiel existiert nicht mehr!",
+            "PredictionGame_nested": {
+              "PredictionSaved": "Dein Tipp wurde gespeichert!",
+              "PredictionGameMissing": "Dieses Tippspiel existiert nicht mehr!",
               "VotesUntilNow": "Bisherige Votes: {votes}"
             },
-            "TipGameCommand_nested": {
+            "PredictionGameCommand_nested": {
               "Help": "Siehe die Tippspiel-Ergebnisse ein",
               "Top10Help": "Zeige die Top 10 an",
-              "Top10NoTips": "_Es wurden noch keine Tipps abgegeben._",
+              "Top10NoPredictions": "_Es wurden noch keine Tipps abgegeben._",
               "Top10Success": "# Top 10 des Servers\n{list}",
               "SelfHelp": "Schaue deine eigenen Tippspiel-Ergebnisse an",
-              "SelfNoTips": "Du hast noch keine Tipps abgegeben!",
+              "SelfNoPredictions": "Du hast noch keine Tipps abgegeben!",
               "SelfSuccess": "# Du im Vergleich\n{aboveAndBelow}\n# Deine Statistik pro Liga\n{resultsPerLeague}",
               "CheckMissingHelp": "Prüfe auf fehlende Tipps an einem Spieltag",
               "CheckMissingArgGameday": "Der Spieltag, den du überprüfen möchtest",
-              "CheckMissingAllTipsGiven": "Du hast alle Tipps für Spieltag {gameday:Int} abgegeben!",
+              "CheckMissingAllPredictionsGiven": "Du hast alle Tipps für Spieltag {gameday:Int} abgegeben!",
               "CheckMissingTooLong": "Die Liste der fehlenden Tipps ist zu lang, um sie hier anzuzeigen. Es fehlen insgesamt {amount:Int} Tipps.",
               "CheckMissingSuccess": "# Fehlende Tipps für Spieltag {num:Int}\n{list}",
               "OwnVotesHelp": "Zeigt deine abgegebenen Tipps an",
@@ -286,7 +286,7 @@
               "OwnVotesLeagueNotFound": "Keine Liga unter dem Namen `{league}` gefunden!",
               "OwnVotesGamedayNotFound": "Liga {league} hat keinen Spieltag mit der Nummer {gameday:Int}!",
               "OwnVotesNoVotes": "Du hast noch keine Tipps für {league} an Spieltag {gameday:Int} abgegeben!",
-              "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday:Int}\n{tips}"
+              "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday:Int}\n{predictions}"
             }
           },
           "showdown": {

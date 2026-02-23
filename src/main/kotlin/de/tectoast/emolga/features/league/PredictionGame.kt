@@ -2,17 +2,18 @@
 
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.database.exposed.TipGameVotesDB
+import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.DurationSerializer
+import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.utils.universalLogger
 import dev.minn.jda.ktx.messages.Embed
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -26,10 +27,10 @@ import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-object TipGameManager : CoroutineScope {
-    override val coroutineContext = createCoroutineContext("TipGameManager", Dispatchers.IO)
+object PredictionGameManager {
 
-    object VoteButton : ButtonFeature<VoteButton.Args>(::Args, ButtonSpec("tipgame")) {
+    object VoteButton :
+        ButtonFeature<VoteButton.Args>(::Args, ButtonSpec("predictiongame").apply { aliases += "tipgame" }) {
         class Args : Arguments() {
             var leaguename by string()
             var gameday by int()
@@ -42,14 +43,14 @@ object TipGameManager : CoroutineScope {
             iData.ephemeralDefault()
             iData.deferReply()
             val league = mdb.getLeague(e.leaguename) ?: return reportMissing()
-            val tipgame = league.config.tipgame ?: return reportMissing()
-            TipGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
-            iData.reply(K18n_TipGame.TipSaved)
-            if (tipgame.currentState == TipGameCurrentStateType.ALWAYS) {
+            val predictionGame = league.config.predictionGame ?: return reportMissing()
+            PredictionGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
+            iData.reply(K18n_PredictionGame.PredictionSaved)
+            if (predictionGame.currentState == PredictionGameCurrentStateType.ALWAYS) {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
-                        description = league.buildCurrentTipGameState(e.gameday, e.index),
+                        description = league.buildCurrentPredictionGameState(e.gameday, e.index),
                         color = embedColor
                     )
                 ).queue()
@@ -58,37 +59,37 @@ object TipGameManager : CoroutineScope {
 
         context(iData: InteractionData)
         private fun reportMissing() {
-            iData.reply(K18n_TipGame.TipgameMissing)
+            iData.reply(K18n_PredictionGame.PredictionGameMissing)
         }
     }
 }
 
 @Serializable
-data class TipGame(
+data class PredictionGame(
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant? = null,
     @Serializable(with = DurationSerializer::class) val interval: Duration,
     val amount: Int,
     val channel: Long,
-    val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
+    val colorConfig: PredictionGameColorConfig = PredictionGameColorConfig.Default,
     val roleToPing: Long? = null,
     val withName: String? = null,
-    val currentState: TipGameCurrentStateType? = null
+    val currentState: PredictionGameCurrentStateType? = null
 )
 
 @Serializable
-enum class TipGameCurrentStateType {
+enum class PredictionGameCurrentStateType {
     ALWAYS,
     ON_LOCK
 }
 
 @Serializable
-sealed interface TipGameColorConfig {
+sealed interface PredictionGameColorConfig {
     suspend fun provideEmbedColor(league: League): Int
 
     @Serializable
     @SerialName("Default")
-    object Default : TipGameColorConfig {
+    object Default : PredictionGameColorConfig {
         override suspend fun provideEmbedColor(league: League): Int {
             return Color.YELLOW.rgb
         }
@@ -96,7 +97,7 @@ sealed interface TipGameColorConfig {
 
     @Serializable
     @SerialName("Fixed")
-    data class Fixed(val color: Int) : TipGameColorConfig {
+    data class Fixed(val color: Int) : PredictionGameColorConfig {
         override suspend fun provideEmbedColor(league: League): Int {
             return color
         }
@@ -104,7 +105,7 @@ sealed interface TipGameColorConfig {
 
     @Serializable
     @SerialName("RGB")
-    data class RGB(val rgb: String) : TipGameColorConfig {
+    data class RGB(val rgb: String) : PredictionGameColorConfig {
         override suspend fun provideEmbedColor(league: League): Int {
             return rgb.replace("#", "").toInt(16)
         }

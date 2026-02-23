@@ -14,8 +14,8 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
 import de.tectoast.emolga.features.league.K18n_Signup
 import de.tectoast.emolga.features.league.LogoCommand.allowedFileFormats
+import de.tectoast.emolga.features.league.PredictionGame
 import de.tectoast.emolga.features.league.SignupManager
-import de.tectoast.emolga.features.league.TipGame
 import de.tectoast.emolga.features.various.ShinyEvent
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
 import de.tectoast.emolga.ktor.InstantAsDateSerializer
@@ -161,7 +161,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun leagueByDisplayName(gid: Long, displayName: String) = league.findOne(
         League::guild eq gid,
-        or(League::leaguename eq displayName, League::config / LeagueConfig::tipgame / TipGame::withName eq displayName)
+        or(
+            League::leaguename eq displayName,
+            League::config / LeagueConfig::predictionGame / PredictionGame::withName eq displayName
+        )
     )
 
     suspend fun leagueForAutocomplete(tc: Long, gid: Long, user: Long) =

@@ -379,7 +379,7 @@ abstract class MessageContextFeature(spec: MessageContextSpec) :
     }
 }
 
-sealed class FeatureSpec(open val name: String)
+sealed class FeatureSpec(open val name: String, val aliases: MutableSet<String> = mutableSetOf())
 sealed class RegisteredFeatureSpec(name: String) : FeatureSpec(name) {
     var inDM = false
 }

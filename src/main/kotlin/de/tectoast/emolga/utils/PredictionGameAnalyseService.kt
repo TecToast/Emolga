@@ -1,10 +1,10 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.TipGameVotesDB
+import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
 import de.tectoast.emolga.database.exposed.joinToString
 import de.tectoast.emolga.database.exposed.toMap
-import de.tectoast.emolga.features.league.K18n_TipGameCommand
+import de.tectoast.emolga.features.league.K18n_PredictionGameCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.k18n.generated.K18nLanguage
@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.select
 
-object TipGameAnalyseService {
-    suspend fun getFullTipGameResultsSummary(leaguename: String) = dbTransaction {
-        with(TipGameVotesDB) {
+object PredictionGameAnalyseService {
+    suspend fun getFullResultsSummary(leaguename: String) = dbTransaction {
+        with(PredictionGameVotesDB) {
             val correctCount = CORRECT.count()
             select(USERID, correctCount)
                 .where { (LEAGUENAME eq leaguename) and (CORRECT eq true) }
@@ -29,7 +29,7 @@ object TipGameAnalyseService {
     }
 
     suspend fun getTop10OfGuild(gid: Long, language: K18nLanguage) = dbTransaction {
-        with(TipGameVotesDB) {
+        with(PredictionGameVotesDB) {
             val correctVotes = getCorrectExpression()
             val totalVotes = getTotalExpression()
             val leaguePredicate = leaguePredicate(gid)
@@ -45,14 +45,14 @@ object TipGameAnalyseService {
                     val percentage = if (total > 0) (correct.toDouble() / total.toDouble()) * 100 else 0.0
                     "#%d: <@%d> (%d/%d, %.2f%%)".format(index + 1, userId, correct, total, percentage)
                 }
-                .joinToString("\n").ifEmpty { K18n_TipGameCommand.Top10NoTips.translateTo(language) }
+                .joinToString("\n").ifEmpty { K18n_PredictionGameCommand.Top10NoPredictions.translateTo(language) }
         }
     }
 
 
     private const val ABOVE_BELOW = 3
-    suspend fun getTipGameStatsWithAboveAndBelow(gid: Long, userId: Long) = dbTransaction {
-        with(TipGameVotesDB) {
+    suspend fun getStatsWithAboveAndBelow(gid: Long, userId: Long) = dbTransaction {
+        with(PredictionGameVotesDB) {
             val leaguePredicate = leaguePredicate(gid)
             val correctVotesWithoutAlias = getCorrectExpression()
             val correctVotes = correctVotesWithoutAlias.alias("correct_votes")
@@ -91,8 +91,8 @@ object TipGameAnalyseService {
         }
     }
 
-    suspend fun getUserTipGameStatsPerLeague(gid: Long, userId: Long) = dbTransaction {
-        with(TipGameVotesDB) {
+    suspend fun getUserStatsPerLeague(gid: Long, userId: Long) = dbTransaction {
+        with(PredictionGameVotesDB) {
             val leaguesInOrder = allLeagues(gid)
             val leaguePredicate =
                 LEAGUENAME.inList(leaguesInOrder.map { it.leaguename })
@@ -117,7 +117,7 @@ object TipGameAnalyseService {
     }
 
     suspend fun getMissingVotesForGameday(gid: Long, gameday: Int, user: Long, language: K18nLanguage) = dbTransaction {
-        with(TipGameVotesDB) {
+        with(PredictionGameVotesDB) {
             val allLeagues = allLeagues(gid)
             val leaguePredicate = leaguePredicate(allLeagues.map { it.leaguename })
             val presentData = select(LEAGUENAME, BATTLE)
@@ -136,11 +136,11 @@ object TipGameAnalyseService {
                             "<@${league[it[0]]}> vs <@${league[it[1]]}>"
                         }
             }.joinToString("\n")
-            if (str.isEmpty()) K18n_TipGameCommand.CheckMissingAllTipsGiven(gameday)
+            if (str.isEmpty()) K18n_PredictionGameCommand.CheckMissingAllPredictionsGiven(gameday)
             else {
-                if (str.length > 1900) K18n_TipGameCommand.CheckMissingTooLong(amount)
+                if (str.length > 1900) K18n_PredictionGameCommand.CheckMissingTooLong(amount)
                 else
-                    K18n_TipGameCommand.CheckMissingSuccess(gameday, str)
+                    K18n_PredictionGameCommand.CheckMissingSuccess(gameday, str)
             }
         }
     }
@@ -153,13 +153,18 @@ object TipGameAnalyseService {
         language: K18nLanguage
     ): String {
         val league =
-            mdb.leagueByDisplayName(gid, leagueName) ?: return K18n_TipGameCommand.OwnVotesLeagueNotFound(leagueName)
+            mdb.leagueByDisplayName(gid, leagueName) ?: return K18n_PredictionGameCommand.OwnVotesLeagueNotFound(
+                leagueName
+            )
                 .translateTo(language)
         val games =
-            league.battleorder[gameday] ?: return K18n_TipGameCommand.OwnVotesGamedayNotFound(leagueName, gameday)
+            league.battleorder[gameday] ?: return K18n_PredictionGameCommand.OwnVotesGamedayNotFound(
+                leagueName,
+                gameday
+            )
             .translateTo(language)
         return dbTransaction {
-            with(TipGameVotesDB) {
+            with(PredictionGameVotesDB) {
                 select(BATTLE, IDX, CORRECT)
                     .where { (LEAGUENAME eq league.leaguename) and (GAMEDAY eq gameday) and (USERID eq userId) }
                     .orderBy(BATTLE to SortOrder.ASC).joinToString("\n") { row ->
@@ -169,26 +174,26 @@ object TipGameAnalyseService {
                         "<@${league[games[battle][0]]}> vs <@${league[games[battle][1]]}>: <@${league[idx]}>".notNullAppend(
                             correct
                         ) { if (it) " ✅" else " ❌" }
-                    }.ifEmpty { K18n_TipGameCommand.OwnVotesNoVotes(leagueName, gameday).translateTo(language) }
+                    }.ifEmpty { K18n_PredictionGameCommand.OwnVotesNoVotes(leagueName, gameday).translateTo(language) }
             }
         }
     }
 
 
-    private fun TipGameVotesDB.getTotalExpression(): Count = Count(CORRECT)
+    private fun PredictionGameVotesDB.getTotalExpression(): Count = Count(CORRECT)
 
-    private fun TipGameVotesDB.getCorrectExpression(): Sum<Int> = Sum(
+    private fun PredictionGameVotesDB.getCorrectExpression(): Sum<Int> = Sum(
         Case()
             .When(CORRECT eq true, intLiteral(1))
             .Else(intLiteral(0)),
         IntegerColumnType()
     )
 
-    private suspend fun TipGameVotesDB.leaguePredicate(
+    private suspend fun PredictionGameVotesDB.leaguePredicate(
         gid: Long
     ) = leaguePredicate(allLeagueNames(gid))
 
-    private fun TipGameVotesDB.leaguePredicate(
+    private fun PredictionGameVotesDB.leaguePredicate(
         names: List<String>
     ) = LEAGUENAME.inList(names)
 

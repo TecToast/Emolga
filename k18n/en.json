@@ -262,31 +262,31 @@
               "ArgType": "The type you want to search for",
               "Success": "All these mons from the {tier} tier have the type {type}:\n{list}"
             },
-            "TipGame_nested": {
-              "TipSaved": "Your tip has been saved!",
-              "TipgameMissing": "This prediction game no longer exists!",
+            "PredictionGame_nested": {
+              "PredictionSaved": "Your prediction has been saved!",
+              "PredictionGameMissing": "This prediction game no longer exists!",
               "VotesUntilNow": "Votes so far: {votes}"
             },
-            "TipGameCommand_nested": {
+            "PredictionGameCommand_nested": {
               "Help": "View the prediction game results",
               "Top10Help": "Show the top 10",
-              "Top10NoTips": "_No tips have been submitted yet._",
+              "Top10NoPredictions": "_No predictions have been submitted yet._",
               "Top10Success": "# Server top 10\n{list}",
               "SelfHelp": "View your own prediction game results",
-              "SelfNoTips": "You haven’t submitted any tips yet!",
+              "SelfNoPredictions": "You haven’t submitted any predictions yet!",
               "SelfSuccess": "# You in comparison\n{aboveAndBelow}\n# Your stats per league\n{resultsPerLeague}",
-              "CheckMissingHelp": "Check for missing tips on a matchday",
+              "CheckMissingHelp": "Check for missing predictions on a matchday",
               "CheckMissingArgGameday": "The matchday you want to check",
-              "CheckMissingAllTipsGiven": "You have submitted all tips for matchday {gameday:Int}!",
-              "CheckMissingTooLong": "The list of missing tips is too long to display here. A total of {amount:Int} tips are missing.",
-              "CheckMissingSuccess": "# Missing tips for matchday {num:Int}\n{list}",
-              "OwnVotesHelp": "View your tips for a matchday",
-              "OwnVotesArgLeague": "The league for which you want to view your tips",
-              "OwnVotesArgGameday": "The matchday for which you want to view your tips",
+              "CheckMissingAllPredictionsGiven": "You have submitted all predictions for matchday {gameday:Int}!",
+              "CheckMissingTooLong": "The list of missing predictions is too long to display here. A total of {amount:Int} predictions are missing.",
+              "CheckMissingSuccess": "# Missing predictions for matchday {num:Int}\n{list}",
+              "OwnVotesHelp": "View your predictions for a matchday",
+              "OwnVotesArgLeague": "The league for which you want to view your predictions",
+              "OwnVotesArgGameday": "The matchday for which you want to view your predictions",
               "OwnVotesLeagueNotFound": "There is no league with the name {league}!",
               "OwnVotesGamedayNotFound": "There is no matchday {gameday:Int} in the league {league}!",
-              "OwnVotesNoVotes": "You haven’t submitted any tips for {league} on matchday {gameday:Int} yet!",
-              "OwnVotesSuccess": "# Your tips for {league} on matchday {gameday:Int}\n{tips}"
+              "OwnVotesNoVotes": "You haven’t submitted any predictions for {league} on matchday {gameday:Int} yet!",
+              "OwnVotesSuccess": "# Your predictions for {league} on matchday {gameday:Int}\n{predictions}"
             }
           },
           "showdown": {

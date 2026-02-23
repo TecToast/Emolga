@@ -9,7 +9,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.upsert
 
-object TipGameMessagesDB : Table("tipgamemessages") {
+object PredictionGameMessagesDB : Table("predictiongamemessages") {
     val LEAGUENAME = varchar("leaguename", 31)
     val GAMEDAY = integer("gameday")
     val BATTLE = integer("battle")
@@ -18,7 +18,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
     override val primaryKey = PrimaryKey(LEAGUENAME, GAMEDAY, BATTLE)
 
     /**
-     * Gets the message id of the tipgame message of the league/gameday/battle
+     * Gets the message id of the prediction game message of the league/gameday/battle
      * @param leagueName the league name
      * @param gameday the gameday
      * @param battle the battle index (if the messages are split)
@@ -33,7 +33,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
     }
 
     /**
-     * Sets the message id of a tipgame messsage given the league/gameday/battle
+     * Sets the message id of a prediction game messsage given the league/gameday/battle
      * @param leagueName the league name
      * @param gameday the gameday
      * @param battle the battle index

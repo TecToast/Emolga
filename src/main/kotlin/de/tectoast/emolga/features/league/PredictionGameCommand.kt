@@ -1,21 +1,22 @@
 package de.tectoast.emolga.features.league
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.PredictionGameAnalyseService
 import de.tectoast.emolga.utils.SizeLimitedMap
-import de.tectoast.emolga.utils.TipGameAnalyseService
 import de.tectoast.emolga.utils.json.mdb
 
-object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", K18n_TipGameCommand.Help)) {
+object PredictionGameCommand :
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("predictiongame", K18n_PredictionGameCommand.Help)) {
 
-    object Top10Command : CommandFeature<NoArgs>(NoArgs(), CommandSpec("top10", K18n_TipGameCommand.Top10Help)) {
+    object Top10Command : CommandFeature<NoArgs>(NoArgs(), CommandSpec("top10", K18n_PredictionGameCommand.Top10Help)) {
 
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             iData.deferReply(true)
             iData.reply(
-                K18n_TipGameCommand.Top10Success(
-                    TipGameAnalyseService.getTop10OfGuild(
+                K18n_PredictionGameCommand.Top10Success(
+                    PredictionGameAnalyseService.getTop10OfGuild(
                         iData.gid,
                         iData.language
                     )
@@ -25,30 +26,30 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
     }
 
     object Self :
-        CommandFeature<NoArgs>(NoArgs(), CommandSpec("self", K18n_TipGameCommand.SelfHelp)) {
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("self", K18n_PredictionGameCommand.SelfHelp)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             iData.deferReply(true)
             val gid = iData.gid
             val uid = iData.user
-            val aboveAndBelow = TipGameAnalyseService.getTipGameStatsWithAboveAndBelow(gid, uid)
-                ?: return iData.reply(K18n_TipGameCommand.SelfNoTips, ephemeral = true)
-            val resultsPerLeague = TipGameAnalyseService.getUserTipGameStatsPerLeague(
+            val aboveAndBelow = PredictionGameAnalyseService.getStatsWithAboveAndBelow(gid, uid)
+                ?: return iData.reply(K18n_PredictionGameCommand.SelfNoPredictions, ephemeral = true)
+            val resultsPerLeague = PredictionGameAnalyseService.getUserStatsPerLeague(
                 gid, uid
             )
 
             iData.reply(
-                K18n_TipGameCommand.SelfSuccess(aboveAndBelow, resultsPerLeague), ephemeral = true
+                K18n_PredictionGameCommand.SelfSuccess(aboveAndBelow, resultsPerLeague), ephemeral = true
             )
         }
     }
 
     object CheckMissing : CommandFeature<CheckMissing.Args>(
         ::Args,
-        CommandSpec("checkmissing", K18n_TipGameCommand.CheckMissingHelp)
+        CommandSpec("checkmissing", K18n_PredictionGameCommand.CheckMissingHelp)
     ) {
         class Args : Arguments() {
-            val gameday by int("Spieltag", K18n_TipGameCommand.CheckMissingArgGameday)
+            val gameday by int("Spieltag", K18n_PredictionGameCommand.CheckMissingArgGameday)
         }
 
         context(iData: InteractionData)
@@ -57,16 +58,18 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
             val gid = iData.gid
             val uid = iData.user
             iData.reply(
-                TipGameAnalyseService.getMissingVotesForGameday(gid, e.gameday, uid, iData.language), ephemeral = true
+                PredictionGameAnalyseService.getMissingVotesForGameday(gid, e.gameday, uid, iData.language),
+                ephemeral = true
             )
         }
     }
 
-    object OwnVotes : CommandFeature<OwnVotes.Args>(::Args, CommandSpec("ownvotes", K18n_TipGameCommand.OwnVotesHelp)) {
+    object OwnVotes :
+        CommandFeature<OwnVotes.Args>(::Args, CommandSpec("ownvotes", K18n_PredictionGameCommand.OwnVotesHelp)) {
         val leagueNameCache = SizeLimitedMap<Long, List<String>>(100)
 
         class Args : Arguments() {
-            val leaguename by string("Liga", K18n_TipGameCommand.OwnVotesArgLeague) {
+            val leaguename by string("Liga", K18n_PredictionGameCommand.OwnVotesArgLeague) {
                 slashCommand { string, event ->
                     val gid = event.guild!!.idLong
                     val names = leagueNameCache.getOrPut(gid) {
@@ -75,7 +78,7 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
                     names.filter { it.contains(string, true) }
                 }
             }
-            val gameday by int("Spieltag", K18n_TipGameCommand.OwnVotesArgGameday)
+            val gameday by int("Spieltag", K18n_PredictionGameCommand.OwnVotesArgGameday)
         }
 
         context(iData: InteractionData)
@@ -84,7 +87,13 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
             val gid = iData.gid
             val uid = iData.user
             iData.reply(
-                TipGameAnalyseService.getOwnVotesForLeagueAndGameday(gid, e.leaguename, e.gameday, uid, iData.language),
+                PredictionGameAnalyseService.getOwnVotesForLeagueAndGameday(
+                    gid,
+                    e.leaguename,
+                    e.gameday,
+                    uid,
+                    iData.language
+                ),
                 ephemeral = true
             )
         }

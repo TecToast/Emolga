@@ -26,9 +26,13 @@ object StaticCloud {
         this.hashLength = hashLength
     }
 
+    private val logoCache = SizeLimitedMap<String, BufferedImage>(50)
+
     suspend fun downloadImage(fileName: String): BufferedImage =
-        httpClient.get(getImageDownloadLink(fileName)).bodyAsBytes().let {
-            ImageIO.read(it.inputStream())
+        logoCache.getOrPut(fileName) {
+            httpClient.get(getImageDownloadLink(fileName)).bodyAsBytes().let {
+                ImageIO.read(it.inputStream())
+            }
         }
 
     fun getImageDownloadLink(fileName: String): String = "$baseUrl/i/$fileName"

@@ -27,7 +27,8 @@ jib {
         mainClass = "de.tectoast.emolga.MainKt"
         jvmFlags = listOf(
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
-            "-Dlogback.configurationFile=logback.xml"
+            "-Dlogback.configurationFile=logback.xml",
+            "-Xmx2G"
         )
         ports = listOf("58700", "58701", "5005")
         volumes = listOf("/logs", "/logback.xml")

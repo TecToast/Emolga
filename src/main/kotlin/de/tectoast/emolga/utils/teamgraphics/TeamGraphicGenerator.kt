@@ -196,12 +196,16 @@ object TeamGraphicGenerator {
         this.drawString(text, x, y)
     }
 
+    private val pathCache = SizeLimitedMap<String, String>(1000)
 
     private suspend fun Graphics2D.drawMons(monData: Map<Int, DrawData>, style: TeamGraphicStyle) {
         for ((i, data) in monData) {
             val sdName = data.name.toSDName()
-            val image = fromCacheOrLoad(sdName) {
+            val imagePath = pathCache.getOrPut(sdName) {
                 "teamgraphics/sugimori_final/${mdb.pokedex.get(sdName)!!.calcSpriteName()}.png"
+            }
+            val image = withContext(Dispatchers.IO) {
+                ImageIO.read(File(imagePath))
             }
             val dataForIndex = style.getDataForIndex(i, data)
             val size = style.sizeOfShape

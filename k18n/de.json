@@ -8,6 +8,7 @@
           }
         },
         "features": {
+          "ONLYDEVELOPER": "NUR FÜR PROGRAMMIERER",
           "league": {
             "draft": {
               "generic": {

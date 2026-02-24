@@ -8,6 +8,7 @@
           }
         },
         "features": {
+          "ONLYDEVELOPER": "ONLY FOR DEVELOPER",
           "league": {
             "draft": {
               "generic": {

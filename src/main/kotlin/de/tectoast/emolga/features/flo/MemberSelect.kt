@@ -1,9 +1,6 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.league.draft.DraftPermissionCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
@@ -20,7 +17,7 @@ import org.litote.kmongo.setTo
 object MemberSelect {
     object Command : CommandFeature<Command.Args>(
         ::Args,
-        CommandSpec("memberselect", "NUR FÜR PROGRAMMIERER".k18n)
+        CommandSpec("memberselect", K18n_ONLYDEVELOPER)
     ) {
         init {
             restrict(flo)

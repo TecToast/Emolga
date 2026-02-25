@@ -127,20 +127,21 @@ data class GDLStyle(val conference: String) : TeamGraphicStyle {
     override val backgroundPath = "/teamgraphics/GDL/Universe.png"
     override val sizeOfShape = SIZE_OF_CIRCLE
 
-    @Transient
-    override val playerText = TeamGraphicStyle.TextProperties(
-        fontPath = "/teamgraphics/GDL/MASQUE.ttf",
-        fontColor = run {
-            val layer = ImageIO.read(File(overlayPath))
-            Color(layer.getRGB(1, 800))
-        },
-        fontSize = 72f,
-        xCoord = 300,
-        yCoord = 884,
-        orientation = TeamGraphicStyle.TextAlignment.CENTERED,
-        maxSize = 560,
-        shadow = TeamGraphicStyle.TextShadowProperties(Color(0, 0, 0, 255), 5, 5)
-    )
+    override val playerText by lazy {
+        TeamGraphicStyle.TextProperties(
+            fontPath = "/teamgraphics/GDL/MASQUE.ttf",
+            fontColor = run {
+                val layer = ImageIO.read(File(overlayPath))
+                Color(layer.getRGB(1, 800))
+            },
+            fontSize = 72f,
+            xCoord = 300,
+            yCoord = 884,
+            orientation = TeamGraphicStyle.TextAlignment.CENTERED,
+            maxSize = 560,
+            shadow = TeamGraphicStyle.TextShadowProperties(Color(0, 0, 0, 255), 5, 5)
+        )
+    }
     override val teamnameText = null
 
     @Transient

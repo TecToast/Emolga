@@ -468,6 +468,7 @@ object PrivateCommands {
                 currentMR.deleteMany(LeagueEvent::leaguename eq it)
             }
             ResultCodesDB.deleteFromLeague(it)
+            PredictionGameMessagesDB.deleteFromLeague(it)
         }
     }
 

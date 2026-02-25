@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.upsert
 
@@ -45,6 +46,10 @@ object PredictionGameMessagesDB : Table("predictiongamemessages") {
             it[BATTLE] = battle
             it[MESSAGEID] = messageId
         }
+    }
+
+    suspend fun deleteFromLeague(leagueName: String) = dbTransaction {
+        deleteWhere { LEAGUENAME eq leagueName }
     }
 
 }

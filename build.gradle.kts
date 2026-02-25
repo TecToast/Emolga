@@ -64,7 +64,7 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val exposedVersion = "1.0.0"
+val exposedVersion = "1.1.0"
 val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client

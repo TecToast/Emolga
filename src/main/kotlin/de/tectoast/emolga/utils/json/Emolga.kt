@@ -14,14 +14,12 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
 import de.tectoast.emolga.features.league.K18n_Signup
 import de.tectoast.emolga.features.league.LogoCommand.allowedFileFormats
-import de.tectoast.emolga.features.league.PredictionGame
 import de.tectoast.emolga.features.league.SignupManager
 import de.tectoast.emolga.features.various.ShinyEvent
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
 import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
-import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
@@ -163,7 +161,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         League::guild eq gid,
         or(
             League::leaguename eq displayName,
-            League::config / LeagueConfig::predictionGame / PredictionGame::withName eq displayName
+            League::prettyName eq displayName
         )
     )
 

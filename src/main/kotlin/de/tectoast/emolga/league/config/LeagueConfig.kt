@@ -1,6 +1,6 @@
 package de.tectoast.emolga.league.config
 
-import de.tectoast.emolga.features.league.PredictionGame
+import de.tectoast.emolga.features.league.PredictionGameConfig
 import de.tectoast.emolga.utils.DraftTimer
 import kotlinx.serialization.Serializable
 
@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 data class LeagueConfig(
     var timer: DraftTimer? = null,
     val replayDataStore: ReplayDataStoreConfig? = null,
-    val predictionGame: PredictionGame? = null,
+    val predictionGame: PredictionGameConfig? = null,
     val draftBan: DraftBanConfig? = null,
     val randomPick: RandomPickConfig = RandomPickConfig(),
     val randomPickRound: RandomPickRoundConfig? = null,

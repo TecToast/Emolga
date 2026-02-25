@@ -65,15 +65,15 @@ object PredictionGameManager {
 }
 
 @Serializable
-data class PredictionGame(
+data class PredictionGameConfig(
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant? = null,
     @Serializable(with = DurationSerializer::class) val interval: Duration,
     val amount: Int,
     val channel: Long,
-    val colorConfig: PredictionGameColorConfig = PredictionGameColorConfig.Default,
+    @Serializable(with = ColorToStringSerializer::class)
+    val customEmbedColor: Int? = null,
     val roleToPing: Long? = null,
-    val withName: String? = null,
     val currentState: PredictionGameCurrentStateType? = null
 )
 
@@ -81,6 +81,21 @@ data class PredictionGame(
 enum class PredictionGameCurrentStateType {
     ALWAYS,
     ON_LOCK
+}
+
+object ColorToStringSerializer : KSerializer<Int> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ColorToString", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: Int) {
+        encoder.encodeString(String.format("#%06X", 0xFFFFFF and value))
+    }
+
+    override fun deserialize(decoder: Decoder): Int {
+        val decodedString = decoder.decodeString()
+        return runCatching { decodedString.removePrefix("#").toInt(16) }.onFailure {
+            universalLogger.error("Failed to parse color from string: $decodedString", it)
+        }.getOrThrow()
+    }
 }
 
 @Serializable

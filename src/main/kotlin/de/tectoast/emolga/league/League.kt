@@ -44,6 +44,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.eq
 import org.litote.kmongo.ne
+import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
@@ -62,7 +63,8 @@ enum class DraftState {
 sealed class League {
     val sid: String = "yay"
     val leaguename: String = "ERROR"
-    val displayName get() = config.predictionGame?.withName ?: leaguename
+    val prettyName: String? = null
+    val displayName get() = prettyName ?: leaguename
 
     @EncodeDefault
     var draftState: DraftState = DraftState.OFF
@@ -726,10 +728,12 @@ sealed class League {
             val names =
                 jda.getGuildById(guild)!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
                     .map { it.user.effectiveName }
+            val customEmbedColor = tip.customEmbedColor
+            val titleEmbedColor = customEmbedColor ?: Color.YELLOW.rgb
             channel.send(
                 embeds = Embed(
-                    title = "${K18n_Gameday.translateToLeague()} $num".notNullAppend(tip.withName, prefix = " - "),
-                    color = tip.colorConfig.provideEmbedColor(this@League)
+                    title = "${K18n_Gameday.translateToLeague()} $num".notNullAppend(prettyName, prefix = " - "),
+                    color = titleEmbedColor
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
@@ -744,7 +748,7 @@ sealed class League {
                 val messageId = channel.send(
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
-                        color = embedColor,
+                        color = customEmbedColor ?: embedColor,
                         description = if (tip.currentState == PredictionGameCurrentStateType.ALWAYS) K18n_PredictionGame.VotesUntilNow(
                             "0:0"
                         ).translateToLeague() else null

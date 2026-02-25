@@ -160,6 +160,7 @@ data class RepeatTaskData(val executionTime: Instant)
 sealed interface RepeatTaskType {
     data object PredictionGameSending : RepeatTaskType
     data object PredictionGameLockButtons : RepeatTaskType
+    data object PredictionGameUpdate : RepeatTaskType
     data object RegisterInDoc : RepeatTaskType
     data object YTSendManual : RepeatTaskType
     data object YTEnable : RepeatTaskType

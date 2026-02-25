@@ -28,8 +28,8 @@ object PredictionGameAnalyseService {
         }
     }
 
-    suspend fun getTop10OfGuild(gid: Long, language: K18nLanguage) = dbTransaction {
-        with(PredictionGameVotesDB) {
+    suspend fun getTopNOfGuild(gid: Long, n: Int) = dbTransaction {
+        val content = with(PredictionGameVotesDB) {
             val correctVotes = getCorrectExpression()
             val totalVotes = getTotalExpression()
             val leaguePredicate = leaguePredicate(gid)
@@ -37,7 +37,7 @@ object PredictionGameAnalyseService {
                 .where { leaguePredicate }
                 .groupBy(USERID)
                 .orderBy(correctVotes, SortOrder.DESC)
-                .limit(10)
+                .limit(n)
                 .mapIndexed { index, it ->
                     val userId = it[USERID]
                     val correct = it[correctVotes] ?: 0
@@ -45,8 +45,10 @@ object PredictionGameAnalyseService {
                     val percentage = if (total > 0) (correct.toDouble() / total.toDouble()) * 100 else 0.0
                     "#%d: <@%d> (%d/%d, %.2f%%)".format(index + 1, userId, correct, total, percentage)
                 }
-                .joinToString("\n").ifEmpty { K18n_PredictionGameCommand.Top10NoPredictions.translateTo(language) }
+                .joinToString("\n")
         }
+        if (content.isEmpty()) K18n_PredictionGameCommand.TopNNoPredictions
+        else K18n_PredictionGameCommand.TopNSuccess(n, content)
     }
 
 

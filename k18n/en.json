@@ -271,8 +271,8 @@
             "PredictionGameCommand_nested": {
               "Help": "View the prediction game results",
               "Top10Help": "Show the top 10",
-              "Top10NoPredictions": "_No predictions have been submitted yet._",
-              "Top10Success": "# Server top 10\n{list}",
+              "TopNNoPredictions": "_No predictions have been submitted yet._",
+              "TopNSuccess": "# Server top {n:Int}\n{list}",
               "SelfHelp": "View your own prediction game results",
               "SelfNoPredictions": "You haven’t submitted any predictions yet!",
               "SelfSuccess": "# You in comparison\n{aboveAndBelow}\n# Your stats per league\n{resultsPerLeague}",

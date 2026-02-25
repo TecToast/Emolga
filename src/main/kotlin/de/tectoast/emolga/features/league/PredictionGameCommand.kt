@@ -15,12 +15,7 @@ object PredictionGameCommand :
         override suspend fun exec(e: NoArgs) {
             iData.deferReply(true)
             iData.reply(
-                K18n_PredictionGameCommand.Top10Success(
-                    PredictionGameAnalyseService.getTop10OfGuild(
-                        iData.gid,
-                        iData.language
-                    )
-                )
+                PredictionGameAnalyseService.getTopNOfGuild(iData.gid, 10)
             )
         }
     }

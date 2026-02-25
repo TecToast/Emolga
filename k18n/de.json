@@ -271,8 +271,8 @@
             "PredictionGameCommand_nested": {
               "Help": "Siehe die Tippspiel-Ergebnisse ein",
               "Top10Help": "Zeige die Top 10 an",
-              "Top10NoPredictions": "_Es wurden noch keine Tipps abgegeben._",
-              "Top10Success": "# Top 10 des Servers\n{list}",
+              "TopNNoPredictions": "_Es wurden noch keine Tipps abgegeben._",
+              "TopNSuccess": "# Top {n:Int} des Servers\n{list}",
               "SelfHelp": "Schaue deine eigenen Tippspiel-Ergebnisse an",
               "SelfNoPredictions": "Du hast noch keine Tipps abgegeben!",
               "SelfSuccess": "# Du im Vergleich\n{aboveAndBelow}\n# Deine Statistik pro Liga\n{resultsPerLeague}",

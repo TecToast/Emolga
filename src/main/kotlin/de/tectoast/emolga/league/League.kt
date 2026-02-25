@@ -778,6 +778,18 @@ sealed class League {
         }
     }
 
+    fun executePredictionGameUpdate() {
+        val conf = config.predictionGame?.updateConfig ?: return
+        launch {
+            jda.getTextChannelById(conf.channel)?.send(
+                PredictionGameAnalyseService.getTopNOfGuild(
+                    guild,
+                    conf.topN
+                ).translateToLeague()
+            )?.queue() ?: logger.warn("Could not find channel for prediction game update $leaguename ${conf.channel}")
+        }
+    }
+
 
     fun executePredictionGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
@@ -912,6 +924,13 @@ sealed class League {
                     leaguename, PredictionGameLockButtons, last, tip.amount, duration
                 ) {
                     executeOnFreshLock(leaguename) { executePredictionGameLockButtons(it) }
+                }
+            }
+            tip.updateConfig?.let { config ->
+                RepeatTask(
+                    leaguename, PredictionGameUpdate, tip.lastSending + duration, tip.amount, duration
+                ) {
+                    executeOnFreshLock(leaguename) { executePredictionGameUpdate() }
                 }
             }
         }

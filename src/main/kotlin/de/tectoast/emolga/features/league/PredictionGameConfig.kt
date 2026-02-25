@@ -74,7 +74,14 @@ data class PredictionGameConfig(
     @Serializable(with = ColorToStringSerializer::class)
     val customEmbedColor: Int? = null,
     val roleToPing: Long? = null,
-    val currentState: PredictionGameCurrentStateType? = null
+    val currentState: PredictionGameCurrentStateType? = null,
+    val updateConfig: PredictionGameUpdateConfig? = null
+)
+
+@Serializable
+data class PredictionGameUpdateConfig(
+    val channel: Long,
+    val topN: Int
 )
 
 @Serializable

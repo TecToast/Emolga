@@ -44,7 +44,7 @@ object PredictionGameCommand :
         CommandSpec("checkmissing", K18n_PredictionGameCommand.CheckMissingHelp)
     ) {
         class Args : Arguments() {
-            val gameday by int("Spieltag", K18n_PredictionGameCommand.CheckMissingArgGameday)
+            val gameday by int("Week", K18n_PredictionGameCommand.CheckMissingArgGameday)
         }
 
         context(iData: InteractionData)
@@ -73,7 +73,7 @@ object PredictionGameCommand :
                     names.filter { it.contains(string, true) }
                 }
             }
-            val gameday by int("Spieltag", K18n_PredictionGameCommand.OwnVotesArgGameday)
+            val gameday by int("Week", K18n_PredictionGameCommand.OwnVotesArgGameday)
         }
 
         context(iData: InteractionData)

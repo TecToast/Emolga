@@ -200,7 +200,7 @@
               "Help": "Options to manage a league",
               "ArgLeague": "The name of the league you want to manage",
               "ResultCheckHelp": "Outputs which battles are already finished and which are not",
-              "ResultCheckArgGameday": "The matchday you want to check",
+              "ResultCheckArgGameday": "The week you want to check",
               "ResultCheckArgPublic": "Whether the output should be public"
             },
             "Logo_nested": {
@@ -214,10 +214,10 @@
               "ArgLogo": "The logo"
             },
             "Nominate_nested": {
-              "AlreadyNominated": "You have already nominated your team for this matchday ({num:Int})!",
+              "AlreadyNominated": "You have already nominated your team for this week ({num:Int})!",
               "EmbedTitle": "Nominations",
               "Description": "**Nominated: ({nominatedSize:Int})**\n{nominated}\n**Not nominated: ({notNominatedSize:Int})**\n{notNominated}",
-              "NominationSaved": "Your nomination for matchday {num:Int} has been saved!",
+              "NominationSaved": "Your nomination for week {num:Int} has been saved!",
               "AmountIncorrect": "You must nominate exactly {amount:Int} Pokemon!",
               "ConfirmationQuestion": "Are you really sure? The nomination cannot be undone!"
             },
@@ -276,18 +276,18 @@
               "SelfHelp": "View your own prediction game results",
               "SelfNoPredictions": "You haven’t submitted any predictions yet!",
               "SelfSuccess": "# You in comparison\n{aboveAndBelow}\n# Your stats per league\n{resultsPerLeague}",
-              "CheckMissingHelp": "Check for missing predictions on a matchday",
-              "CheckMissingArgGameday": "The matchday you want to check",
-              "CheckMissingAllPredictionsGiven": "You have submitted all predictions for matchday {gameday:Int}!",
+              "CheckMissingHelp": "Check for missing predictions on a week",
+              "CheckMissingArgGameday": "The week you want to check",
+              "CheckMissingAllPredictionsGiven": "You have submitted all predictions for week {gameday:Int}!",
               "CheckMissingTooLong": "The list of missing predictions is too long to display here. A total of {amount:Int} predictions are missing.",
-              "CheckMissingSuccess": "# Missing predictions for matchday {num:Int}\n{list}",
-              "OwnVotesHelp": "View your predictions for a matchday",
+              "CheckMissingSuccess": "# Missing predictions for week {num:Int}\n{list}",
+              "OwnVotesHelp": "View your predictions for a week",
               "OwnVotesArgLeague": "The league for which you want to view your predictions",
-              "OwnVotesArgGameday": "The matchday for which you want to view your predictions",
+              "OwnVotesArgGameday": "The week for which you want to view your predictions",
               "OwnVotesLeagueNotFound": "There is no league with the name {league}!",
-              "OwnVotesGamedayNotFound": "There is no matchday {gameday:Int} in the league {league}!",
-              "OwnVotesNoVotes": "You haven’t submitted any predictions for {league} on matchday {gameday:Int} yet!",
-              "OwnVotesSuccess": "# Your predictions for {league} on matchday {gameday:Int}\n{predictions}"
+              "OwnVotesGamedayNotFound": "There is no week {gameday:Int} in the league {league}!",
+              "OwnVotesNoVotes": "You haven’t submitted any predictions for {league} on week {gameday:Int} yet!",
+              "OwnVotesSuccess": "# Your predictions for {league} on week {gameday:Int}\n{predictions}"
             }
           },
           "showdown": {
@@ -357,7 +357,7 @@
         },
         "league": {
           "YouTube_nested": {
-            "GamedayAndBattle": "**Matchday ${gameday:Int}**\n_Battle {battle:Int}_",
+            "GamedayAndBattle": "**Week ${gameday:Int}**\n_Battle {battle:Int}_",
             "ViewOfPlayer": "{player}'s view: {url}",
             "NotUploaded": "_not uploaded yet_"
           },
@@ -383,8 +383,8 @@
             "TeamFull": "Your roster is already full!",
             "DraftFinished": "The draft is over!",
             "DraftFinishedBecauseAllFinished": "Since everyone has already finished their drafts, the draft is over!",
-            "StoreStatus": "## Current status of matchday {gameday:Int} [{leaguename}]:\n{status}",
-            "ReminderToParticipant": "Your battle on matchday {gameday:Int} against {opponent:Mention} has not yet been recorded.\nIf this was forgotten, please clarify who will enter the battle.\n\nIf the battle has already been entered, this system isn’t working; please inform {mytag} :)",
+            "StoreStatus": "## Current status of week {gameday:Int} [{leaguename}]:\n{status}",
+            "ReminderToParticipant": "Your battle on week {gameday:Int} against {opponent:Mention} has not yet been recorded.\nIf this was forgotten, please clarify who will enter the battle.\n\nIf the battle has already been entered, this system isn’t working; please inform {mytag} :)",
             "NoDraftInChannel": "There is currently no draft running in this channel!",
             "SlightlyTooSlow": "You were a bit too slow!",
             "NoOpenPicks": "You have no open picks left!",
@@ -517,7 +517,7 @@
         "NoPermission": "You are not authorized to execute this interaction!",
         "RoutineMaintenance": "Routine maintenance is being performed; I should be reachable again in a few minutes.",
         "ClickMe": "Click me!",
-        "Gameday": "Matchday",
+        "Gameday": "Week",
         "Battle": "Battle",
         "Or": "or",
         "German": "German",

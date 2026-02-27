@@ -13,5 +13,6 @@ data class DraftPokemon(
     @Config("Free", "Ob das Pokemon ein Freepick ist")
     var free: Boolean = false,
     var quit: Boolean = false,
-    var noCost: Boolean = false
+    var noCost: Boolean = false,
+    var tera: Boolean = false,
 )

@@ -56,7 +56,8 @@ data class PickInput(
             }
             val idx = current
             val teraConfig = config.teraPick
-            if (tera && draftData.teraPick.alreadyHasTeraUser.contains(idx)) {
+            val picks = league.picks(idx)
+            if (tera && teraConfig != null && picks.count { it.tera } >= teraConfig.amount) {
                 return iData.reply(K18n_DraftUtils.TeraUserAlreadyPicked).let { false }
             }
             val tl = if (teraConfig != null && tera) (Tierlist[league.guild, teraConfig.tlIdentifier]
@@ -81,7 +82,6 @@ data class PickInput(
                 )
             }?.let { return iData.reply(it).let { false } }
             val saveTier = if (context.isValidFreePick) officialTier else specifiedTier
-            if (tera) draftData.teraPick.alreadyHasTeraUser.add(idx)
             lastPickedMon = pokemon
             val pickData = PickData(
                 league = league,

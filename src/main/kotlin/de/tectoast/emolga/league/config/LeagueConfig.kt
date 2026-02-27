@@ -28,7 +28,6 @@ data class ResettableLeagueData(
     val randomPickRound: RandomPickRoundData = RandomPickRoundData(),
     val randomPick: RandomLeagueData = RandomLeagueData(),
     val timer: TimerRelated = TimerRelated(),
-    val teraPick: TeraPickData = TeraPickData(),
     val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf(),
     val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
     var round: Int = 1,

@@ -307,25 +307,32 @@ class TierlistBuilderConfigurator(
         return true
     }
 
-    private fun tiermappingComponents(withSelect: Boolean) = tierlistcols.mapIndexed { i, list ->
-        primary(
-            "6tierlistbuilder;tiermapping:$i", "Spalte ${i + 1}: ${list[0]}", disabled = i in tiermapping
-        )
-    }.chunked(5).map {
-        ActionRow.of(it)
-    } + (if (withSelect) listOf(
-        ActionRow.of(
-            StringSelectMenu(
-                "6tierlistbuilder;tiermapping",
-                options = prices!!.keys.map { SelectOption(it, it) },
-                placeholder = "Konfiguration von Spalte ${currCol + 1}"
+    private fun tiermappingComponents(withSelect: Boolean): List<ActionRow> {
+        return buildList {
+            if (tierlistcols.size <= 10) {
+                tierlistcols.mapIndexed { i, list ->
+                    primary(
+                        "6tierlistbuilder;tiermapping:$i", "Spalte ${i + 1}: ${list[0]}", disabled = i in tiermapping
+                    )
+                }.chunked(5).map {
+                    ActionRow.of(it)
+                } + (if (withSelect) listOf(
+                    ActionRow.of(
+                        StringSelectMenu(
+                            "6tierlistbuilder;tiermapping",
+                            options = prices!!.keys.map { SelectOption(it, it) },
+                            placeholder = "Konfiguration von Spalte ${currCol + 1}"
+                        )
+                    )
+                ) else emptyList())
+            }
+            add(
+                ActionRow.of(
+                    success("6tierlistbuilder;tiermapping:default", "Standard-Tierzuordnung")
+                )
             )
-        )
-    ) else emptyList()) + listOf(
-        ActionRow.of(
-            success("6tierlistbuilder;tiermapping:default", "Standard-Tierzuordnung")
-        )
-    )
+        }
+    }
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
@@ -360,13 +367,12 @@ class TierlistBuilderConfigurator(
                 this[Tierlist.POKEMON] = it.name
                 this[Tierlist.TIER] = it.tier
                 this[Tierlist.TYPE] = it.type
-                this[Tierlist.POINTS] = it.points
                 this[Tierlist.IDENTIFIER] = tlIdentifier
             }
         }
         checkScope.launch {
             Tierlist.setup()
-            checkTL(guildId, tlIdentifier)
+//            checkTL(guildId, tlIdentifier)
         }
     }
 

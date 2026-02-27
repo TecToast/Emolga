@@ -63,7 +63,7 @@ data class PickInput(
                 ?: error("No TERA tierlist found for guild ${league.guild}")) else tierlist
             val (tlName, official, _, _, _) = pokemon
             logger.info("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier, _) = (tl.getTierOfCommand(pokemon, tier) ?: return iData.reply(
+            val (specifiedTier, officialTier) = (tl.getTierOfCommand(pokemon, tier) ?: return iData.reply(
                 K18n_DraftUtils.PokemonNotInTierlist
             ).let { false })
             if (isPicked(official, officialTier)) return iData.reply(K18n_DraftUtils.PokemonAlreadyPicked).let { false }

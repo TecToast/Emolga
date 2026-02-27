@@ -71,7 +71,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             if (picks.size >= teamsize) {
                 return@l iData.reply(K18n_AddMon.TeamAlreadyComplete(Constants.MYTAG))
             }
-            val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
+            val (tier, _) = (tl.getTierOfCommand(e.pokemon, null)
                 ?: return@l iData.reply(K18n_NotInTierlist(e.pokemon.tlName)))
             tl.withTL {
                 it.handleDraftActionWithGeneralChecks(

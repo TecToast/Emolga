@@ -1263,7 +1263,7 @@ class BanData(
     override val changedOnTeamsiteIndex = -1 // not used for BanData
 }
 
-data class TierData(val specified: String, val official: String, val points: Int?)
+data class TierData(val specified: String, val official: String)
 
 sealed interface TimerSkipMode {
 

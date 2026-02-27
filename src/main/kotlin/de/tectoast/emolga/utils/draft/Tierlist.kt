@@ -121,10 +121,7 @@ class Tierlist(
         }
 
     suspend fun getTierOfCommand(pokemon: DraftName, requestedTier: String?): TierData? {
-        val (real, points) = dbTransaction {
-            selectAll().where { basePredicate and (POKEMON eq pokemon.tlName) }
-                .map { it[TIER] to it[POINTS] }.firstOrNull()
-        } ?: return null
+        val real = getTierOf(pokemon.tlName) ?: return null
         return if (requestedTier != null && has<TierBasedPriceManager>()) {
             // TODO maybe dont return an empty string
             TierData(order.firstOrNull {
@@ -132,14 +129,10 @@ class Tierlist(
                     it, ignoreCase = true
                 )
             } ?: "",
-                real, points)
+                real)
         } else {
-            TierData(real, real, points)
+            TierData(real, real)
         }
-    }
-
-    suspend fun getPointsOf(mon: String) = dbTransaction {
-        selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[POINTS] }.firstOrNull()
     }
 
 
@@ -193,7 +186,6 @@ class Tierlist(
         val POKEMON = varchar("pokemon", 64)
         val TIER = varchar("tier", 8)
         val TYPE = varchar("type", 10).nullable()
-        val POINTS = integer("points").nullable()
 
         override val primaryKey = PrimaryKey(GUILD, IDENTIFIER, POKEMON)
         private var setupCalled = false

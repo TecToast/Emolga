@@ -325,7 +325,19 @@ interface FreePickPriceManager : TierlistPriceManager
 
 interface PointBasedPriceManager : TierlistPriceManager {
     val globalPoints: Int
-    fun getPointsForMon(pokemon: DraftPokemon): Int
+    fun getPointsForTier(tier: String): Int?
+    fun getPointsForMon(pokemon: DraftPokemon): Int {
+        return getPointsForTier(pokemon.tier)
+            ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
+    }
+
+    context(tl: Tierlist)
+    suspend fun getPointsForMon(tlName: String): Int {
+        val tier = tl.getTierOf(tlName) ?: error("Mon $tlName not found in tierlist ${tl.guildid} ${tl.identifier}")
+        val price = getPointsForTier(tier)
+            ?: error("Tier $tier not found in tierlist ${tl.guildid} ${tl.identifier} for mon $tlName")
+        return price
+    }
 
     context(league: League, tl: Tierlist)
     fun getPointsOfUser(idx: Int) = pointManager()[idx]
@@ -523,21 +535,16 @@ sealed interface TierlistPriceManager {
         }
     }
 
-    @Serializable
-    @SerialName("SimplePointBased")
-    data class SimplePointBased(
-        val prices: Map<String, Int>, override val globalPoints: Int,
-        override val generalChecks: List<GeneralCheck> = emptyList()
-    ) : TierlistPriceManager,
-        PointBasedPriceManager {
+    interface OnlyPointBasedPriceManager : TierlistPriceManager, PointBasedPriceManager {
+        fun getMinimumPrice(): Int
 
         context(league: League, tl: Tierlist)
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
             val pointManager = pointManager()
             val currentPoints = pointManager[league.current]
-            val cost = prices[action.specifiedTier]
+            val cost = getPointsForTier(action.specifiedTier)
                 ?: return K18n_TierNotFound(action.specifiedTier)
-            val pointsBack = action.switch?.let { switched -> prices[switched.tier]!! } ?: 0
+            val pointsBack = action.switch?.let { switched -> getPointsForTier(switched.tier)!! } ?: 0
             val newPoints = currentPoints - cost + pointsBack
             if (newPoints < 0) {
                 return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0")
@@ -556,20 +563,12 @@ sealed interface TierlistPriceManager {
 
         context(league: League)
         private fun minimumNeededPointsForTeamCompletion(picksSizeAfter: Int): Int =
-            (league.teamsize - picksSizeAfter) * prices.values.min()
+            (league.teamsize - picksSizeAfter) * getMinimumPrice()
+
 
         context(league: League, tl: Tierlist)
         override suspend fun buildAnnounceData(idx: Int): K18nMessage {
             return K18n_League.PossiblePoints(pointManager()[idx])
-        }
-
-        override fun getTiers(): List<String> {
-            return prices.keys.toList()
-        }
-
-        override fun getPointsForMon(pokemon: DraftPokemon): Int {
-            return prices[pokemon.tier]
-                ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
         }
 
         context(league: League, tl: Tierlist)
@@ -580,8 +579,8 @@ sealed interface TierlistPriceManager {
             var gPoints = 0
             var yPoints = 0
             for (data in currentState) {
-                gPoints += prices[league.tierlist.getTierOf(data.g.tlName)!!]!!
-                yPoints += data.y?.let { prices[league.tierlist.getTierOf(it.tlName)!!]!! }
+                gPoints += getPointsForTier(league.tierlist.getTierOf(data.g.tlName)!!)!!
+                yPoints += data.y?.let { getPointsForTier(league.tierlist.getTierOf(it.tlName)!!)!! }
                     ?: 0
             }
             if (pointManager()[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
@@ -590,6 +589,46 @@ sealed interface TierlistPriceManager {
             ) return K18n_QueuePicks.LegalTeamCompletion
             return null
         }
+    }
+
+    @Serializable
+    @SerialName("SimplePointBased")
+    data class SimplePointBased(
+        val prices: Map<String, Int>, override val globalPoints: Int,
+        override val generalChecks: List<GeneralCheck> = emptyList()
+    ) : TierlistPriceManager,
+        OnlyPointBasedPriceManager {
+
+        override fun getPointsForTier(tier: String) = prices[tier]
+
+        override fun getMinimumPrice(): Int {
+            return prices.values.min()
+        }
+
+        override fun getTiers(): List<String> {
+            return prices.keys.toList()
+        }
+    }
+
+    @Serializable
+    @SerialName("RangePointBased")
+    data class RangePointBased(
+        val maxTier: Int,
+        val minTier: Int,
+        override val globalPoints: Int,
+        override val generalChecks: List<GeneralCheck> = emptyList()
+    ) : TierlistPriceManager, OnlyPointBasedPriceManager {
+        override fun getTiers(): List<String> {
+            return (maxTier..minTier).map { it.toString() }
+        }
+
+        override fun getPointsForTier(tier: String): Int? {
+            val tierInt = tier.toIntOrNull() ?: return null
+            if (tierInt !in minTier..maxTier) return null
+            return tierInt
+        }
+
+        override fun getMinimumPrice() = minTier
     }
 
     @Serializable

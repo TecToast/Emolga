@@ -111,7 +111,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                             feature.populateArgs(data, e, args)
                         } catch (ex: ArgumentException) {
                             data.reply(
-                                ex.msg.t() + "\n" + K18n_FeatureManager.IfErrorContact(Constants.MYTAG),
+                                ex.msg.t() + "\n" + K18n_FeatureManager.IfErrorContact(Constants.MYTAG).t(),
                                 ephemeral = true
                             )
                             return

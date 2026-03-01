@@ -2,7 +2,9 @@ package de.tectoast.emolga.features.flo
 
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.k18n
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.contextParameters
@@ -25,17 +27,21 @@ object PrivCommand :
             .associateBy { it.name }
     }
 
+    val scope = createCoroutineScope("PrivCommand")
+
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         privCommands[e.cmd]?.let { method ->
-            val result = withTimeoutOrNull(2000) {
-                if (method.parameters.run { size <= 2 }) method.callSuspend(PrivateCommands, iData)
-                else method.callSuspend(
-                    PrivateCommands, iData, PrivateData(e.arguments)
-                )
+            withTimeoutOrNull(2000) {
+                scope.launch {
+                    if (method.parameters.run { size <= 2 }) method.callSuspend(PrivateCommands, iData)
+                    else method.callSuspend(
+                        PrivateCommands, iData, PrivateData(e.arguments)
+                    )
+                }.join()
             }
-            if (!iData.replied || result == null)
-                iData.reply("Command ausgeführt!", ephemeral = true)
+            if (iData.replied || iData.deferred) return
+            iData.reply("Command ausgeführt!", ephemeral = true)
         } ?: iData.reply("Command nicht gefunden!", ephemeral = true)
     }
 }

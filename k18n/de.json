@@ -357,7 +357,7 @@
         },
         "league": {
           "YouTube_nested": {
-            "GamedayAndBattle": "**Spieltag ${gameday:Int}**\n_Kampf {battle:Int}_",
+            "GamedayAndBattle": "**Spieltag {gameday:Int}**\n_Kampf {battle:Int}_",
             "ViewOfPlayer": "{player}'s Sicht: {url}",
             "NotUploaded": "_noch nicht hochgeladen_"
           },

@@ -357,7 +357,7 @@
         },
         "league": {
           "YouTube_nested": {
-            "GamedayAndBattle": "**Week ${gameday:Int}**\n_Battle {battle:Int}_",
+            "GamedayAndBattle": "**Week {gameday:Int}**\n_Battle {battle:Int}_",
             "ViewOfPlayer": "{player}'s view: {url}",
             "NotUploaded": "_not uploaded yet_"
           },

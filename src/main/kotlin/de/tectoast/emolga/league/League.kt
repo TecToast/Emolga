@@ -811,7 +811,7 @@ sealed class League {
                 embeds += Embed(
                     title = message.embeds[0].title,
                     description = buildCurrentPredictionGameState(gameday, mu),
-                    color = embedColor
+                    color = predictionGame.customEmbedColor ?: embedColor
                 )
             }
         }

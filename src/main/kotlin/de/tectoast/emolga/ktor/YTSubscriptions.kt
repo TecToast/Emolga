@@ -40,7 +40,7 @@ import org.litote.kmongo.exists
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -118,7 +118,8 @@ fun Route.ytSubscriptions() {
                 try {
                     val pub = Instant.parse(published)
                     val upd = Instant.parse(updated)
-                    if (upd - pub > 1.minutes) {
+                    if (upd - pub > 1.hours) {
+                        logger.info("Published: {} Updated: {} Difference: {}", pub, upd, upd - pub)
                         return@forEach
                     }
                 } catch (e: Exception) {

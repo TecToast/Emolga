@@ -223,13 +223,6 @@ fun Route.emolgaAPI() {
                     })
                 }
             }
-            get("/picked") {
-                val gid = call.requireGuild() ?: return@get
-                val allLeagues = mdb.league.find(League::guild eq gid).toList()
-                val pickedAmount = allLeagues.flatMap { it.picks.values.flatten() }.map { it.name }.groupingBy { it }
-                    .eachCount().entries.sortedByDescending { it.value }
-                call.respond(pickedAmount)
-            }
         }
     }
     route("/result/{resultid}") {
@@ -317,6 +310,31 @@ fun Route.emolgaAPI() {
             )
         )
     }
+    get("/picked/{guild}") {
+        val gid = call.parameters["guild"]?.toLongOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val allLeagues = mdb.league.find(League::guild eq gid).toList()
+        val language =
+            allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.map {
+            it.name
+        }
+        val allMonsTranslations =
+            NameConventionsDB.getAllData(
+                allEntries.distinct(), NameConventionsDB.GERMAN, gid
+            ).associateBy { it.official }
+        val pickedAmount = allEntries.groupingBy { it }
+            .eachCount().map {
+                val nameData = allMonsTranslations[it.key]!!
+                val name = nameData.tlForLanguage(language)
+                val englishOfficial = nameData.otherOfficial!!
+                val spriteName = if ("-" in englishOfficial) {
+                    mdb.pokedex.get(englishOfficial.toSDName())!!
+                        .calcSpriteName()
+                } else englishOfficial.toSDName()
+                PokemonPickedData(name, spriteName, it.value)
+            }.sortedByDescending { it.amount }
+        call.respond(pickedAmount)
+    }
     get("/liveteam") {
         val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
         val uuid = Uuid.parseHexDashOrNull(token)
@@ -387,6 +405,9 @@ suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: 
 }
 
 private val teamGraphicCache = SizeLimitedMap<String, ByteArray>(maxSize = 100)
+
+@Serializable
+data class PokemonPickedData(val name: String, val spriteName: String, val amount: Int)
 
 @Serializable
 data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: List<String>, val data: List<UsageData>)

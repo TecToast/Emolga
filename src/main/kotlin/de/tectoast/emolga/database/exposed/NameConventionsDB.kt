@@ -189,13 +189,13 @@ object NameConventionsDB : Table("nameconventions") {
      * @param list the list of official english names
      * @return a map of the official english names to the german names
      */
-    suspend fun getAllSDTranslationOnlyOfficial(
+    suspend fun getAllTranslations(
         list: List<String>,
         predicateCol: Column<String>,
         targetCol: Column<String>
     ): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(predicateCol inList list).toMap { it[predicateCol] to it[targetCol] }
+            select(predicateCol, targetCol).where(predicateCol inList list).toMap { it[predicateCol] to it[targetCol] }
         }
     }
 
@@ -255,6 +255,7 @@ data class DraftName(
 ) {
     var data: Pokemon? = null
     val displayName get() = if (official == "UNKNOWN") tlName else if (guildspecific) tlName else official
+    fun tlForLanguage(language: Language) = if (language == Language.GERMAN) tlName else otherTl ?: tlName
     override fun equals(other: Any?): Boolean {
         if (other !is DraftName) return false
         return official == other.official

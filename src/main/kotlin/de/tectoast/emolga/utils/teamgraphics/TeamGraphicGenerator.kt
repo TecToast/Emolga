@@ -294,7 +294,7 @@ object TeamGraphicGenerator {
                 val englishNames = run {
                     val inDocOrder = league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
                         .inDocOrder(league)
-                    val lookupMap = NameConventionsDB.getAllSDTranslationOnlyOfficial(
+                    val lookupMap = NameConventionsDB.getAllTranslations(
                         inDocOrder.values.map { it.name }, NameConventionsDB.GERMAN, NameConventionsDB.ENGLISH
                     )
                     inDocOrder.mapValues {

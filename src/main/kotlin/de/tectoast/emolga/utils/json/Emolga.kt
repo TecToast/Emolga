@@ -199,7 +199,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                         }.size) > 0
                     }
                     val allSDTranslations =
-                        NameConventionsDB.getAllSDTranslationOnlyOfficial(
+                        NameConventionsDB.getAllTranslations(
                             possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() },
                             NameConventionsDB.ENGLISH, NameConventionsDB.GERMAN
                         )

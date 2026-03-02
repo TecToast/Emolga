@@ -54,6 +54,7 @@ private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
 private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
 private val participantDataCache = mutableMapOf<Long, Pair<String, String>>()
+private val pickedDataCache = SizeLimitedMap<Long, List<PokemonPickedData>>()
 
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
@@ -312,27 +313,30 @@ fun Route.emolgaAPI() {
     }
     get("/picked/{guild}") {
         val gid = call.parameters["guild"]?.toLongOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val allLeagues = mdb.league.find(League::guild eq gid).toList()
-        val language =
-            allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.map {
-            it.name
+        val pickedAmount = pickedDataCache.getOrPut(gid) {
+            val allLeagues = mdb.league.find(League::guild eq gid).toList()
+            val language =
+                allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.map {
+                it.name
+            }
+            val allMonsTranslations =
+                NameConventionsDB.getAllData(
+                    allEntries.distinct(), NameConventionsDB.GERMAN, gid
+                ).associateBy { it.official }
+            allEntries.groupingBy { it }
+                .eachCount().map {
+                    val nameData = allMonsTranslations[it.key]!!
+                    val name = nameData.tlForLanguage(language)
+                    val englishOfficial = nameData.otherOfficial!!
+                    val spriteName = if ("-" in englishOfficial) {
+                        mdb.pokedex.get(englishOfficial.toSDName())!!
+                            .calcSpriteName()
+                    } else englishOfficial.toSDName()
+                    PokemonPickedData(name, spriteName, it.value)
+                }.sortedByDescending { it.amount }
         }
-        val allMonsTranslations =
-            NameConventionsDB.getAllData(
-                allEntries.distinct(), NameConventionsDB.GERMAN, gid
-            ).associateBy { it.official }
-        val pickedAmount = allEntries.groupingBy { it }
-            .eachCount().map {
-                val nameData = allMonsTranslations[it.key]!!
-                val name = nameData.tlForLanguage(language)
-                val englishOfficial = nameData.otherOfficial!!
-                val spriteName = if ("-" in englishOfficial) {
-                    mdb.pokedex.get(englishOfficial.toSDName())!!
-                        .calcSpriteName()
-                } else englishOfficial.toSDName()
-                PokemonPickedData(name, spriteName, it.value)
-            }.sortedByDescending { it.amount }
+        call.caching = CachingOptions(CacheControl.MaxAge(60 * 60 * 24 * 7))
         call.respond(pickedAmount)
     }
     get("/liveteam") {

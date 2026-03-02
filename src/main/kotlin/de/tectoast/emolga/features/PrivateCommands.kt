@@ -731,6 +731,20 @@ object PrivateCommands {
             signup.save()
         }
     }
+
+    context(iData: InteractionData)
+    suspend fun setSignupData(args: PrivateData) {
+        val guild = args[0].toLong()
+        val uid = args[1].toLong()
+        val sdName = args[2]
+        val teamName = args[3]
+        mdb.signups.get(guild)!!.let { signup ->
+            val uData = signup.users.first { it.users.contains(uid) }
+            uData.data[SignUpInput.SDNAME_ID] = sdName
+            uData.data[SignUpInput.TEAMNAME_ID] = teamName
+            signup.save()
+        }
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

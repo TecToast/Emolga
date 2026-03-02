@@ -710,6 +710,27 @@ object PrivateCommands {
             }.into()
         ).queue()
     }
+
+    context(iData: InteractionData)
+    suspend fun switchPlayer(args: PrivateData) {
+        val league = mdb.league(args[0])
+        val uidOld = args[1].toLong()
+        val uidNew = args[2].toLong()
+        mdb.league.updateOne(
+            League::leaguename eq league.leaguename,
+            set(League::table.pos(league(uidOld)) setTo uidNew)
+        )
+        mdb.signups.get(league.guild)?.let { signup ->
+            val uData = signup.users.first { it.users.contains(uidOld) }
+            uData.users.apply {
+                remove(uidOld)
+                add(uidNew)
+            }
+            uData.data[SignUpInput.SDNAME_ID] = args[3]
+            uData.data[SignUpInput.TEAMNAME_ID] = args[4]
+            signup.save()
+        }
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

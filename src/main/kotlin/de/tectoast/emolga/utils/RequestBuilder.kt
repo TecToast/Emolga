@@ -3,9 +3,9 @@ package de.tectoast.emolga.utils
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -499,7 +499,7 @@ class RequestBuilder
         }
 
         private fun scheduleForExecution(b: RequestBuilder) {
-            defaultScope.launch(start = CoroutineStart.UNDISPATCHED) { channel.send(b) }
+            channel.trySendBlocking(b)
         }
 
         fun getColumnFromRange(range: String): Int {

@@ -184,7 +184,7 @@
               "ResultForArgUser": "The person for whom you want to enter the result",
               "ResultForArgOpponent": "The opponent of the person for whom you want to enter the result",
               "NoLeagueWithOpponent": "You are not in a league with this user! If you think this is an error, please contact {mytag}!",
-              "Success": "Please enter the result on my website:\n{url}"
+              "Success": "Please enter the result on my website:\nhttps://emolga.tectoast.de/result/{url}"
             },
             "LadderTournament_nested": {
               "NoTournamentHere": "There is no ongoing ladder tournament on this server!",
@@ -288,6 +288,11 @@
               "OwnVotesGamedayNotFound": "There is no week {gameday:Int} in the league {league}!",
               "OwnVotesNoVotes": "You haven’t submitted any predictions for {league} on week {gameday:Int} yet!",
               "OwnVotesSuccess": "# Your predictions for {league} on week {gameday:Int}\n{predictions}"
+            },
+            "Transaction_nested": {
+              "CommandHelp": "Starts a transaction, please press enter for more details",
+              "Created": "Please enter the transaction details on the official Emolga-Website:\nhttps://emolga.tectoast.de/transaction/{uuid}",
+              "Done": "New transaction of {user:Mention}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Remaining transaction points: {remainingPoints:Int}\nValid from week **{week:Int}**."
             }
           },
           "showdown": {
@@ -410,7 +415,8 @@
               "MinimumNeededError": "If you were to take this Pokemon, your roster could no longer be completed! (After this pick you must still have at least {minimumRequired:Int} points, but you would only have {newPoints:Int})",
               "CantUpdraft": "You can’t updraft an {officialTier} mon to {specifiedTier}!",
               "GapError": "You can only updraft an {officialTier} mon by up to {gap:Int} tiers!",
-              "UpdraftDisabled": "Updrafting is not allowed in this league!"
+              "UpdraftDisabled": "Updrafting is not allowed in this league!",
+              "TeraMaxPoints": "The cost of your Tera picks must not exceed {max:Int} points!"
             },
             "DraftUtils_nested": {
               "NoPickDuringSwitch": "You cannot pick during a switch draft!",

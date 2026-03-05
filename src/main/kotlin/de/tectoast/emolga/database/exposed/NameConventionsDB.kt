@@ -116,6 +116,28 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
+    suspend fun convertAllOfficialToTL(mons: Iterable<String>, guildId: Long): Map<String, String> {
+        val nc = emolgaDB.nameconventions.get(guildId)
+        val english = Tierlist[guildId].isEnglish
+        return dbTransaction {
+            selectAll().where(((GERMAN inList mons) and (GUILD eq 0 or (GUILD eq guildId))))
+                .orderBy(COMMON to SortOrder.DESC, GUILD to SortOrder.ASC, SPECIFIED to SortOrder.ASC).toMap { row ->
+                    val official = row[GERMAN]
+                    val tlName = if (english) row[SPECIFIEDENGLISH] else row[SPECIFIED]
+                    val spec = possibleSpecs().firstOrNull { official.endsWith("-$it") }
+                    val finalName = if (spec != null) {
+                        val ncData = (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!)
+                        if (tlName.matches(ncData.toRegex())) tlName
+                        else ncData.replace(
+                            "(.+)",
+                            tlName.substringBefore("-$spec")
+                        )
+                    } else tlName
+                    official to finalName
+                }
+        }
+    }
+
     /**
      * Gets all name data for the given official name
      * @param mon the official name
@@ -278,7 +300,7 @@ data class DraftName(
  * @param fn a function that takes an element of type T and returns a Pair<A, B>
  * @return a Map containing the key-value pairs collected from the Flow
  */
-suspend fun <T, A, B> Flow<T>.toMap(fn: (T) -> Pair<A, B>): Map<A, B> {
+suspend fun <T, A, B> Flow<T>.toMap(fn: suspend (T) -> Pair<A, B>): Map<A, B> {
     val destination = mutableMapOf<A, B>()
     collect { value ->
         val result = fn(value)

@@ -18,7 +18,8 @@ data class LeagueConfig(
     val teraPick: TeraPickConfig? = null,
     val triggers: Triggers = Triggers(),
     val hideGames: HideGamesConfig? = null,
-    val teamgraphics: TeamGraphicsLeagueConfig? = null
+    val teamgraphics: TeamGraphicsLeagueConfig? = null,
+    val transaction: TransactionConfig? = null,
 )
 
 
@@ -38,4 +39,5 @@ data class PersistentLeagueData(
     val replayDataStore: ReplayDataStoreData = ReplayDataStoreData(),
     val queuePicks: QueuePicksData = QueuePicksData(),
     val teamReveal: TeamRevealData = TeamRevealData(),
+    val transaction: LeagueTransactionData = LeagueTransactionData(),
 )

@@ -3,8 +3,10 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.toMap
 import de.tectoast.emolga.features.league.draft.K18n_QueuePicks
 import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
+import de.tectoast.emolga.ktor.TransactionPokemonData
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.TierData
@@ -37,7 +39,7 @@ import org.litote.kmongo.eq
 
 @Suppress("unused")
 @Serializable
-class Tierlist(
+data class Tierlist(
     val guildid: Long,
     val identifier: String = "",
     val priceManager: TierlistPriceManager = TierlistPriceManager.Empty
@@ -190,6 +192,17 @@ class Tierlist(
         override val primaryKey = PrimaryKey(GUILD, IDENTIFIER, POKEMON)
         private var setupCalled = false
 
+        suspend fun getAllPokemonWithTera(guild: Long, teraIdentifier: String) = dbTransaction {
+            val normalTl = selectAll().where { GUILD eq guild and (IDENTIFIER eq "") }.toMap { it[POKEMON] to it[TIER] }
+            val teraTl =
+                selectAll().where { GUILD eq guild and (IDENTIFIER eq teraIdentifier) }
+                    .toMap { it[POKEMON] to it[TIER] }
+            normalTl.entries.map { (mon, tier) ->
+                val tera = teraTl[mon]
+                TransactionPokemonData(mon, tier, tera)
+            }
+        }
+
         val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()
         suspend fun setup() {
             tierlists.clear()
@@ -202,7 +215,7 @@ class Tierlist(
          */
         operator fun get(guild: Long, identifier: String? = null): Tierlist? {
             return tierlists[guild]?.get(identifier ?: "")
-                ?: if (setupCalled) null
+                ?: if (setupCalled) tierlists[guild]?.get("")?.copy(identifier = identifier ?: "")
                 else runBlocking { mdb.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }
 
@@ -325,6 +338,8 @@ interface FreePickPriceManager : TierlistPriceManager
 
 interface PointBasedPriceManager : TierlistPriceManager {
     val globalPoints: Int
+    val teraMaxPoints: Int?
+
     fun getPointsForTier(tier: String): Int?
     fun getPointsForMon(pokemon: DraftPokemon): Int {
         return getPointsForTier(pokemon.tier)
@@ -557,6 +572,13 @@ sealed interface TierlistPriceManager {
                     return K18n_Tierlist.MinimumNeededError(minimumRequired, newPoints)
                 }
             }
+            if (action.tera) {
+                teraMaxPoints?.let {
+                    if (cpicks.sumOf { dp -> if (dp.tera) getPointsForMon(dp) else 0 } + cost - (if (action.switch?.tera == true) pointsBack else 0) > it) {
+                        return K18n_Tierlist.TeraMaxPoints(it)
+                    }
+                }
+            }
             pointManager[league.current] = newPoints
             return null
         }
@@ -587,6 +609,13 @@ sealed interface TierlistPriceManager {
                     (league.picks[idx]?.size ?: 0) + currentState.size
                 )
             ) return K18n_QueuePicks.LegalTeamCompletion
+            teraMaxPoints?.let {
+                val cpicks = league.picks(idx)
+                val teraPoints = cpicks.sumOf { dp -> if (dp.tera) getPointsForMon(dp) else 0 }
+                if (teraPoints > it) {
+                    return K18n_Tierlist.TeraMaxPoints(it)
+                }
+            }
             return null
         }
     }
@@ -595,9 +624,11 @@ sealed interface TierlistPriceManager {
     @SerialName("SimplePointBased")
     data class SimplePointBased(
         val prices: Map<String, Int>, override val globalPoints: Int,
-        override val generalChecks: List<GeneralCheck> = emptyList()
+        override val generalChecks: List<GeneralCheck> = emptyList(),
+        override val teraMaxPoints: Int? = null
     ) : TierlistPriceManager,
         OnlyPointBasedPriceManager {
+
 
         override fun getPointsForTier(tier: String) = prices[tier]
 
@@ -616,7 +647,8 @@ sealed interface TierlistPriceManager {
         val maxTier: Int,
         val minTier: Int,
         override val globalPoints: Int,
-        override val generalChecks: List<GeneralCheck> = emptyList()
+        override val generalChecks: List<GeneralCheck> = emptyList(),
+        override val teraMaxPoints: Int? = null
     ) : TierlistPriceManager, OnlyPointBasedPriceManager {
         override fun getTiers(): List<String> {
             return (maxTier..minTier).map { it.toString() }

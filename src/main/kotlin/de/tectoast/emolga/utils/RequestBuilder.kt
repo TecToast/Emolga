@@ -3,12 +3,9 @@ package de.tectoast.emolga.utils
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
-import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import org.slf4j.LoggerFactory
 import java.util.regex.Pattern
 
@@ -327,7 +324,13 @@ class RequestBuilder
     fun execute(realExecute: Boolean = true) {
         if (requests.isEmpty()) return
         this.realExecute = realExecute
-        scheduleForExecution(this)
+        if (dontUseChannel) {
+            runBlocking {
+                internalExecuteSuspend()
+            }
+        } else {
+            scheduleForExecution(this)
+        }
     }
 
     suspend fun executeSync(realExecute: Boolean = true) {
@@ -412,11 +415,6 @@ class RequestBuilder
         }
     }
 
-    fun executeAndReset(realExecute: Boolean = true) {
-        execute(realExecute)
-        clear()
-    }
-
     fun printUserEntered(userentered: List<ValueRange> = userEntered) {
         logger.info("RequestBuilder with requests:")
         logger.info("sid = $sid")
@@ -476,6 +474,7 @@ class RequestBuilder
         private val scope = createCoroutineScope("RequestBuilder")
         private val channelCollectScope = createCoroutineScope("RequestBuilderChannelCollect")
         private val channel = Channel<RequestBuilder>(Channel.UNLIMITED)
+        var dontUseChannel = false
 
         init {
             channelCollectScope.launch {
@@ -487,7 +486,6 @@ class RequestBuilder
         }
 
         private fun scheduleForExecution(b: RequestBuilder) {
-
             channel.trySendBlocking(b)
         }
 

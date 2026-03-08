@@ -32,6 +32,7 @@ jib {
         )
         ports = listOf("58700", "58701", "5005")
         volumes = listOf("/logs", "/logback.xml")
+        user = "1000:1000"
     }
 }
 

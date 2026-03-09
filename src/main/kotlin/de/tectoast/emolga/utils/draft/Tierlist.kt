@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.database.exposed.CropAuxiliaryDB
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.toMap
@@ -31,10 +32,7 @@ import org.jetbrains.exposed.v1.core.Random
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.r2dbc.deleteWhere
-import org.jetbrains.exposed.v1.r2dbc.insert
-import org.jetbrains.exposed.v1.r2dbc.selectAll
-import org.jetbrains.exposed.v1.r2dbc.update
+import org.jetbrains.exposed.v1.r2dbc.*
 import org.litote.kmongo.eq
 
 @Suppress("unused")
@@ -103,6 +101,11 @@ data class Tierlist(
             it[POKEMON] = mon
             it[TIER] = tier
             it[IDENTIFIER] = identifier
+        }
+        val official = NameConventionsDB.getDiscordTranslation(mon, guildid, english = true)!!.official
+        CropAuxiliaryDB.insertIgnore {
+            it[GUILD] = guildid
+            it[POKEMON] = official
         }
     }
 

@@ -105,7 +105,10 @@ fun Route.emolgaAPI() {
             val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
-                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", mdb.signups.get(it) != null)
+                GuildMeta(
+                    id = g.id, name = g.name, icon = g.iconUrl ?: "", mdb.signups.get(it) != null,
+                    TeamGraphicsMetaDB.getShape(it)
+                )
             })
         }
         route("{guild}") {
@@ -122,7 +125,7 @@ fun Route.emolgaAPI() {
                     PokemonCropService.insertPokemonCropData(gid, data, call.userId)
                     call.respond(HttpStatusCode.Accepted)
                 }
-                staticFiles("/img", File(Ktor.artworkPath!!), index = null)
+                staticFiles("/img", File("/teamgraphics/sprites"), index = null)
             }
             get("channels") {
                 val gid = call.requireGuild() ?: return@get
@@ -727,7 +730,23 @@ data class ParticipantData(
 data class UserData(val id: String, val name: String, val avatar: String)
 
 @Serializable
-data class GuildMeta(val id: String, val name: String, val icon: String, val runningSignup: Boolean)
+data class GuildMeta(
+    val id: String,
+    val name: String,
+    val icon: String,
+    val runningSignup: Boolean,
+    val teamgraphicsShape: TeamgraphicsShape? = null
+)
+
+@Serializable
+enum class TeamgraphicsShape {
+    CIRCLE, PENTAGON
+}
+
+@Serializable
+enum class TeamgraphicsSpriteStyle {
+    SUGIMORI, HOME
+}
 
 val userIdKey = AttributeKey<Long>("userId")
 val apiGuard = createRouteScopedPlugin("AuthGuard") {

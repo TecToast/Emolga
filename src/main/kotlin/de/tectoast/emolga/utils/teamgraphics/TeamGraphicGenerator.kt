@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.teamgraphics
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
+import de.tectoast.emolga.ktor.TeamgraphicsSpriteStyle
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
@@ -142,7 +143,7 @@ object TeamGraphicGenerator {
         g2d.setRenderingHints()
         g2d.drawOptionalText(teamOwner?.let(style::transformUsername), style.playerText)
         g2d.drawOptionalText(teamName, style.teamnameText)
-        g2d.drawMons(monData, style)
+        g2d.drawMons(monData, style, TeamGraphicsMetaDB.getSpriteStyle(style.guild) ?: TeamgraphicsSpriteStyle.SUGIMORI)
         style.overlayPath?.let {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
@@ -198,11 +199,15 @@ object TeamGraphicGenerator {
 
     private val pathCache = SizeLimitedMap<String, String>(1000)
 
-    private suspend fun Graphics2D.drawMons(monData: Map<Int, DrawData>, style: TeamGraphicStyle) {
+    private suspend fun Graphics2D.drawMons(
+        monData: Map<Int, DrawData>,
+        style: TeamGraphicStyle,
+        spriteStyle: TeamgraphicsSpriteStyle
+    ) {
         for ((i, data) in monData) {
             val sdName = data.name.toSDName()
-            val imagePath = pathCache.getOrPut(sdName) {
-                "teamgraphics/sugimori_final/${mdb.pokedex.get(sdName)!!.calcSpriteName()}.png"
+            val imagePath = pathCache.getOrPut("$spriteStyle/$sdName") {
+                "/teamgraphics/sprites/$spriteStyle/${mdb.pokedex.get(sdName)!!.calcSpriteName()}.png"
             }
             val image = withContext(Dispatchers.IO) {
                 ImageIO.read(File(imagePath))

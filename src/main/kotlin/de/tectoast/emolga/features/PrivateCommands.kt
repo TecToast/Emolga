@@ -386,11 +386,12 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
-            league.docEntry!!.analyseWithoutCheck(
-                replay, withSort = false, realExecute = args[2].toBooleanStrict()
-            )
+        League.executeOnFreshLock(args[0]) {
+            persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
+                docEntry!!.analyseWithoutCheck(
+                    replay, withSort = false, realExecute = args[2].toBooleanStrict()
+                )
+            }
         }
     }
 
@@ -638,10 +639,11 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun executeHideGamesDocInsertion(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.docEntry!!.executeHideGamesDocInsertion(
-            league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
-        )
+        League.executeOnFreshLock(args[0]) {
+            docEntry!!.executeHideGamesDocInsertion(
+                persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+            )
+        }
     }
 
     context(iData: InteractionData)

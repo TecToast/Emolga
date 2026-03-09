@@ -64,6 +64,7 @@ class ADL : League() {
             gamedayData.remove(idx)
         }
         b.executeAndWait()
+        save()
     }
 
     private fun List<DraftPokemon>.getIndexOfMon(monName: String): Int {

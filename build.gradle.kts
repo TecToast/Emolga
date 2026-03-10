@@ -116,8 +116,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration-r2dbc:$exposedVersion")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.5.1")
-    implementation("org.litote.kmongo:kmongo-id-serialization:5.5.1")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.6.0")
+    implementation("org.litote.kmongo:kmongo-id-serialization:5.6.0")
 
     // Ktor
     ktor()

@@ -3,17 +3,17 @@ package de.tectoast.emolga.league.config
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.SizeLimitedMap
-import de.tectoast.emolga.utils.add
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
-import de.tectoast.emolga.utils.randomWithCondition
-import de.tectoast.emolga.utils.toSDName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class RandomPickRoundConfig(
-    val rounds: Set<Int> = setOf(), val tiers: Map<String, Int>, val doubleTypeOptOut: Set<Int> = emptySet()
+    val rounds: Set<Int> = setOf(),
+    val tiers: Map<String, Int>,
+    val doubleTypeOptOut: Set<Int> = emptySet(),
+    val noDoubleMega: Boolean = true,
 ) {
     suspend fun League.getRandomMon(): DraftName {
         val optOut = current in doubleTypeOptOut
@@ -22,7 +22,8 @@ data class RandomPickRoundConfig(
             (usedTiers[current]?.get(tier) ?: 0) < amount
         }!!.key
         val list = tierlist.getByTier(tier)!!.shuffled()
-        val typesSoFar = picks[current].orEmpty().flatMap {
+        val curPicks = picks(current)
+        val typesSoFar = curPicks.flatMap {
             typeCache.getOrPut(it.name) {
                 mdb.pokedex.get(
                     NameConventionsDB.getSDTranslation(
@@ -34,6 +35,7 @@ data class RandomPickRoundConfig(
         var bestSoFar: Pair<Int, DraftName>? = null
         firstAvailableMon(list) { german, english ->
             if (optOut) return this
+            if (noDoubleMega && german.isMega && curPicks.any { it.name.isMega }) return@firstAvailableMon false
             val types = typeCache.getOrPut(german) { mdb.pokedex.get(english.toSDName())!!.types }
             val count = types.groupingBy { it }.eachCount()
             val score = count.entries.sumOf { (type, amount) ->

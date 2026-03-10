@@ -119,7 +119,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val db = client.getDatabase(dbName)
 
     val sixVsPokeworld = client.getDatabase("sixvspokeworld")
-    val sixVsPokeworldChallenges by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("challenges") }
+    val sixVsPokeworldConfig by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("config") }
 
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 

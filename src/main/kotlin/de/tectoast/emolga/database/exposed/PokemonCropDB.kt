@@ -12,6 +12,7 @@ import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.update
 import org.jetbrains.exposed.v1.r2dbc.upsert
 import kotlin.time.Clock
@@ -66,7 +67,7 @@ object PokemonCropService {
                     )
                     .where {
                         CropAuxiliaryDB.GUILD eq guild and (PokemonCropDB.GUILD.isNull() or (PokemonCropDB.WIP_SINCE less Clock.System.now()
-                            .minus(10.minutes)))
+                            .minus(1.minutes)))
                     }
                     .orderBy(Random())
                     .limit(1)
@@ -77,7 +78,9 @@ object PokemonCropService {
                         val pokemon = mdb.pokedex.get(sdName)!!
                         val spriteName = pokemon.calcSpriteName()
                         val path = "/api/emolga/${guild}/teamgraphics/img/$spriteStyle/$spriteName.png"
-                        PokemonToCropData(official, official, path)
+                        val done = PokemonCropDB.selectAll().where { PokemonCropDB.GUILD eq guild }.count()
+                        val total = CropAuxiliaryDB.selectAll().where { CropAuxiliaryDB.GUILD eq guild }.count()
+                        PokemonToCropData(official, official, path, done, total)
                     }
                 if (result != null) {
                     PokemonCropDB.upsert {
@@ -110,7 +113,13 @@ object PokemonCropService {
 }
 
 @Serializable
-data class PokemonToCropData(val tlName: String, val official: String, val path: String)
+data class PokemonToCropData(
+    val tlName: String,
+    val official: String,
+    val path: String,
+    val done: Long,
+    val total: Long
+)
 
 @Serializable
 data class PokemonCropData(val official: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)

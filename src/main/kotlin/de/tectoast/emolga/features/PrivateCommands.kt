@@ -752,6 +752,14 @@ object PrivateCommands {
             signup.save()
         }
     }
+
+    context(iData: InteractionData)
+    suspend fun generateCropOverview(args: PrivateData) {
+        iData.deferReply()
+        val gid = args().toLong()
+        PokemonCropService.generateOverviewImage(gid)
+        iData.done()
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

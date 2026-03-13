@@ -1,12 +1,19 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.ktor.TeamgraphicsSpriteStyle
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.utils.teamgraphics.cropShape
+import de.tectoast.emolga.utils.teamgraphics.flipIf
+import de.tectoast.emolga.utils.teamgraphics.setCommonRenderingHints
 import de.tectoast.emolga.utils.toSDName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.*
@@ -15,6 +22,10 @@ import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.update
 import org.jetbrains.exposed.v1.r2dbc.upsert
+import java.awt.geom.Ellipse2D
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
@@ -110,6 +121,40 @@ object PokemonCropService {
             it[WIP_SINCE] = null
         }
     }
+
+    suspend fun generateOverviewImage(guild: Long) = dbTransaction {
+        val spriteStyle = TeamGraphicsMetaDB.getSpriteStyle(guild) ?: return@dbTransaction null
+        val list =
+            PokemonCropDB.selectAll().where { PokemonCropDB.GUILD eq guild and PokemonCropDB.WIP_SINCE.isNull() }
+                .toList()
+        val listSize = list.size
+        val baseImage = BufferedImage(128 * 10, 128 * ((listSize + 9) / 10), BufferedImage.TYPE_INT_ARGB)
+        val g2d = baseImage.createGraphics()
+        g2d.setCommonRenderingHints()
+        val map = list.associate {
+            val official = it[PokemonCropDB.OFFICIAL]
+            official to mdb.pokedex.get(official.toSDName())!!
+        }
+        for ((index, row) in list.sortedBy { map[it[PokemonCropDB.OFFICIAL]]!!.num }.withIndex()) {
+            val official = row[PokemonCropDB.OFFICIAL]
+            val spriteName = map[official]!!.calcSpriteName()
+            val image = withContext(Dispatchers.IO) {
+                ImageIO.read(File("/teamgraphics/sprites/$spriteStyle/$spriteName.png"))
+            }
+            val size = row[PokemonCropDB.SIZE].toFloat()
+            val shape = Ellipse2D.Float(0f, 0f, size, size)
+            g2d.drawImage(
+                image.flipIf(row[PokemonCropDB.FLIPPED]).cropShape(row[PokemonCropDB.X], row[PokemonCropDB.Y], shape),
+                (index % 10) * 128,
+                (index / 10) * 128,
+                128,
+                128,
+                null
+            )
+        }
+        g2d.dispose()
+        ImageIO.write(baseImage, "png", File("/teamgraphics/$guild.png"))
+    }
 }
 
 @Serializable
@@ -123,3 +168,16 @@ data class PokemonToCropData(
 
 @Serializable
 data class PokemonCropData(val official: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)
+
+@Serializable
+data class PokemonCropOverview(val spriteStyle: TeamgraphicsSpriteStyle, val data: List<PokemonCropInfoData>)
+
+@Serializable
+data class PokemonCropInfoData(
+    val spriteName: String,
+    val official: String,
+    val x: Int,
+    val y: Int,
+    val size: Int,
+    val flipped: Boolean
+)

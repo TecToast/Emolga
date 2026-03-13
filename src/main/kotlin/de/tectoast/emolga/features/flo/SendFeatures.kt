@@ -29,8 +29,9 @@ object SendFeatures {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            jda.openPrivateChannelById(e.id).flatMap { it.sendMessage(e.msg.convertForSend()) }.queue()
-            iData.done(true)
+            val msg = e.msg.convertForSend()
+            jda.openPrivateChannelById(e.id).flatMap { it.sendMessage(msg) }.queue()
+            iData.reply("-> <@${e.id}>: $msg")
         }
 
     }

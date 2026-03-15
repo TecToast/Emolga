@@ -22,7 +22,6 @@ jib {
             }
         }
     }
-    setAllowInsecureRegistries(true) // used for pushing to local registry
     container {
         mainClass = "de.tectoast.emolga.MainKt"
         jvmFlags = listOf(

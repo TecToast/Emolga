@@ -819,7 +819,7 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamNam
 
     companion object {
         private val logger = KotlinLogging.logger {}
-        private const val MAX_SIZE = 10
+        private const val MAX_SIZE = 8
 
         suspend fun fromAttachment(
             attachment: Message.Attachment,

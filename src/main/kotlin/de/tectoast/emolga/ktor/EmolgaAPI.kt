@@ -106,7 +106,10 @@ fun Route.emolgaAPI() {
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
                 GuildMeta(
-                    id = g.id, name = g.name, icon = g.iconUrl ?: "", mdb.signups.get(it) != null,
+                    id = g.id,
+                    name = g.name,
+                    icon = g.iconUrl ?: "",
+                    mdb.signups.findOne(LigaStartData::guild eq it) != null,
                     TeamGraphicsMetaDB.getShape(it)
                 )
             })
@@ -143,7 +146,7 @@ fun Route.emolgaAPI() {
                 route("/participants") {
                     get {
                         val gid = call.requireGuild() ?: return@get
-                        val lsData = mdb.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid, "") ?: return@get call.respond(HttpStatusCode.NotFound)
                         val allUsers = lsData.users.flatMap { it.users }
                         var newUsers = allUsers.filter { !participantDataCache.containsKey(it) }
                         while (newUsers.isNotEmpty()) {
@@ -176,7 +179,7 @@ fun Route.emolgaAPI() {
                     post {
                         val gid = call.requireGuild() ?: return@post
                         val (conferences, data) = call.receive<ParticipantDataSet>()
-                        val lsData = mdb.signups.get(gid) ?: return@post call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid, "") ?: return@post call.respond(HttpStatusCode.NotFound)
                         lsData.conferences = conferences
                         data.forEach { (uid, conf) ->
                             lsData.getDataByUser(uid)?.conference = conf

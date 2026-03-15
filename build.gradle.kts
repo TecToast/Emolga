@@ -118,6 +118,10 @@ dependencies {
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.6.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.6.0")
+    /*implementation(platform("org.mongodb:mongodb-driver-bom:5.6.4"))
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine")
+    implementation("org.mongodb:mongodb-driver-kotlin-extensions")
+    implementation("org.mongodb:bson-kotlinx")*/
 
     // Ktor
     ktor()

@@ -89,22 +89,27 @@ object PrivateCommands {
         iData.reply(PredictionGameAnalyseService.getFullResultsSummary(args()))
     }
 
+    private suspend fun String.getSignup(): LigaStartData {
+        val split = split(":")
+        return mdb.signups.get(split[0].toLong(), split.getOrNull(1) ?: "")!!
+    }
+
     context(iData: InteractionData)
     suspend fun closeSignup(args: PrivateData) {
-        mdb.signups.get(args().toLong())!!.closeSignup(forced = true)
+        args().getSignup().closeSignup(forced = true)
     }
 
     context(iData: InteractionData)
     suspend fun setNewMaxUsers(args: PrivateData) {
-        mdb.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
+        args[0].getSignup().setNewMaxUsers(args[1].toInt())
     }
 
     context(iData: InteractionData)
     suspend fun finishOrdering(args: PrivateData) {
         iData.done()
-        val gid = args().toLong()
+        val gid = args().substringBefore(":").toLong()
         val guild = jda.getGuildById(gid)!!
-        val data = mdb.signups.get(gid)!!
+        val data = args().getSignup()
         val roleMap = data.conferenceRoleIds.mapValues { guild.getRoleById(it.value) }
         data.users.forEach {
             val role = roleMap[it.conference] ?: return@forEach
@@ -117,9 +122,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun signupUpdate(args: PrivateData) {
-        val (guild, user) = args.map { it.toLong() }
-        val ligaStartData = mdb.signups.get(guild)!!
-        ligaStartData.updateUser(user)
+        args[0].getSignup().updateUser(args[1].toLong())
     }
 
     context(iData: InteractionData)
@@ -131,9 +134,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun unsignupUser(args: PrivateData) {
-        val (guild, user) = args.map { it.toLong() }
-        val signup = mdb.signups.get(guild)!!
-        signup.deleteUser(user)
+        args[0].getSignup().deleteUser(args[1].toLong())
     }
 
     var guildForMyStuff: Long? = null
@@ -678,8 +679,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun updateSignupMessage(args: PrivateData) {
-        val gid = args().toLong()
-        mdb.signups.get(gid)!!.updateSignupMessage()
+        args().getSignup().updateSignupMessage()
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -723,7 +723,7 @@ object PrivateCommands {
             League::leaguename eq league.leaguename,
             set(League::table.pos(idx) setTo uidNew)
         )
-        mdb.signups.get(league.guild)?.let { signup ->
+        league.getSignup()?.let { signup ->
             val uData = signup.users.first { it.users.contains(uidOld) }
             uData.users.apply {
                 remove(uidOld)
@@ -741,11 +741,10 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun setSignupData(args: PrivateData) {
-        val guild = args[0].toLong()
         val uid = args[1].toLong()
         val sdName = args[2]
         val teamName = args[3]
-        mdb.signups.get(guild)!!.let { signup ->
+        args[0].getSignup().let { signup ->
             val uData = signup.users.first { it.users.contains(uid) }
             uData.data[SignUpInput.SDNAME_ID] = sdName
             uData.data[SignUpInput.TEAMNAME_ID] = teamName

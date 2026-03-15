@@ -15,6 +15,7 @@ data class LeagueConfig(
     val teraAndZ: TeraAndZ? = null,
     val youtube: YouTubeConfig? = null,
     val customTierlist: CustomTierlistConfig? = null,
+    val customSignup: CustomSignupConfig? = null,
     val teraPick: TeraPickConfig? = null,
     val triggers: Triggers = Triggers(),
     val hideGames: HideGamesConfig? = null,

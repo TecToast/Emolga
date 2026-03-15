@@ -18,6 +18,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
+import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
@@ -165,6 +166,8 @@ sealed class League {
     val resultChannel: Long? = null
 
     open fun getTierlistFor(idx: Int) = tierlist
+
+    suspend fun getSignup() = mdb.signups.get(guild, config.customSignup?.identifier.orEmpty())
 
     fun indexOf(mem: Long) = table.indexOf(mem)
     operator fun invoke(mem: Long) = indexOf(mem).takeIf { it >= 0 }!!

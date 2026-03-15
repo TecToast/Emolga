@@ -259,8 +259,8 @@ object TeamGraphicGenerator {
                 userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
                 englishNames: Map<Int, String>
             ): TeamData {
-                val lsData = mdb.signups.get(league.guild)!!
                 val uid = league.table[idx]
+                val lsData = mdb.signups.get(league.guild, uid)!!
                 val userData = lsData.getDataByUser(uid)!!
                 val teamOwner = userNameProvider.getUserName(uid)
                 val teamName = userData.data[SignUpInput.TEAMNAME_ID]

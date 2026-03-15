@@ -65,7 +65,7 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val exposedVersion = "1.0.0"
+val exposedVersion = "1.1.1"
 val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client
@@ -116,8 +116,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration-r2dbc:$exposedVersion")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.5.1")
-    implementation("org.litote.kmongo:kmongo-id-serialization:5.5.1")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.6.0")
+    implementation("org.litote.kmongo:kmongo-id-serialization:5.6.0")
 
     // Ktor
     ktor()
@@ -126,8 +126,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.22.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.1.3")
-    testImplementation("io.kotest:kotest-assertions-core:6.1.3")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.1.6")
+    testImplementation("io.kotest:kotest-assertions-core:6.1.6")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.9")
 

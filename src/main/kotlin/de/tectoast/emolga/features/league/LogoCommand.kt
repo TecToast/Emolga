@@ -31,7 +31,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     context(iData: InteractionData)
     suspend fun insertLogo(logo: Message.Attachment, uid: Long) {
         iData.deferReply(ephemeral = true)
-        val lsData = mdb.signups.get(iData.gid, iData.user) ?: return iData.reply(K18n_NotSignedUp, ephemeral = true)
+        val lsData = mdb.signups.get(iData.gid, uid) ?: return iData.reply(K18n_NotSignedUp, ephemeral = true)
         val error = lsData.insertLogo(uid, logo)
         iData.reply(error ?: K18n_Logo.Success, ephemeral = true)
     }

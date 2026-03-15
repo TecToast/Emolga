@@ -221,6 +221,7 @@ class DocEntry private constructor(val league: League) {
                 ).it()
             }
         }
+        league.executeTransactionDocInsert(gameday, fullGameData.uindices)
         customB?.execute(realExecute)
         b.withRunnable(3000) {
             if (withSort) {

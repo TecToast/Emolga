@@ -37,6 +37,14 @@ object CropAuxiliaryDB : Table("pokemon_crop_auxiliary") {
     val POKEMON = varchar("official", 50)
 
     override val primaryKey = PrimaryKey(GUILD, POKEMON)
+
+    init {
+        foreignKey(
+            GUILD to TeamGraphicsMetaDB.GUILD,
+            onDelete = ReferenceOption.CASCADE,
+            onUpdate = ReferenceOption.CASCADE
+        )
+    }
 }
 
 @OptIn(ExperimentalTime::class)
@@ -47,6 +55,7 @@ object PokemonCropService {
 //        if(true) return PokemonToCropData("Umbreon", "Umbreon", "/api/emolga/${guild}/teamgraphics/img/umbreon.png")
         return mutex.withLock {
             dbTransaction {
+                val spriteStyle = TeamGraphicsMetaDB.getSpriteStyle(guild) ?: return@dbTransaction null
                 val result = CropAuxiliaryDB.leftJoin(PokemonCropDB, additionalConstraint = {
                     (CropAuxiliaryDB.GUILD eq PokemonCropDB.GUILD) and (CropAuxiliaryDB.POKEMON eq PokemonCropDB.OFFICIAL)
                 })
@@ -67,7 +76,7 @@ object PokemonCropService {
                         val sdName = official.toSDName()
                         val pokemon = mdb.pokedex.get(sdName)!!
                         val spriteName = pokemon.calcSpriteName()
-                        val path = "/api/emolga/${guild}/teamgraphics/img/$spriteName.png"
+                        val path = "/api/emolga/${guild}/teamgraphics/img/$spriteStyle/$spriteName.png"
                         PokemonToCropData(official, official, path)
                     }
                 if (result != null) {

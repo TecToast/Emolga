@@ -26,6 +26,5 @@ object Credentials {
             StaticCloud.init(token, baseUrl, hashLength)
         }
         Ktor.oauth2Secret = tokens.oauth2.clientsecret
-        Ktor.artworkPath = tokens.artworkPath
     }
 }

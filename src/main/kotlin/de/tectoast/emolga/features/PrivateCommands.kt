@@ -386,11 +386,12 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
-            league.docEntry!!.analyseWithoutCheck(
-                replay, withSort = false, realExecute = args[2].toBooleanStrict()
-            )
+        League.executeOnFreshLock(args[0]) {
+            persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
+                docEntry!!.analyseWithoutCheck(
+                    replay, withSort = false, realExecute = args[2].toBooleanStrict()
+                )
+            }
         }
     }
 
@@ -638,10 +639,11 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun executeHideGamesDocInsertion(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.docEntry!!.executeHideGamesDocInsertion(
-            league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
-        )
+        League.executeOnFreshLock(args[0]) {
+            docEntry!!.executeHideGamesDocInsertion(
+                persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+            )
+        }
     }
 
     context(iData: InteractionData)
@@ -709,6 +711,46 @@ object PrivateCommands {
                 this.catId = args[1].toLong()
             }.into()
         ).queue()
+    }
+
+    context(iData: InteractionData)
+    suspend fun switchUser(args: PrivateData) {
+        val league = mdb.league(args[0])
+        val uidOld = args[1].toLong()
+        val uidNew = args[2].toLong()
+        val idx = league(uidOld)
+        mdb.league.updateOne(
+            League::leaguename eq league.leaguename,
+            set(League::table.pos(idx) setTo uidNew)
+        )
+        mdb.signups.get(league.guild)?.let { signup ->
+            val uData = signup.users.first { it.users.contains(uidOld) }
+            uData.users.apply {
+                remove(uidOld)
+                add(uidNew)
+            }
+            args.getOrNull(3)?.let {
+                uData.data[SignUpInput.SDNAME_ID] = it
+            }
+            args.getOrNull(4)?.let {
+                uData.data[SignUpInput.TEAMNAME_ID] = it
+            } ?: TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
+            signup.save()
+        }
+    }
+
+    context(iData: InteractionData)
+    suspend fun setSignupData(args: PrivateData) {
+        val guild = args[0].toLong()
+        val uid = args[1].toLong()
+        val sdName = args[2]
+        val teamName = args[3]
+        mdb.signups.get(guild)!!.let { signup ->
+            val uData = signup.users.first { it.users.contains(uid) }
+            uData.data[SignUpInput.SDNAME_ID] = sdName
+            uData.data[SignUpInput.TEAMNAME_ID] = teamName
+            signup.save()
+        }
     }
 }
 

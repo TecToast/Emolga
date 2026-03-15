@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.showdown
 
 import de.tectoast.emolga.database.exposed.AnalysisDB
+import de.tectoast.emolga.database.exposed.GuildUsingReplayDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -48,6 +49,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
             iData.reply(K18n_ReplayGeneric.NoAccessToResultChannel(channel))
             return
         }
+        GuildUsingReplayDB.add(iData.gid, iData.guild().name)
         Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = iData)
     }
 }

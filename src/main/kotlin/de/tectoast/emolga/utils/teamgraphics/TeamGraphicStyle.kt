@@ -123,13 +123,13 @@ data class GDLStyle(val conference: String) : TeamGraphicStyle {
         return IndexDataStyle(x, y, Ellipse2D.Float(0f, 0f, data.size.toFloat(), data.size.toFloat()))
     }
 
-    override val overlayPath = "/teamgraphics/GDL/$conference.png"
-    override val backgroundPath = "/teamgraphics/GDL/Universe.png"
+    override val overlayPath = "/teamgraphics/league/GDL/$conference.png"
+    override val backgroundPath = "/teamgraphics/league/GDL/Universe.png"
     override val sizeOfShape = SIZE_OF_CIRCLE
 
     override val playerText by lazy {
         TeamGraphicStyle.TextProperties(
-            fontPath = "/teamgraphics/GDL/MASQUE.ttf",
+            fontPath = "/teamgraphics/league/GDL/MASQUE.ttf",
             fontColor = run {
                 val layer = ImageIO.read(File(overlayPath))
                 Color(layer.getRGB(1, 800))
@@ -146,7 +146,7 @@ data class GDLStyle(val conference: String) : TeamGraphicStyle {
 
     @Transient
     override val logoProperties =
-        TeamGraphicStyle.LogoProperties(10, 106, 580, 580, "/teamgraphics/GDL/defaultlogo.png")
+        TeamGraphicStyle.LogoProperties(10, 106, 580, 580, "/teamgraphics/league/GDL/defaultlogo.png")
     override val guild = 716942575852060682
 
     override fun transformUsername(username: String): String {
@@ -202,11 +202,11 @@ data object ABLStyle : TeamGraphicStyle {
         shape
     }
 
-    override val backgroundPath = "/teamgraphics/ABL/ABL_Grafiken_woBG.png"
+    override val backgroundPath = "/teamgraphics/league/ABL/ABL_Grafiken_woBG.png"
     override val overlayPath = null
     override val playerText =
         TeamGraphicStyle.TextProperties(
-            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
+            fontPath = "/teamgraphics/league/ABL/BasementGrotesque-Black_v1.202.otf",
             fontColor = Color.WHITE,
             fontSize = 32f,
             xCoord = 1480,
@@ -217,7 +217,7 @@ data object ABLStyle : TeamGraphicStyle {
         )
     override val teamnameText =
         TeamGraphicStyle.TextProperties(
-            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
+            fontPath = "/teamgraphics/league/ABL/BasementGrotesque-Black_v1.202.otf",
             fontColor = Color.WHITE,
             fontSize = 32f,
             xCoord = 425,

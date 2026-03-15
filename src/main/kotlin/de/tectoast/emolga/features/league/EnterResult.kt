@@ -103,9 +103,8 @@ object EnterResult {
         val idx2 = league(opponent)
         val gameday = league.getGamedayData(idx1, idx2).first.gameday
         val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
-        val url = "https://emolga.tectoast.de/result/${uuid}"
         iData.reply(
-            K18n_EnterResult.Success(url),
+            K18n_EnterResult.Success(uuid.toString()),
             ephemeral = true
         )
     }

@@ -7,6 +7,7 @@ import de.tectoast.emolga.database.exposed.toMap
 import de.tectoast.emolga.features.league.K18n_PredictionGameCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.generic.K18n_You
 import de.tectoast.k18n.generated.K18nLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -53,7 +54,7 @@ object PredictionGameAnalyseService {
 
 
     private const val ABOVE_BELOW = 3
-    suspend fun getStatsWithAboveAndBelow(gid: Long, userId: Long) = dbTransaction {
+    suspend fun getStatsWithAboveAndBelow(gid: Long, userId: Long, language: K18nLanguage) = dbTransaction {
         with(PredictionGameVotesDB) {
             val leaguePredicate = leaguePredicate(gid)
             val correctVotesWithoutAlias = getCorrectExpression()
@@ -86,7 +87,13 @@ object PredictionGameAnalyseService {
                         val total = row[totalCol]
                         val percentage = if (total > 0) (correct.toDouble() / total.toDouble()) * 100 else 0.0
                         val isTarget = (user == userId)
-                        "#$rank: <@${user}> ($correct/$total, ${"%.2f".format(percentage)}%) ${if (isTarget) "<-- DU" else ""}"
+                        "#$rank: <@${user}> ($correct/$total, ${"%.2f".format(percentage)}%) ${
+                            if (isTarget) "<-- ${
+                                K18n_You.translateTo(
+                                    language
+                                ).uppercase()
+                            }" else ""
+                        }"
                     }
                 }
                 .joinToString("\n")

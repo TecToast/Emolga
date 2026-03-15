@@ -27,7 +27,7 @@ object PredictionGameCommand :
             iData.deferReply(true)
             val gid = iData.gid
             val uid = iData.user
-            val aboveAndBelow = PredictionGameAnalyseService.getStatsWithAboveAndBelow(gid, uid)
+            val aboveAndBelow = PredictionGameAnalyseService.getStatsWithAboveAndBelow(gid, uid, iData.language)
                 ?: return iData.reply(K18n_PredictionGameCommand.SelfNoPredictions, ephemeral = true)
             val resultsPerLeague = PredictionGameAnalyseService.getUserStatsPerLeague(
                 gid, uid

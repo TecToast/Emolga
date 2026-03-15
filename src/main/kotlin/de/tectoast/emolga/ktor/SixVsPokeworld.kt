@@ -33,11 +33,11 @@ fun Route.sixVsPokeworld() {
     }
     route("/data") {
         get {
-            call.respond(mdb.sixVsPokeworldChallenges.find().first() ?: SixVsPokeworldConfig())
+            call.respond(mdb.sixVsPokeworldConfig.find().first() ?: SixVsPokeworldConfig())
         }
         post {
             val config = call.receive<SixVsPokeworldConfig>()
-            mdb.sixVsPokeworldChallenges.updateOne("{}", config, options = upsert())
+            mdb.sixVsPokeworldConfig.updateOne("{}", config, options = upsert())
             call.respond(HttpStatusCode.Accepted)
         }
     }

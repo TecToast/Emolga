@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.3.10"
+val kVersion = "2.3.20"
 plugins {
     val kVersion = "2.3.0"
     kotlin("jvm") version kVersion
@@ -98,7 +98,7 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:6.3.1")
+    implementation("net.dv8tion:JDA:6.3.2")
     implementation("io.github.MinnDevelopment:jda-ktx:7695f84e10")
 
     // Google
@@ -129,8 +129,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.22.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.1.6")
-    testImplementation("io.kotest:kotest-assertions-core:6.1.6")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.1.7")
+    testImplementation("io.kotest:kotest-assertions-core:6.1.7")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.9")
 

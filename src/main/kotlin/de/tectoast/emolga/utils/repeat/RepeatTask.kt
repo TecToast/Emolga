@@ -166,5 +166,6 @@ sealed interface RepeatTaskType {
     data object YTEnable : RepeatTaskType
     data object SendReminderToParticipants : RepeatTaskType
     data object LastReminder : RepeatTaskType
+    data object TransactionDocInsert : RepeatTaskType
     data class Other(val descriptor: String) : RepeatTaskType
 }

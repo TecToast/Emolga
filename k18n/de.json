@@ -184,7 +184,7 @@
               "ResultForArgUser": "Die Person, für die du das Ergebnis eingeben möchtest",
               "ResultForArgOpponent": "Der Gegner der Person, für die du das Ergebnis eingeben möchtest",
               "NoLeagueWithOpponent": "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei {mytag}!",
-              "Success": "Bitte trage das Ergebnis auf meiner Website ein:\n{url}"
+              "Success": "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/{url}"
             },
             "LadderTournament_nested": {
               "NoTournamentHere": "Auf diesem Server gibt es keine laufendes Ladder-Turnier!",
@@ -288,6 +288,11 @@
               "OwnVotesGamedayNotFound": "Liga {league} hat keinen Spieltag mit der Nummer {gameday:Int}!",
               "OwnVotesNoVotes": "Du hast noch keine Tipps für {league} an Spieltag {gameday:Int} abgegeben!",
               "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday:Int}\n{predictions}"
+            },
+            "Transaction_nested": {
+              "CommandHelp": "Führt eine Transaktion durch",
+              "Created": "Bitte trage deine Transaktionen auf meiner Website ein:\nhttps://emolga.tectoast.de/transaction/{uuid}",
+              "Done": "Neue Transaktion von {user:Mention}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Verbleibende Transaktionspunkte: {remainingPoints:Int}\nGültig ab Spieltag **{week:Int}**."
             }
           },
           "showdown": {
@@ -410,7 +415,8 @@
               "MinimumNeededError": "Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens {minimumRequired:Int} Punkte haben, hättest aber nur noch {newPoints:Int})",
               "CantUpdraft": "Du kannst ein {officialTier}-Mon nicht ins {specifiedTier} hochdraften!",
               "GapError": "Du kannst ein {officialTier}-Mon nur bis zu {gap:Int} Tiers hochdraften!",
-              "UpdraftDisabled": "Hochdraften ist in dieser Liga nicht erlaubt!"
+              "UpdraftDisabled": "Hochdraften ist in dieser Liga nicht erlaubt!",
+              "TeraMaxPoints": "Die Kosten deiner Tera-User dürfen {max:Int} nicht überschreiten!"
             },
             "DraftUtils_nested": {
               "NoPickDuringSwitch": "Du kannst während eines Switch-Drafts nicht picken!",
@@ -455,8 +461,8 @@
               "LogoDownloadError": "Das Logo konnte nicht heruntergeladen werden!",
               "LogoTooBig": "Das Logo darf nicht größer als {maxSize:Int}MB sein!",
               "LogoNoValidImage": "Die Datei ist kein gültiges Bild! (Bestenfalls sollte es eine PNG sein)",
-              "YTChannelLabel": "YT-Channel",
-              "YTChannelInvalid": "Dieser YT-Channel-Link (`{data}`) ist entweder ungültig oder der Channel existiert nicht (mehr)!",
+              "YTChannelLabel": "YT-Kanal",
+              "YTChannelInvalid": "Dieser YT-Kanal-Link (`{data}`) ist entweder ungültig oder der Channel existiert nicht (mehr)!",
               "TeammateLabel": "Teammate",
               "TeammateDescription": "Mit wem du teamen möchtest"
             }

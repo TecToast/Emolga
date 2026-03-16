@@ -5,6 +5,7 @@
 
 package de.tectoast.emolga.utils.json
 
+import com.mongodb.client.result.UpdateResult
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
@@ -119,7 +120,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val db = client.getDatabase(dbName)
 
     val sixVsPokeworld = client.getDatabase("sixvspokeworld")
-    val sixVsPokeworldChallenges by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("challenges") }
+    val sixVsPokeworldConfig by lazy { sixVsPokeworld.getCollection<SixVsPokeworldConfig>("config") }
 
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 
@@ -520,6 +521,9 @@ data class LigaStartConfig(
     @Config(
         "Anmeldungsstruktur", "Hier kannst du einstellen, was die Teilnehmer alles bei der Anmeldung angeben sollen."
     ) val signupStructure: List<SignUpInput> = listOf(),
+    @Config("Identifier", "Identifier zum Unterscheiden von verschiedenen Anmeldungen auf einem Server")
+    @EncodeDefault
+    val identifier: String = ""
 )
 
 @Serializable
@@ -546,7 +550,10 @@ data class LigaStartData(
     suspend fun buildModal(old: SignUpData?): Modal? {
         if (config.signupStructure.isEmpty() && !config.allowTeams && config.logoSettings == null) return null
         val lang = language()
-        return Modal("signup;".notNullAppend(old?.let { "change" }), K18n_SignupNoun.translateToGuildLanguage(guild)) {
+        return Modal(
+            "signup;${config.identifier};".notNullAppend(old?.let { "change" }),
+            K18n_SignupNoun.translateToGuildLanguage(guild)
+        ) {
             config.signupStructure.forEach {
                 val options = it.getModalInputOptions()
                 label(
@@ -592,10 +599,9 @@ data class LigaStartData(
         }
     }
 
-    suspend fun handleModal(e: ModalInteractionEvent) {
+    suspend fun handleModal(e: ModalInteractionEvent, change: Boolean) {
         val iData = RealInteractionData(e, language())
         with(iData) {
-            val change = e.modalId.substringAfter(";").isNotBlank()
             val errors = mutableListOf<String>()
             var logoAttachment: Message.Attachment? = null
             var teammates: List<Long>? = null
@@ -634,6 +640,7 @@ data class LigaStartData(
             }
             SignupManager.signupUser(
                 gid = gid,
+                identifier = config.identifier,
                 uid = e.user.idLong,
                 data = data,
                 logoAttachment = logoAttachment,
@@ -654,7 +661,16 @@ data class LigaStartData(
     fun getIndexOfUser(uid: Long) = users.indexOfFirst { it.users.contains(uid) }.takeIf { it >= 0 }
     fun getDataByUser(uid: Long) = users.firstOrNull { it.users.contains(uid) }
 
-    suspend fun save() = mdb.signups.updateOne(LigaStartData::guild eq guild, this)
+    val mongoDbFilter
+        get() = and(
+            LigaStartData::guild eq guild,
+            LigaStartData::config / LigaStartConfig::identifier eq config.identifier
+        )
+
+    suspend fun save(): UpdateResult {
+        return mdb.signups.updateOne(mongoDbFilter, this)
+    }
+
     inline fun giveParticipantRole(memberfun: () -> Member) {
         config.participantRole?.let {
             val member = memberfun()
@@ -709,7 +725,9 @@ data class LigaStartData(
         config.maxUsers = newMaxUsers
         if (wasClosed) {
             jda.getTextChannelById(config.announceChannel)!!.editMessageComponentsById(
-                announceMessageId, SignupManager.Button.withoutIData(language()).into()
+                announceMessageId, SignupManager.Button.withoutIData(language()) {
+                    this.identifier = config.identifier
+                }.into()
             ).queue()
         }
         updateSignupMessage()
@@ -769,7 +787,7 @@ data class LigaStartData(
             delay(UPLOAD_DELAY_MS - timeSinceLastUpload)
             val checksum = StaticCloud.uploadLogoToCloud(logoData.value)
             mdb.signups.updateOne(
-                LigaStartData::guild eq guild,
+                mongoDbFilter,
                 set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
             )
             lastLogoUploadTime = System.currentTimeMillis()
@@ -801,7 +819,7 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamNam
 
     companion object {
         private val logger = KotlinLogging.logger {}
-        private const val MAX_SIZE = 10
+        private const val MAX_SIZE = 8
 
         suspend fun fromAttachment(
             attachment: Message.Attachment,
@@ -1239,8 +1257,14 @@ suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =
 @Suppress("unused") // used in other projects
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: String) = updateOne("{}", update)
 
+// TODO: find usages that hardcode the default signup
 @JvmName("getLigaStartData")
-suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStartData::guild eq guild).first()
+suspend fun CoroutineCollection<LigaStartData>.get(guild: Long, identifier: String) =
+    find(LigaStartData::guild eq guild, LigaStartData::config / LigaStartConfig::identifier eq identifier).first()
+
+@JvmName("getLigaStartData")
+suspend fun CoroutineCollection<LigaStartData>.get(guild: Long, user: Long) =
+    find(LigaStartData::guild eq guild, (LigaStartData::users / SignUpData::users).contains(user)).first()
 
 @JvmName("getNameConventions")
 suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =

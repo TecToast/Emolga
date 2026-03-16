@@ -4,7 +4,6 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.league.draft.generic.K18n_NoSignupInGuild
 import de.tectoast.emolga.features.league.draft.generic.K18n_NotSignedUp
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
@@ -22,8 +21,8 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val lsData =
-            mdb.signups.get(iData.gid) ?: return iData.reply(
-                K18n_NoSignupInGuild,
+            mdb.signups.get(iData.gid, iData.user) ?: return iData.reply(
+                K18n_NotSignedUp,
                 ephemeral = true
             )
         val data = lsData.getDataByUser(iData.user) ?: return iData.reply(K18n_NotSignedUp)

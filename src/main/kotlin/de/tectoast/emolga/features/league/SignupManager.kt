@@ -33,21 +33,26 @@ object SignupManager {
     private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
     private val signupScope = createCoroutineScope("Signup", Dispatchers.IO)
 
-    object Button : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("signup")) {
+    object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("signup")) {
         override val buttonStyle = ButtonStyle.PRIMARY
         override val label = K18n_SignupVerb
         override val emoji = Emoji.fromUnicode("✅")
 
+        class Args : Arguments() {
+            var identifier by string().compIdOnly().nullable()
+        }
+
         context(iData: InteractionData)
-        override suspend fun exec(e: NoArgs) {
-            val lsData = mdb.signups.get(iData.gid)
+        override suspend fun exec(e: Args) {
+            val identifier = e.identifier.orEmpty()
+            val lsData = mdb.signups.get(iData.gid, identifier)
                 ?: return iData.reply(K18n_Signup.SignUpClosedError, ephemeral = true)
             if (lsData.getDataByUser(iData.user) != null) {
                 return iData.reply(K18n_AlreadySignedUp, ephemeral = true)
             }
             val modal = lsData.buildModal(old = null)
             if (modal == null) {
-                signupUser(gid = iData.gid, uid = iData.user, data = emptyMap(), iData = iData)
+                signupUser(gid = iData.gid, identifier = identifier, uid = iData.user, data = emptyMap(), iData = iData)
                 return
             }
             iData.replyModal(modal)
@@ -58,8 +63,8 @@ object SignupManager {
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val ligaStartData = mdb.signups.get(iData.gid) ?: return iData.reply(
-                K18n_NoSignupInGuild, ephemeral = true
+            val ligaStartData = mdb.signups.get(iData.gid, iData.user) ?: return iData.reply(
+                K18n_Signup.NotSignedUp, ephemeral = true
             )
             iData.reply(
                 if (ligaStartData.deleteUser(iData.user)) K18n_Signup.UnsignupSuccess else K18n_Signup.NotSignedUp,
@@ -76,7 +81,7 @@ object SignupManager {
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val ligaStartData = mdb.signups.get(iData.gid) ?: return iData.reply(
+            val ligaStartData = mdb.signups.get(iData.gid, iData.user) ?: return iData.reply(
                 K18n_NoSignupInGuild, ephemeral = true
             )
             val signUpData = ligaStartData.getDataByUser(iData.user) ?: return iData.reply(
@@ -94,10 +99,12 @@ object SignupManager {
     object ModalHandler : ListenerProvider() {
         init {
             registerListener<ModalInteractionEvent> {
-                if (!it.modalId.startsWith("signup;")) return@registerListener
+                val modalId = it.modalId
+                if (!modalId.startsWith("signup;")) return@registerListener
+                val split = modalId.split(';')
                 val gid = it.guild?.idLong ?: return@registerListener
-                val ligaStartData = mdb.signups.get(gid) ?: return@registerListener
-                ligaStartData.handleModal(it)
+                val ligaStartData = mdb.signups.get(gid, split[1]) ?: return@registerListener
+                ligaStartData.handleModal(it, split[2].isNotBlank())
             }
         }
     }
@@ -106,7 +113,7 @@ object SignupManager {
         gid: Long,
         config: LigaStartConfig
     ) {
-        if (mdb.signups.get(gid) != null) return
+        if (mdb.signups.get(gid, config.identifier) != null) return
         val tc = jda.getTextChannelById(config.announceChannel)!!
 
         val messageid =
@@ -116,7 +123,9 @@ object SignupManager {
                     config.maxUsers.takeIf { it > 0 }?.toString() ?: "?"
                 ).translateToGuildLanguage(gid)
             })
-                .addComponents(Button.withoutIData(language = GuildLanguageDB.getLanguage(gid)).into())
+                .addComponents(Button.withoutIData(language = GuildLanguageDB.getLanguage(gid)) {
+                    this.identifier = config.identifier
+                }.into())
                 .await().idLong
         mdb.signups.insertOne(
             LigaStartData(
@@ -130,6 +139,7 @@ object SignupManager {
 
     suspend fun signupUser(
         gid: Long,
+        identifier: String,
         uid: Long,
         data: Map<String, String>,
         logoAttachment: Message.Attachment? = null,
@@ -153,7 +163,7 @@ object SignupManager {
             Mutex() to c
         }
         signupMutex.withLock {
-            with(mdb.signups.get(gid)!!) {
+            with(mdb.signups.get(gid, identifier)!!) {
                 if (!isChange && full) return iData?.reply(K18n_Signup.SignupFull)
                 teammates?.let {
                     for (u in it) {

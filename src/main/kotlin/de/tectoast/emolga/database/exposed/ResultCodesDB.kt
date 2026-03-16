@@ -72,19 +72,15 @@ object ResultCodesDB : Table("resultcodes") {
     }
 
     suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
-        var code: Uuid
-        while (true) {
-            code = Uuid.random()
-            dbTransaction {
-                insert {
-                    it[CODE] = code
-                    it[LEAGUENAME] = leaguename
-                    it[GAMEDAY] = gameday
-                    it[P1] = p1
-                    it[P2] = p2
-                }
+        val code: Uuid = Uuid.generateV7()
+        dbTransaction {
+            insert {
+                it[CODE] = code
+                it[LEAGUENAME] = leaguename
+                it[GAMEDAY] = gameday
+                it[P1] = p1
+                it[P2] = p2
             }
-            break
         }
         return code
     }

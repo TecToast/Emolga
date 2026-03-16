@@ -4,6 +4,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.league.draft.generic.K18n_NotSignedUp
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
 import mu.KotlinLogging
@@ -30,7 +31,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     context(iData: InteractionData)
     suspend fun insertLogo(logo: Message.Attachment, uid: Long) {
         iData.deferReply(ephemeral = true)
-        val lsData = mdb.signups.get(iData.gid)!!
+        val lsData = mdb.signups.get(iData.gid, uid) ?: return iData.reply(K18n_NotSignedUp, ephemeral = true)
         val error = lsData.insertLogo(uid, logo)
         iData.reply(error ?: K18n_Logo.Success, ephemeral = true)
     }

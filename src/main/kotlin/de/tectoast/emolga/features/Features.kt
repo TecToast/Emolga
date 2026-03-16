@@ -758,9 +758,11 @@ open class Arguments {
                     compareBy({ mon -> tl.order.indexOf(mon.tier) }, { mon -> mon.name })
                 ).map { mon ->
                     logger.debug(mon.name)
-                    tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
-                        mon.name, league.guild
-                    )!!.also { tlName -> tlNameCache[mon.name] = tlName }
+                    tlNameCache.getOrPut(mon.name) {
+                        NameConventionsDB.convertOfficialToTL(
+                            mon.name, league.guild
+                        )!!
+                    }
                 }.filter { mon -> mon.startsWith(s, true) }
 
             }

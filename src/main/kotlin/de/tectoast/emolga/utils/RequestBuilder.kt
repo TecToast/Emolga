@@ -3,11 +3,9 @@ package de.tectoast.emolga.utils
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.regex.Pattern
 
@@ -23,7 +21,7 @@ class RequestBuilder
  * @param sid The ID of the sheet where the values should be written
  */(val sid: String) : SimpleRequestBuilder {
     private val requests: MutableList<MyRequest> = ArrayList()
-    private var executed = false
+    private var completed = CompletableDeferred<Unit>()
     private var runnable: (suspend () -> Unit)? = null
     private var delay: Long = 0
     private var suppressMessages = false
@@ -243,25 +241,6 @@ class RequestBuilder
         )
     }
 
-    fun addCopyPasteChange(sheetId: Int, range: String, target: String, pasteType: String): RequestBuilder {
-        return addBatch(
-            Request().setCopyPaste(
-                CopyPasteRequest().setSource(buildGridRange(range, sheetId))
-                    .setDestination(buildGridRange(target, sheetId)).setPasteType(pasteType)
-                    .setPasteOrientation("NORMAL")
-            )
-        )
-    }
-
-    fun addCutPasteChange(sheetId: Int, range: String, target: String, pasteType: String): RequestBuilder {
-        return addBatch(
-            Request().setCutPaste(
-                CutPasteRequest().setSource(buildGridRange(range, sheetId))
-                    .setDestination(buildGridCoordinate(target, sheetId)).setPasteType(pasteType)
-            )
-        )
-    }
-
     class ConditionalFormat(val value: String, val format: CellFormat)
 
     fun addConditionalFormatCustomFormula(format: ConditionalFormat, range: String, id: Int): RequestBuilder {
@@ -339,27 +318,44 @@ class RequestBuilder
 
     fun clear() {
         requests.clear()
-        executed = false
+        completed = CompletableDeferred()
     }
 
-    fun execute(realExecute: Boolean = true, sync: Boolean = false) {
+    fun execute(realExecute: Boolean = true) {
+        if (requests.isEmpty()) return
         this.realExecute = realExecute
-        if (sync) internalExecute()
-        else scheduleForExecution(this)
+        if (dontUseChannel) {
+            runBlocking {
+                internalExecuteSuspend()
+            }
+        } else {
+            scheduleForExecution(this)
+        }
+    }
+
+    suspend fun executeSync(realExecute: Boolean = true) {
+        if (requests.isEmpty()) return
+        this.realExecute = realExecute
+        internalExecuteSuspend()
+    }
+
+    suspend fun executeAndWait(realExecute: Boolean = true) {
+        if (requests.isEmpty()) return
+        execute(realExecute)
+        completed.await()
     }
 
     /**
      * Executes the request to the specified google sheet
      */
-    private fun internalExecute(tries: Int = 0) {
-        check(!executed) {
+    private suspend fun internalExecuteSuspend(tries: Int = 0) {
+        check(!completed.isCompleted) {
             """
      Already executed RequestBuilder with requests:
      sid = $sid
      $requests
      """.trimIndent()
         }
-        executed = true
         val userentered = userEntered
         if (!realExecute) {
             printUserEntered(userentered)
@@ -367,66 +363,56 @@ class RequestBuilder
         }
         val raw = raw
         val batch = batch
-        val job = scope.async {
-            launch {
-                if (batch.isNotEmpty()) {
-                    Google.batchUpdate(sid, batch)
-                    additionalSheets?.forEach {
-                        Google.batchUpdate(it, batch)
-                    }
-                }
-            }
-            if (!onlyBatch) {
+        try {
+            supervisorScope {
                 launch {
-                    if (userentered.isNotEmpty()) {
-                        if (!suppressMessages) printUserEntered()
-                        Google.batchUpdate(sid, userentered, "USER_ENTERED")
+                    if (batch.isNotEmpty()) {
+                        Google.batchUpdate(sid, batch)
                         additionalSheets?.forEach {
-                            Google.batchUpdate(it, userentered, "USER_ENTERED")
+                            Google.batchUpdate(it, batch)
                         }
                     }
                 }
-                launch {
-                    if (raw.isNotEmpty()) {
-                        Google.batchUpdate(sid, raw, "RAW")
-                        additionalSheets?.forEach {
-                            Google.batchUpdate(it, raw, "RAW")
+                if (!onlyBatch) {
+                    launch {
+                        if (userentered.isNotEmpty()) {
+                            if (!suppressMessages) printUserEntered()
+                            Google.batchUpdate(sid, userentered, "USER_ENTERED")
+                            additionalSheets?.forEach {
+                                Google.batchUpdate(it, userentered, "USER_ENTERED")
+                            }
+                        }
+                    }
+                    launch {
+                        if (raw.isNotEmpty()) {
+                            Google.batchUpdate(sid, raw, "RAW")
+                            additionalSheets?.forEach {
+                                Google.batchUpdate(it, raw, "RAW")
+                            }
                         }
                     }
                 }
             }
-        }
-        scope.launch {
-            try {
-                job.await()
-            } catch (ex: GoogleJsonResponseException) {
-                if (ex.details.code == 401) {
-                    val newTries = tries + 1
-                    val timeMillis = newTries * 3000L
-                    logger.info("Got 401, trying again in {}ms", timeMillis)
-                    delay(timeMillis)
-                    if (newTries < 3) {
-                        internalExecute(newTries)
-                    } else {
-                        throw ex
-                    }
-                } else {
-                    throw ex
-                }
-            }
-        }
-        runnable?.let {
-            scope.launch {
-                job.join()
+            completed.complete(Unit)
+            runnable?.let {
                 delay(delay)
                 it()
             }
+        } catch (ex: GoogleJsonResponseException) {
+            if (ex.details.code == 401) {
+                val newTries = tries + 1
+                val timeMillis = newTries * 3000L
+                logger.info("Got 401, trying again in {}ms", timeMillis)
+                delay(timeMillis)
+                if (newTries < 3) {
+                    internalExecuteSuspend(newTries)
+                } else {
+                    throw ex
+                }
+            } else {
+                throw ex
+            }
         }
-    }
-
-    fun executeAndReset(realExecute: Boolean = true, sync: Boolean = false) {
-        execute(realExecute, sync)
-        clear()
     }
 
     fun printUserEntered(userentered: List<ValueRange> = userEntered) {
@@ -488,11 +474,12 @@ class RequestBuilder
         private val scope = createCoroutineScope("RequestBuilder")
         private val channelCollectScope = createCoroutineScope("RequestBuilderChannelCollect")
         private val channel = Channel<RequestBuilder>(Channel.UNLIMITED)
+        var dontUseChannel = false
 
         init {
             channelCollectScope.launch {
                 while (true) {
-                    channel.receive().internalExecute()
+                    channel.receive().internalExecuteSuspend()
                     delay(2000)
                 }
             }

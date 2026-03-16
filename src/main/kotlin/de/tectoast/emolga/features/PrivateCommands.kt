@@ -89,22 +89,27 @@ object PrivateCommands {
         iData.reply(PredictionGameAnalyseService.getFullResultsSummary(args()))
     }
 
+    private suspend fun String.getSignup(): LigaStartData {
+        val split = split(":")
+        return mdb.signups.get(split[0].toLong(), split.getOrNull(1) ?: "")!!
+    }
+
     context(iData: InteractionData)
     suspend fun closeSignup(args: PrivateData) {
-        mdb.signups.get(args().toLong())!!.closeSignup(forced = true)
+        args().getSignup().closeSignup(forced = true)
     }
 
     context(iData: InteractionData)
     suspend fun setNewMaxUsers(args: PrivateData) {
-        mdb.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
+        args[0].getSignup().setNewMaxUsers(args[1].toInt())
     }
 
     context(iData: InteractionData)
     suspend fun finishOrdering(args: PrivateData) {
         iData.done()
-        val gid = args().toLong()
+        val gid = args().substringBefore(":").toLong()
         val guild = jda.getGuildById(gid)!!
-        val data = mdb.signups.get(gid)!!
+        val data = args().getSignup()
         val roleMap = data.conferenceRoleIds.mapValues { guild.getRoleById(it.value) }
         data.users.forEach {
             val role = roleMap[it.conference] ?: return@forEach
@@ -117,9 +122,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun signupUpdate(args: PrivateData) {
-        val (guild, user) = args.map { it.toLong() }
-        val ligaStartData = mdb.signups.get(guild)!!
-        ligaStartData.updateUser(user)
+        args[0].getSignup().updateUser(args[1].toLong())
     }
 
     context(iData: InteractionData)
@@ -131,9 +134,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun unsignupUser(args: PrivateData) {
-        val (guild, user) = args.map { it.toLong() }
-        val signup = mdb.signups.get(guild)!!
-        signup.deleteUser(user)
+        args[0].getSignup().deleteUser(args[1].toLong())
     }
 
     var guildForMyStuff: Long? = null
@@ -386,11 +387,12 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
-            league.docEntry!!.analyseWithoutCheck(
-                replay, withSort = false, realExecute = args[2].toBooleanStrict()
-            )
+        League.executeOnFreshLock(args[0]) {
+            persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
+                docEntry!!.analyseWithoutCheck(
+                    replay, withSort = false, realExecute = args[2].toBooleanStrict()
+                )
+            }
         }
     }
 
@@ -638,10 +640,11 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun executeHideGamesDocInsertion(args: PrivateData) {
-        val league = mdb.league(args[0])
-        league.docEntry!!.executeHideGamesDocInsertion(
-            league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
-        )
+        League.executeOnFreshLock(args[0]) {
+            docEntry!!.executeHideGamesDocInsertion(
+                persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+            )
+        }
     }
 
     context(iData: InteractionData)
@@ -676,8 +679,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun updateSignupMessage(args: PrivateData) {
-        val gid = args().toLong()
-        mdb.signups.get(gid)!!.updateSignupMessage()
+        args().getSignup().updateSignupMessage()
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -712,38 +714,50 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    suspend fun switchPlayer(args: PrivateData) {
+    suspend fun switchUser(args: PrivateData) {
         val league = mdb.league(args[0])
         val uidOld = args[1].toLong()
         val uidNew = args[2].toLong()
+        val idx = league(uidOld)
         mdb.league.updateOne(
             League::leaguename eq league.leaguename,
-            set(League::table.pos(league(uidOld)) setTo uidNew)
+            set(League::table.pos(idx) setTo uidNew)
         )
-        mdb.signups.get(league.guild)?.let { signup ->
+        league.getSignup()?.let { signup ->
             val uData = signup.users.first { it.users.contains(uidOld) }
             uData.users.apply {
                 remove(uidOld)
                 add(uidNew)
             }
-            uData.data[SignUpInput.SDNAME_ID] = args[3]
-            uData.data[SignUpInput.TEAMNAME_ID] = args[4]
+            args.getOrNull(3)?.let {
+                uData.data[SignUpInput.SDNAME_ID] = it
+            }
+            args.getOrNull(4)?.let {
+                uData.data[SignUpInput.TEAMNAME_ID] = it
+            } ?: TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
             signup.save()
         }
     }
 
     context(iData: InteractionData)
     suspend fun setSignupData(args: PrivateData) {
-        val guild = args[0].toLong()
         val uid = args[1].toLong()
         val sdName = args[2]
         val teamName = args[3]
-        mdb.signups.get(guild)!!.let { signup ->
+        args[0].getSignup().let { signup ->
             val uData = signup.users.first { it.users.contains(uid) }
             uData.data[SignUpInput.SDNAME_ID] = sdName
             uData.data[SignUpInput.TEAMNAME_ID] = teamName
             signup.save()
         }
+    }
+
+    context(iData: InteractionData)
+    suspend fun generateCropOverview(args: PrivateData) {
+        iData.deferReply()
+        val gid = args().toLong()
+        PokemonCropService.generateOverviewImage(gid)
+        iData.done()
     }
 }
 

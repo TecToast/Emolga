@@ -118,13 +118,13 @@ class ASLCoachData(
     companion object {
 
         val groupedParticipants = OneTimeCache {
-            val data = mdb.signups.get(Constants.G.ASL)!!
+            val data = mdb.signups.get(Constants.G.ASL, "")!!
             data.users.groupBy { it.conference!! }
         }
 
         val participants = OneTimeCache {
             val groupBy = groupedParticipants()
-            val data = mdb.signups.get(Constants.G.ASL)!!
+            val data = mdb.signups.get(Constants.G.ASL, "")!!
             buildMap {
                 for ((index, conference) in data.conferences.withIndex()) {
                     val confnum = conference.toIntOrNull() ?: continue

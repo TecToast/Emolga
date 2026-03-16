@@ -12,7 +12,6 @@ data class Tokens(
     val database: Database,
     val mongoDB: String,
     val oauth2: Oauth2,
-    val artworkPath: String,
     val staticCloud: StaticCloud,
 ) {
     @Serializable

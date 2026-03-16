@@ -5,17 +5,22 @@ package de.tectoast.emolga.ktor
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.GuildManagerDB.getGuildsForUser
+import de.tectoast.emolga.features.league.K18n_Transaction
 import de.tectoast.emolga.features.league.SignupManager
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.RPL
+import de.tectoast.emolga.league.config.TransactionAmounts
+import de.tectoast.emolga.league.config.TransactionEntry
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.EmolgaConfigHelper
+import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
-import de.tectoast.emolga.utils.json.LigaStartConfig
-import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.send
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -37,6 +42,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.DiscordAssets
 import net.dv8tion.jda.api.utils.ImageFormat
 import org.bson.conversions.Bson
+import org.litote.kmongo.contains
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
 import org.litote.kmongo.json
@@ -74,11 +80,9 @@ fun Route.emolgaAPI() {
                 handler(call)
             }
         }
-        @Suppress("UNCHECKED_CAST")
-        get("/defaultdata") {
-            val path = call.request.queryParameters["path"]?.replace("?", "")
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
-            if (!path.startsWith("de.tectoast")) return@get call.respond(HttpStatusCode.BadRequest)
+        @Suppress("UNCHECKED_CAST") get("/defaultdata") {
+            val path = call.request.queryParameters["path"]?.replace("?", "") ?: return@get call.bad()
+            if (!path.startsWith("de.tectoast")) return@get call.bad()
             defaultDataCache[path]?.let { return@get call.respondText(it, ContentType.Application.Json) }
             val split = path.split("#")
             var parentSerializer: KSerializer<Any>? = null
@@ -88,7 +92,7 @@ fun Route.emolgaAPI() {
                 }.sealedSubclasses.mapNotNull { it.serializerOrNull() }
                     .sortedBy { it.descriptor.annotations.findConfig()?.prio ?: Int.MAX_VALUE }
                     .first { split[1] == "" || it.descriptor.serialName == split[1] } else Class.forName(path).kotlin.serializerOrNull()
-            }.getOrNull() as? KSerializer<Any>? ?: return@get call.respond(HttpStatusCode.BadRequest)
+            }.getOrNull() as? KSerializer<Any>? ?: return@get call.bad()
             val value =
                 runCatching { webJSON.decodeFromString(serializer, "{}") }.getOrNull() ?: return@get call.respond(
                     HttpStatusCode.BadRequest
@@ -101,7 +105,13 @@ fun Route.emolgaAPI() {
             val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
-                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", mdb.signups.get(it) != null)
+                GuildMeta(
+                    id = g.id,
+                    name = g.name,
+                    icon = g.iconUrl ?: "",
+                    mdb.signups.findOne(LigaStartData::guild eq it) != null,
+                    TeamGraphicsMetaDB.getShape(it)
+                )
             })
         }
         route("{guild}") {
@@ -118,7 +128,7 @@ fun Route.emolgaAPI() {
                     PokemonCropService.insertPokemonCropData(gid, data, call.userId)
                     call.respond(HttpStatusCode.Accepted)
                 }
-                staticFiles("/img", File(Ktor.artworkPath!!), index = null)
+                staticFiles("/img", File("/teamgraphics/sprites"), index = null)
             }
             get("channels") {
                 val gid = call.requireGuild() ?: return@get
@@ -136,15 +146,14 @@ fun Route.emolgaAPI() {
                 route("/participants") {
                     get {
                         val gid = call.requireGuild() ?: return@get
-                        val lsData = mdb.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid, "") ?: return@get call.respond(HttpStatusCode.NotFound)
                         val allUsers = lsData.users.flatMap { it.users }
                         var newUsers = allUsers.filter { !participantDataCache.containsKey(it) }
                         while (newUsers.isNotEmpty()) {
                             val newVals = jda.getGuildById(gid)!!.retrieveMembersByIds(newUsers.take(100)).await()
                                 .associateBy { it.idLong }.mapValues { (_, mem) ->
                                     mem.user.effectiveName to mem.user.effectiveAvatarUrl.replace(
-                                        ".gif",
-                                        ".png"
+                                        ".gif", ".png"
                                     )
                                 }
                             participantDataCache.putAll(
@@ -170,7 +179,7 @@ fun Route.emolgaAPI() {
                     post {
                         val gid = call.requireGuild() ?: return@post
                         val (conferences, data) = call.receive<ParticipantDataSet>()
-                        val lsData = mdb.signups.get(gid) ?: return@post call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid, "") ?: return@post call.respond(HttpStatusCode.NotFound)
                         lsData.conferences = conferences
                         data.forEach { (uid, conf) ->
                             lsData.getDataByUser(uid)?.conference = conf
@@ -184,7 +193,8 @@ fun Route.emolgaAPI() {
                     submitString = "Anmeldung eröffnen",
                     dataHandler = { config, provider ->
                         SignupManager.createSignup(provider.gid, config)
-                    }, dataProvider = {
+                    },
+                    dataProvider = {
                         LigaStartConfig(
                             signupChannel = 0,
                             announceChannel = 0,
@@ -204,22 +214,20 @@ fun Route.emolgaAPI() {
                 }, descriptor = RPL::class.serializer().descriptor) // TODO: make dynamic
                 get("/users") {
                     val gid = call.requireGuild() ?: return@get
-                    val leaguename = call.parameters["leaguename"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val leaguename = call.parameters["leaguename"] ?: return@get call.bad()
                     val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
                     val userIds = league.table
                     val toFetch = userIds.filter { !discordUserCache.containsKey(it) }
                     if (toFetch.isNotEmpty()) {
                         jda.getGuildById(gid)!!.retrieveMembersByIds(toFetch).await().forEach {
                             discordUserCache[it.idLong] = DiscordUserData(
-                                name = it.user.effectiveName,
-                                avatar = it.effectiveAvatarUrl.replace(".gif", ".png")
+                                name = it.user.effectiveName, avatar = it.effectiveAvatarUrl.replace(".gif", ".png")
                             )
                         }
                     }
                     call.respond(userIds.map {
                         discordUserCache[it] ?: DiscordUserData(
-                            it.toString(),
-                            DiscordAssets.userDefaultAvatar(ImageFormat.PNG, "0").url
+                            it.toString(), DiscordAssets.userDefaultAvatar(ImageFormat.PNG, "0").url
                         )
                     })
                 }
@@ -228,16 +236,16 @@ fun Route.emolgaAPI() {
     }
     route("/result/{resultid}") {
         get {
-            val resultId = call.parameters["resultid"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val resultId = call.parameters["resultid"] ?: return@get call.bad()
             ResultCodesDB.getResultDataForUser(resultId)?.let { resultData ->
                 call.respond(resultData)
             } ?: call.respond(HttpStatusCode.NotFound)
         }
         post {
-            val resultId = call.parameters["resultid"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            val resultId = call.parameters["resultid"] ?: return@post call.bad()
             val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
             val body = call.receive<List<List<Map<String, KD>>>>()
-            if (body.size > 3 || body.isEmpty()) return@post call.respond(HttpStatusCode.BadRequest)
+            if (body.size > 3 || body.isEmpty()) return@post call.bad()
             // TODO: Maybe combine with ResultEntry? and clean up
             val idx1 = resData[ResultCodesDB.P1]
             val idx2 = resData[ResultCodesDB.P2]
@@ -249,9 +257,9 @@ fun Route.emolgaAPI() {
                 val (gamedayData, u1IsSecond) = getGamedayData(idx1, idx2)
                 val officialNameCache = mutableMapOf<String, String>()
                 val games = body.map { singleGame ->
-                    if (singleGame.size != 2 || singleGame.any { it.size > 6 }) return@post call.respond(HttpStatusCode.BadRequest)
+                    if (singleGame.size != 2 || singleGame.any { it.size > 6 }) return@post call.bad()
                     for (i in 0..1) {
-                        if (singleGame[i].values.any { it.deaths !in 0..1 }) return@post call.respond(HttpStatusCode.BadRequest)
+                        if (singleGame[i].values.any { it.deaths !in 0..1 }) return@post call.bad()
                         if (singleGame[i].values.sumOf { it.kills } != singleGame[1 - i].values.sumOf { it.deaths }) return@post call.respond(
                             HttpStatusCode.BadRequest
                         )
@@ -312,40 +320,34 @@ fun Route.emolgaAPI() {
         )
     }
     get("/picked/{guild}") {
-        val gid = call.parameters["guild"]?.toLongOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val gid = call.parameters["guild"]?.toLongOrNull() ?: return@get call.bad()
         val pickedAmount = pickedDataCache.getOrPut(gid) {
             val allLeagues = mdb.league.find(League::guild eq gid).toList()
-            val language =
-                allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val language = allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.bad()
             val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.map {
                 it.name
             }
-            val allMonsTranslations =
-                NameConventionsDB.getAllData(
-                    allEntries.distinct(), NameConventionsDB.GERMAN, gid
-                ).associateBy { it.official }
-            allEntries.groupingBy { it }
-                .eachCount().map {
-                    val nameData = allMonsTranslations[it.key]!!
-                    val name = nameData.tlForLanguage(language)
-                    val englishOfficial = nameData.otherOfficial!!
-                    val spriteName = if ("-" in englishOfficial) {
-                        mdb.pokedex.get(englishOfficial.toSDName())!!
-                            .calcSpriteName()
-                    } else englishOfficial.toSDName()
-                    PokemonPickedData(name, spriteName, it.value)
-                }.sortedByDescending { it.amount }
+            val allMonsTranslations = NameConventionsDB.getAllData(
+                allEntries.distinct(), NameConventionsDB.GERMAN, gid
+            ).associateBy { it.official }
+            allEntries.groupingBy { it }.eachCount().map {
+                val nameData = allMonsTranslations[it.key]!!
+                val name = nameData.tlForLanguage(language)
+                val englishOfficial = nameData.otherOfficial!!
+                val spriteName = if ("-" in englishOfficial) {
+                    mdb.pokedex.get(englishOfficial.toSDName())!!.calcSpriteName()
+                } else englishOfficial.toSDName()
+                PokemonPickedData(name, spriteName, it.value)
+            }.sortedByDescending { it.amount }
         }
         call.caching = CachingOptions(CacheControl.MaxAge(60 * 60 * 24 * 7))
         call.respond(pickedAmount)
     }
     get("/liveteam") {
-        val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val uuid = Uuid.parseHexDashOrNull(token)
-            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val token = call.request.queryParameters["token"] ?: return@get call.bad()
+        val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
-        val numRaw =
-            call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val numRaw = call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.bad()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         val style = league.config.teamgraphics?.style ?: return@get call.respond(
             HttpStatusCode.NotFound
@@ -355,8 +357,7 @@ fun Route.emolgaAPI() {
                 CacheControl.MaxAge(60 * 60 * 5)
             )
             return@get call.respondBytes(
-                Files.readAllBytes(Path(style.backgroundPath)),
-                contentType = ContentType.Image.PNG
+                Files.readAllBytes(Path(style.backgroundPath)), contentType = ContentType.Image.PNG
             )
         }
         val num = numRaw / 2
@@ -365,23 +366,150 @@ fun Route.emolgaAPI() {
         val roundIndex = (num / tableSize)
         val takePicks = roundIndex + withMons
         val indexInRound = num % tableSize
-        val idx =
-            league.originalorder[roundIndex + 1]?.getOrNull(indexInRound)
-                ?: return@get call.respond(HttpStatusCode.NotFound)
+        val idx = league.originalorder[roundIndex + 1]?.getOrNull(indexInRound) ?: return@get call.respond(
+            HttpStatusCode.NotFound
+        )
         call.respondTeamGraphic(league, idx, takePicks)
     }
     get("/teamgraphic") {
-        val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val uuid = Uuid.parseHexDashOrNull(token)
-            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val token = call.request.queryParameters["token"] ?: return@get call.bad()
+        val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
-        val idx =
-            call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val idx = call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.bad()
         val mons = call.request.queryParameters["mons"]?.toIntOrNull()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respondTeamGraphic(league, idx, mons)
     }
+    route("/transaction/{transactionid}") {
+        get {
+            val transactionid = call.parameters["transactionid"] ?: return@get call.bad()
+            val (leaguename, idx) = TransactionCodesDB.getDataByCode(transactionid) ?: return@get call.respond(
+                HttpStatusCode.NotFound
+            )
+            val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+            val maxTransactionPoints = league.config.transaction?.maxPoints ?: return@get call.bad()
+            val guild = league.guild
+            val teraPickConfig = league.config.teraPick
+            val allMons = Tierlist.getAllPokemonWithTera(guild, teraPickConfig?.tlIdentifier ?: "TERA")
+            val lookup = allMons.associateBy { it.name }
+            val alreadyPicked = league.picks.values.flatten().filter { !it.quit }.map { it.name }
+            val officialToTL = NameConventionsDB.convertAllOfficialToTL(alreadyPicked, guild)
+            val alreadyPickedTL = alreadyPicked.mapTo(mutableSetOf()) { officialToTL[it] }
+            val myPicks = league.picks(idx).filter { !it.quit }.map {
+                val tlName = officialToTL[it.name] ?: error("Could not find TL name for ${it.name} in guild $guild")
+                val data = lookup[tlName] ?: error("Could not find ${it.name} in tierlist")
+                data.copy(tera = it.tera)
+            }
+            call.respond(
+                APITransactionData(
+                    picked = myPicks,
+                    available = allMons.map {
+                        it.copy(picked = alreadyPickedTL.contains(it.name))
+                    },
+                    teraCount = teraPickConfig?.amount ?: 0,
+                    teraMaxPoints = teraPickConfig?.maxPoints,
+                    monMaxPoints = league.tierlist.withPointBasedPriceManager { it.globalPoints },
+                    transactionPoints = league.persistentData.transaction.amounts[idx]?.remaining(maxTransactionPoints)
+                        ?: maxTransactionPoints,
+                    maxTransactionPoints = maxTransactionPoints
+                )
+            )
+        }
+        post {
+            val transactionid = call.parameters["transactionid"] ?: return@post call.bad()
+            val (leaguename, idx) = TransactionCodesDB.getDataByCode(transactionid) ?: return@post call.respond(
+                HttpStatusCode.NotFound
+            )
+            val data = call.receive<TransactionRequestData>()
+            if (data.picks.size != data.drops.size) return@post call.bad()
+            League.executeOnFreshLock(leaguename) {
+                val currentPicks = picks[idx] ?: return@post call.bad()
+                val transactionConfig = config.transaction ?: return@post call.bad()
+                val teraConfig = config.teraPick ?: return@post call.bad()
+                if (data.teraUsers.size != teraConfig.amount) return@post call.bad()
+                val transactionData = persistentData.transaction
+                val dropsOfficial = data.drops.map { drop ->
+                    val result =
+                        NameConventionsDB.getDiscordTranslation(drop, guild)?.official ?: return@post call.bad()
+                    if (!currentPicks.any { it.name == result && !it.quit }) return@post call.bad()
+                    result
+                }
+                val picksOfficial = data.picks.map { pick ->
+                    val result =
+                        NameConventionsDB.getDiscordTranslation(pick, guild)?.official ?: return@post call.bad()
+                    if (isPicked(result)) return@post call.bad()
+                    result
+                }
+                val teraUsersOfficial = data.teraUsers.map {
+                    NameConventionsDB.getDiscordTranslation(it, guild)?.official ?: return@post call.bad()
+                }
+                val amounts = transactionData.amounts.getOrPut(idx) { TransactionAmounts() }
+                val gameday = RepeatTask.getTask(leaguename, RepeatTaskType.TransactionDocInsert)?.findGamedayOfWeek()
+                    ?: return@post call.bad()
+                val currentEntry =
+                    transactionData.running.getOrPut(gameday) { mutableMapOf() }.getOrPut(idx) { TransactionEntry() }
+                val currentTeraUsers = currentPicks.filter { it.tera }.mapTo(mutableSetOf()) { it.name }
+                if (data.picks.isEmpty() && teraUsersOfficial == currentTeraUsers) return@post call.bad() // No changes
+                val newTeraUsers = teraUsersOfficial - currentTeraUsers
+                val oldTeraUsers = currentTeraUsers - teraUsersOfficial.toSet()
+                val teraUserDiscount = dropsOfficial.intersect(currentTeraUsers).size
+                val newTransactionPoints =
+                    amounts.remaining(transactionConfig.maxPoints) - dropsOfficial.size - newTeraUsers.size + teraUserDiscount
+                if (newTransactionPoints < 0) return@post call.bad()
+                dropsOfficial.forEachIndexed { index, drop ->
+                    val old = currentPicks.firstOrNull { it.name == drop } ?: return@post call.bad()
+                    val newName = picksOfficial[index]
+                    old.name = newName
+                    currentPicks += DraftPokemon(drop, tier = "N/A", quit = true)
+                }
+                currentPicks.forEach {
+                    if (!it.quit)
+                        it.tera = teraUsersOfficial.contains(it.name)
+                }
+
+                if (tierlist.withLeague {
+                        it.checkLegalityOfQueue(
+                            idx, emptyList()
+                        )
+                    } != null) return@post call.bad()
+
+                currentEntry.picks += (picksOfficial - currentEntry.picks.toSet())
+                currentEntry.drops += (data.drops - currentEntry.drops.toSet())
+                amounts.mons += picksOfficial.size
+                amounts.extraTeras += newTeraUsers.size - teraUserDiscount
+                save()
+                call.respond(HttpStatusCode.NoContent)
+                TransactionCodesDB.deleteCode(transactionid)
+                tc.send(
+                    K18n_Transaction.Done(
+                        this[idx],
+                        data.drops.joinToString("\n"),
+                        data.picks.joinToString("\n"),
+                        oldTeraUsers.zip(newTeraUsers).map { (old, new) ->
+                            "${
+                                NameConventionsDB.convertOfficialToTL(
+                                    old, guild
+                                )
+                            } -> ${NameConventionsDB.convertOfficialToTL(new, guild)}"
+                        }.joinToString("\n").ifNotEmpty { "Tera:\n$it\n" },
+                        newTransactionPoints,
+                        gameday + 1
+                    ).translateToLeague()
+                ).queue()
+                mdb.matchresults.findOne(
+                    LeagueEvent::leaguename eq leaguename,
+                    LeagueEvent::gameday eq gameday,
+                    LeagueEvent::indices contains idx
+                )?.let {
+                    executeTransactionDocInsert(gameday, listOf(idx))
+                }
+            }
+        }
+    }
 }
+
+suspend fun RoutingCall.bad() = this.respond(HttpStatusCode.BadRequest)
+
 
 suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: Int?) {
     val actualPickSize = league.picks(idx).size
@@ -396,9 +524,7 @@ suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: 
     respondBytes(teamGraphicCache.getOrPut("${league.leaguename}#$idx#$actualTakePicks") {
         val img = TeamGraphicGenerator.generate(
             TeamGraphicGenerator.TeamData.singleFromLeague(
-                league,
-                idx,
-                takePickCount = actualTakePicks
+                league, idx, takePickCount = actualTakePicks
             ), league.config.teamgraphics!!.style, TeamGraphicGenerator.Options(blankBackground = true)
         )
         ByteArrayOutputStream().use {
@@ -409,6 +535,29 @@ suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: 
 }
 
 private val teamGraphicCache = SizeLimitedMap<String, ByteArray>(maxSize = 100)
+
+@Serializable
+data class APITransactionData(
+    val picked: List<TransactionPokemonData>,
+    val available: List<TransactionPokemonData>,
+    val teraCount: Int,
+    val teraMaxPoints: Int? = null,
+    val monMaxPoints: Int? = null,
+    val transactionPoints: Int,
+    val maxTransactionPoints: Int
+)
+
+@Serializable
+data class TransactionRequestData(
+    val picks: List<String>,
+    val drops: List<String>,
+    val teraUsers: List<String>,
+)
+
+@Serializable
+data class TransactionPokemonData(
+    val name: String, val tier: String, val teraTier: String?, var tera: Boolean = false, var picked: Boolean = false
+)
 
 @Serializable
 data class PokemonPickedData(val name: String, val spriteName: String, val amount: Int)
@@ -460,14 +609,11 @@ inline fun <reified T : Any> Route.delta(
     descriptor: SerialDescriptor = T::class.serializer().descriptor,
 ) {
     configOption<T>(
-        path, descriptor,
-        ConfigOptionHandler.Delta(
+        path, descriptor, ConfigOptionHandler.Delta(
             descriptor, collection, filter,
-        ),
-        dataProvider = {
+        ), dataProvider = {
             collection.findOne(filter())!!
-        },
-        requiresGuild = requiresGuild
+        }, requiresGuild = requiresGuild
     )
 }
 
@@ -480,13 +626,9 @@ inline fun <reified T : Any> Route.full(
 ) {
     val descriptor = T::class.serializer().descriptor
     configOption<T>(
-        path, descriptor,
-        ConfigOptionHandler.Full(
-            descriptor, dataHandler, T::class,
-            submitString = submitString
-        ),
-        requiresGuild = requiresGuild,
-        dataProvider = dataProvider
+        path, descriptor, ConfigOptionHandler.Full(
+            descriptor, dataHandler, T::class, submitString = submitString
+        ), requiresGuild = requiresGuild, dataProvider = dataProvider
     )
 }
 
@@ -502,11 +644,10 @@ sealed class ConfigOptionHandler(val delta: Boolean) {
             val asText = call.receiveText()
             val resultJson =
                 runCatching { secureWebJSON.decodeFromString<JsonObject>(asText) }.onFailure { it.printStackTrace() }
-                    .getOrNull() ?: return call.respond(HttpStatusCode.BadRequest)
-            val update =
-                EmolgaConfigHelper.parseRemoteDelta(descriptor, resultJson) ?: return call.respond(
-                    HttpStatusCode.BadRequest
-                )
+                    .getOrNull() ?: return call.bad()
+            val update = EmolgaConfigHelper.parseRemoteDelta(descriptor, resultJson) ?: return call.respond(
+                HttpStatusCode.BadRequest
+            )
             logger.info("Updating with delta: ${update.json}")
             collection.updateOne(provider.filter(), update)
             call.respond(HttpStatusCode.Accepted)
@@ -548,9 +689,7 @@ inline fun <reified T : Any> Route.configOption(
             if (requiresGuild) call.requireGuild() ?: return@get
             call.respond(
                 EmolgaConfigHelper.buildFromDescriptor(
-                    descriptor,
-                    configOptionHandler.delta,
-                    configOptionHandler.submitString
+                    descriptor, configOptionHandler.delta, configOptionHandler.submitString
                 )
             )
         }
@@ -594,7 +733,23 @@ data class ParticipantData(
 data class UserData(val id: String, val name: String, val avatar: String)
 
 @Serializable
-data class GuildMeta(val id: String, val name: String, val icon: String, val runningSignup: Boolean)
+data class GuildMeta(
+    val id: String,
+    val name: String,
+    val icon: String,
+    val runningSignup: Boolean,
+    val teamgraphicsShape: TeamgraphicsShape? = null
+)
+
+@Serializable
+enum class TeamgraphicsShape {
+    CIRCLE, PENTAGON
+}
+
+@Serializable
+enum class TeamgraphicsSpriteStyle {
+    SUGIMORI, HOME
+}
 
 val userIdKey = AttributeKey<Long>("userId")
 val apiGuard = createRouteScopedPlugin("AuthGuard") {

@@ -22,7 +22,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import java.util.concurrent.ConcurrentHashMap
@@ -213,9 +212,8 @@ object SignupManager {
                     data[SignUpInput.YT_CHANNEL_ID]?.let {
                         YTChannelsDB.insertSingle(uid, it.mapToChannelIdPair())
                     }
-                    giveParticipantRole {
-                        (iData?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!
-                            .await()
+                    signUpData.users.forEach { uid ->
+                        giveParticipantRole(uid)
                     }
                 }
             }

@@ -32,7 +32,7 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
                 member.idLong
             )
         )
-        lsData.handleNewUserInTeam(member, data)
+        lsData.handleNewUserInTeam(member.idLong, data)
         iData.reply(K18n_AddTeammate.Success(member.idLong), ephemeral = true)
     }
 }

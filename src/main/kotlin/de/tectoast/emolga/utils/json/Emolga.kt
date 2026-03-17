@@ -52,7 +52,6 @@ import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.components.attachmentupload.AttachmentUpload
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
-import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -673,10 +672,10 @@ data class LigaStartData(
         return mdb.signups.updateOne(mongoDbFilter, this)
     }
 
-    inline fun giveParticipantRole(memberfun: () -> Member) {
+    fun giveParticipantRole(uid: Long) {
         config.participantRole?.let {
-            val member = memberfun()
-            member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
+            val g = jda.getGuildById(guild)!!
+            g.addRoleToMember(UserSnowflake.fromId(uid), g.getRoleById(it)!!).queue()
         }
     }
 
@@ -688,8 +687,6 @@ data class LigaStartData(
             delay(2000)
         }
     }
-
-    fun giveParticipantRole(member: Member) = giveParticipantRole { member }
 
 
     suspend fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
@@ -736,9 +733,9 @@ data class LigaStartData(
         save()
     }
 
-    suspend fun handleNewUserInTeam(member: Member, data: SignUpData) {
-        data.users += member.idLong
-        giveParticipantRole(member)
+    suspend fun handleNewUserInTeam(uid: Long, data: SignUpData) {
+        data.users += uid
+        giveParticipantRole(uid)
         handleSignupChange(data)
     }
 

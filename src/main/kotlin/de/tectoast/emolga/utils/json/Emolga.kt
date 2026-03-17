@@ -64,6 +64,7 @@ import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -73,6 +74,7 @@ import java.security.MessageDigest
 import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.reflect.KProperty1
@@ -819,7 +821,7 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamNam
 
     companion object {
         private val logger = KotlinLogging.logger {}
-        private const val MAX_SIZE = 8
+        private const val MAX_SIZE = 32
 
         suspend fun fromAttachment(
             attachment: Message.Attachment,
@@ -839,7 +841,20 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamNam
             }
             val image = ImageIO.read(bytes.inputStream())
                 ?: return@withContext CalcResult.Error(K18n_SignupInput.LogoNoValidImage)
-            val croppedImage = ImageUtils.cropToContent(image)
+            val imageToUse = if (max(image.width, image.height) > 2000) {
+                val scalingFactor = 2000.0 / max(image.width, image.height)
+                val newImg = BufferedImage(
+                    (image.width * scalingFactor).toInt(),
+                    (image.height * scalingFactor).toInt(),
+                    BufferedImage.TYPE_INT_ARGB
+                )
+                val g2d = newImg.createGraphics()
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+                g2d.drawImage(image, 0, 0, newImg.width, newImg.height, null)
+                g2d.dispose()
+                newImg
+            } else image
+            val croppedImage = ImageUtils.cropToContent(imageToUse)
             val baos = ByteArrayOutputStream()
             ImageIO.write(croppedImage, "png", baos)
             val finalBytes = baos.toByteArray()

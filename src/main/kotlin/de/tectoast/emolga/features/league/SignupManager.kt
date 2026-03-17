@@ -11,7 +11,6 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.mapToChannelIdPair
 import de.tectoast.emolga.utils.translateToGuildLanguage
-import de.tectoast.generic.K18n_AlreadySignedUp
 import de.tectoast.generic.K18n_SignupVerb
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
@@ -47,8 +46,13 @@ object SignupManager {
             val identifier = e.identifier.orEmpty()
             val lsData = mdb.signups.get(iData.gid, identifier)
                 ?: return iData.reply(K18n_Signup.SignUpClosedError, ephemeral = true)
-            if (lsData.getDataByUser(iData.user) != null) {
-                return iData.reply(K18n_AlreadySignedUp, ephemeral = true)
+            lsData.getDataByUser(iData.user)?.let { signUpData ->
+                val modal = lsData.buildModal(signUpData) ?: return iData.reply(
+                    K18n_Signup.SignupChangeNoData,
+                    ephemeral = true
+                )
+                iData.replyModal(modal)
+                return
             }
             val modal = lsData.buildModal(old = null)
             if (modal == null) {

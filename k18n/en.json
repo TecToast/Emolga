@@ -464,7 +464,7 @@
               "YTChannelLabel": "YT-Channel",
               "YTChannelInvalid": "This YT-Channel-URL (`{data}`) is either invalid or the channel doesn't exist (anymore)!",
               "TeammateLabel": "Teammate",
-              "TeammateDescription": "The person(s) you want to team up with"
+              "TeammateDescription": "The person(s) you want to team up with (or leave it blank if you want to play alone)"
             }
           },
           "showdown": {

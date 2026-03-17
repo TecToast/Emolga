@@ -95,6 +95,7 @@ data class PickInput(
                 tera = tera
             )
             pickData.savePick(noCost)
+            invalidatePicksCache()
             pickData.reply(type)
             league.sendTeamgraphicAfterPick(current)
             builder().apply { pickDoc(pickData) }.execute()
@@ -180,6 +181,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 oldIndex = oldIndex
             )
             switchData.saveSwitch()
+            invalidatePicksCache()
             switchData.reply(type)
             builder().apply { switchDoc(switchData) }.execute()
             return true

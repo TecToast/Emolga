@@ -60,7 +60,7 @@ private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
 private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
 private val participantDataCache = mutableMapOf<Long, Pair<String, String>>()
-private val pickedDataCache = SizeLimitedMap<Long, List<PokemonPickedData>>()
+internal val pickedDataCache = SizeLimitedMap<Long, List<PokemonPickedData>>()
 
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
@@ -324,8 +324,8 @@ fun Route.emolgaAPI() {
         val pickedAmount = pickedDataCache.getOrPut(gid) {
             val allLeagues = mdb.league.find(League::guild eq gid).toList()
             val language = allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.bad()
-            val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.map {
-                it.name
+            val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.mapNotNull {
+                if (it.quit) null else it.name
             }
             val allMonsTranslations = NameConventionsDB.getAllData(
                 allEntries.distinct(), NameConventionsDB.GERMAN, gid
@@ -340,7 +340,6 @@ fun Route.emolgaAPI() {
                 PokemonPickedData(name, spriteName, it.value)
             }.sortedByDescending { it.amount }
         }
-        call.caching = CachingOptions(CacheControl.MaxAge(60 * 60 * 24 * 7))
         call.respond(pickedAmount)
     }
     get("/liveteam") {
@@ -466,7 +465,7 @@ fun Route.emolgaAPI() {
                     if (!it.quit)
                         it.tera = teraUsersOfficial.contains(it.name)
                 }
-
+                invalidatePicksCache()
                 if (tierlist.withLeague {
                         it.checkLegalityOfQueue(
                             idx, emptyList()

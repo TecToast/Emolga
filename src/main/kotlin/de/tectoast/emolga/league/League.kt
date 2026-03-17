@@ -13,6 +13,7 @@ import de.tectoast.emolga.features.league.K18n_PredictionGame
 import de.tectoast.emolga.features.league.PredictionGameCurrentStateType
 import de.tectoast.emolga.features.league.PredictionGameManager
 import de.tectoast.emolga.features.league.draft.K18n_QueuePicks
+import de.tectoast.emolga.ktor.pickedDataCache
 import de.tectoast.emolga.league.config.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
@@ -175,6 +176,10 @@ sealed class League {
 
     suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.getOrNull(0)
     ?: with(afterTimerSkipMode) { bypassCurrentPlayerCheck(id) as? BypassCurrentPlayerData.Yes }?.user
+
+    fun invalidatePicksCache() {
+        pickedDataCache.remove(guild)
+    }
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {
         val y = data.idx.y(newSystemGap, insertionIndex + 3)

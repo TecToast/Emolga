@@ -82,6 +82,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
                 )
             }?.let { return@l iData.reply(it) }
             picks.add(DraftPokemon(official, tier))
+            invalidatePicksCache()
             val picksAsString = convertPicksToString(picks, tl)
             if (picks.size >= teamsize) {
                 iData.reply(K18n_AddMon.TeamComplete(picksAsString, Constants.MYTAG))

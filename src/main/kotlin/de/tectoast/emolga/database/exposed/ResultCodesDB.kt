@@ -44,7 +44,7 @@ object ResultCodesDB : Table("resultcodes") {
         val allMonsTranslations =
             NameConventionsDB.getAllData(
                 idxes.flatMap { league.picks(it) }.map { it.name }, NameConventionsDB.GERMAN, gid
-            ).associateBy { it.official }
+            )
         ResultCodeResponse(
             guildName = guild.name,
             logoUrl = guild.iconUrl,

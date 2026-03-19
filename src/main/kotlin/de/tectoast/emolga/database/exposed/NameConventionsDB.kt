@@ -121,21 +121,25 @@ object NameConventionsDB : Table("nameconventions") {
         val english = Tierlist[guildId].isEnglish
         return dbTransaction {
             selectAll().where(((GERMAN inList mons) and (GUILD eq 0 or (GUILD eq guildId))))
-                .orderBy(COMMON to SortOrder.DESC, GUILD to SortOrder.ASC, SPECIFIED to SortOrder.ASC).toMap { row ->
-                    val official = row[GERMAN]
-                    val tlName = if (english) row[SPECIFIEDENGLISH] else row[SPECIFIED]
-                    val spec = possibleSpecs().firstOrNull { official.endsWith("-$it") }
-                    val finalName = if (spec != null) {
-                        val ncData = (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!)
-                        if (tlName.matches(ncData.toRegex())) tlName
-                        else ncData.replace(
-                            "(.+)",
-                            tlName.substringBefore("-$spec")
-                        )
-                    } else tlName
-                    official to finalName
+                .orderBy(COMMON to SortOrder.DESC, GUILD to SortOrder.ASC, SPECIFIED to SortOrder.DESC).toMap { row ->
+                    row[GERMAN] to row.toTLName(english, nc)
                 }
         }
+    }
+
+    private suspend fun ResultRow.toTLName(english: Boolean, nc: Map<String, String>): String {
+        val official = this[GERMAN]
+        val tlName = if (english) this[SPECIFIEDENGLISH] else this[SPECIFIED]
+        val spec = possibleSpecs().firstOrNull { official.endsWith("-$it") }
+        val finalName = if (spec != null) {
+            val ncData = (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!)
+            if (tlName.matches(ncData.toRegex())) tlName
+            else ncData.replace(
+                "(.+)",
+                tlName.substringBefore("-$spec")
+            )
+        } else tlName
+        return finalName
     }
 
     /**
@@ -221,15 +225,25 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    suspend fun getAllData(list: List<String>, checkCol: Column<String>, gid: Long): List<DraftName> {
+
+    // TODO: Fuse with convertAllOfficialToTL?
+    suspend fun getAllData(list: Collection<String>, checkCol: Column<String>, gid: Long): Map<String, DraftName> {
+        val nc = emolgaDB.nameconventions.get(gid)
+        val english = Tierlist[gid].isEnglish
         return dbTransaction {
             select(
                 ENGLISH, GERMAN, SPECIFIEDENGLISH, SPECIFIED, GUILD
-            ).where((checkCol inList list) and (GUILD eq 0 or (GUILD eq gid))).map {
-                DraftName(
-                    it[SPECIFIED], it[GERMAN], it[GUILD] != 0L, it[SPECIFIEDENGLISH], it[ENGLISH]
-                )
-            }.toList()
+            ).where((checkCol inList list) and (GUILD eq 0 or (GUILD eq gid)))
+                .orderBy(COMMON to SortOrder.DESC, GUILD to SortOrder.ASC, SPECIFIED to SortOrder.DESC).map {
+                    val tlName = it.toTLName(english, nc)
+                    DraftName(
+                        if (!english) tlName else it[SPECIFIED],
+                        it[GERMAN],
+                        it[GUILD] != 0L,
+                        if (english) tlName else it[SPECIFIEDENGLISH],
+                        it[ENGLISH]
+                    )
+                }.toMap { it.official to it }
         }
     }
 
@@ -308,3 +322,5 @@ suspend fun <T, A, B> Flow<T>.toMap(fn: suspend (T) -> Pair<A, B>): Map<A, B> {
     }
     return destination
 }
+
+suspend fun <A, B> Flow<Pair<A, B>>.toMap() = toMap { it }

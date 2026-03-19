@@ -28,10 +28,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.jetbrains.exposed.v1.core.Random
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.*
 import org.litote.kmongo.eq
 
@@ -155,6 +152,10 @@ data class Tierlist(
 
     suspend fun retrieveAll() = dbTransaction {
         selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }.toList()
+    }
+
+    suspend fun retrieve(mons: Iterable<String>) = dbTransaction {
+        selectAll().where { basePredicate and (POKEMON inList mons) }.map { it[POKEMON] to it[TIER] }.toMap()
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String, identifier: String = "") {

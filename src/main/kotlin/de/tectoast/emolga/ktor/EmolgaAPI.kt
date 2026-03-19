@@ -321,23 +321,36 @@ fun Route.emolgaAPI() {
     }
     get("/picked/{guild}") {
         val gid = call.parameters["guild"]?.toLongOrNull() ?: return@get call.bad()
+        val tierlist = Tierlist[gid] ?: return@get call.respond(HttpStatusCode.NotFound)
         val pickedAmount = pickedDataCache.getOrPut(gid) {
             val allLeagues = mdb.league.find(League::guild eq gid).toList()
             val language = allLeagues.firstOrNull()?.tierlist?.language ?: return@get call.bad()
-            val allEntries = allLeagues.flatMap { it.picks.values.flatten() }.mapNotNull {
-                if (it.quit) null else it.name
+            val allEntries = allLeagues.flatMap { league ->
+                val mons = league.picks.values.flatten().filterNot { it.quit }
+                mons.map { league.displayName to it }
             }
+            val lookUp = allEntries.groupBy { it.second.name }
             val allMonsTranslations = NameConventionsDB.getAllData(
-                allEntries.distinct(), NameConventionsDB.GERMAN, gid
-            ).associateBy { it.official }
-            allEntries.groupingBy { it }.eachCount().map {
+                lookUp.keys, NameConventionsDB.GERMAN, gid
+            )
+            val tierLookup = tierlist.retrieve(allMonsTranslations.values.map { it.tlForLanguage(language) })
+            lookUp.map {
                 val nameData = allMonsTranslations[it.key]!!
+                val value = it.value
+                val amount = value.size
                 val name = nameData.tlForLanguage(language)
+                val tier = tierLookup[name] ?: "N/A"
                 val englishOfficial = nameData.otherOfficial!!
                 val spriteName = if ("-" in englishOfficial) {
                     mdb.pokedex.get(englishOfficial.toSDName())!!.calcSpriteName()
                 } else englishOfficial.toSDName()
-                PokemonPickedData(name, spriteName, it.value)
+                PokemonPickedData(
+                    name,
+                    tier,
+                    value.map { v -> DivisionPickedData(v.first, v.second.tera) },
+                    spriteName,
+                    amount
+                )
             }.sortedByDescending { it.amount }
         }
         call.respond(pickedAmount)
@@ -559,7 +572,16 @@ data class TransactionPokemonData(
 )
 
 @Serializable
-data class PokemonPickedData(val name: String, val spriteName: String, val amount: Int)
+data class PokemonPickedData(
+    val name: String,
+    val tier: String,
+    val divs: List<DivisionPickedData>,
+    val spriteName: String,
+    val amount: Int
+)
+
+@Serializable
+data class DivisionPickedData(val name: String, val tera: Boolean)
 
 @Serializable
 data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: List<String>, val data: List<UsageData>)

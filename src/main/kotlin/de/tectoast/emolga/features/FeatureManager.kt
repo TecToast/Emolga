@@ -9,6 +9,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.CmdManager
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.utils.*
+import de.tectoast.k18n.generated.K18nLanguage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
@@ -159,7 +160,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     private suspend fun buildSlashCommandData(
         cmd: CommandFeature<*>,
         gid: Long
-    ) = Commands.slash(cmd.spec.name, cmd.spec.help.default()).apply {
+    ) = Commands.slash(cmd.spec.name, cmd.spec.help.translateTo(K18nLanguage.EN)).apply {
         defaultPermissions = cmd.slashPermissions
         setDescriptionLocalizations(cmd.spec.help.toDiscordLocaleMap())
         setContexts(if (cmd.spec.inDM) InteractionContextType.BOT_DM else InteractionContextType.GUILD)
@@ -168,7 +169,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 addSubcommands(
                     SubcommandData(
                         it.spec.name,
-                        it.spec.help.default()
+                        it.spec.help.translateTo(K18nLanguage.EN)
                     ).setDescriptionLocalizations(it.spec.help.toDiscordLocaleMap()).addOptions(
                         generateOptionData(
                             it, gid

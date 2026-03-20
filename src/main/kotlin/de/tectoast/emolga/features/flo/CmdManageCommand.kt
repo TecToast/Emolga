@@ -64,6 +64,20 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         }
     }
 
+    object Update :
+        CommandFeature<Update.Args>(::Args, CommandSpec("update", "Update".k18n)) {
+        class Args : Arguments() {
+            var guildId by long("guildid", "Die ID des Servers".k18n)
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            iData.deferReply(true)
+            EmolgaMain.featureManager().updateCommandsForGuild(e.guildId)
+            iData.done()
+        }
+    }
+
     private val featureNames = OneTimeCache {
         EmolgaMain.featureManager().registeredFeatureList.map { it.spec.name }
     }

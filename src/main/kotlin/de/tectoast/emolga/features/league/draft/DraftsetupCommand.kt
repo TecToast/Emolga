@@ -25,6 +25,7 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
+        iData.reply("+1", ephemeral = true)
         League.executeOnFreshLock(e.name) {
             if (!iData.guild().selfMember.hasPermission(
                     iData.textChannel,
@@ -38,7 +39,6 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
                 )
             }
             startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft)
-            iData.reply("+1", ephemeral = true)
         }
     }
 }

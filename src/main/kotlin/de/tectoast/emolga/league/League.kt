@@ -364,7 +364,7 @@ sealed class League {
             val randomMon = getRandomMon()
             with(queueInteractionData) outer@{
                 executeWithinLock(
-                    PickInput(pokemon = randomMon, tier = null, free = false, noCost = true),
+                    PickInput(pokemon = randomMon, tier = null, free = false, noCost = noCost),
                     type = DraftMessageType.QUEUE
                 )
             }

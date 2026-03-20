@@ -14,6 +14,7 @@ data class RandomPickRoundConfig(
     val tiers: Map<String, Int>,
     val doubleTypeOptOut: Set<Int> = emptySet(),
     val noDoubleMega: Boolean = true,
+    val noCost: Boolean = false
 ) {
     suspend fun League.getRandomMon(): DraftName {
         val optOut = current in doubleTypeOptOut

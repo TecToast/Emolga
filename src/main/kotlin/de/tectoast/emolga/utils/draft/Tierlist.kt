@@ -92,17 +92,25 @@ data class Tierlist(
         tierlists.getOrPut(guildid) { mutableMapOf() }[identifier] = this
     }
 
-    suspend fun addPokemon(mon: String, tier: String, identifier: String = "") = dbTransaction {
-        insert {
-            it[GUILD] = guildid
-            it[POKEMON] = mon
-            it[TIER] = tier
-            it[IDENTIFIER] = identifier
+    suspend fun addPokemon(mon: String, tier: String, identifier: String = "") {
+        dbTransaction {
+            insert {
+                it[GUILD] = guildid
+                it[POKEMON] = mon
+                it[TIER] = tier
+                it[IDENTIFIER] = identifier
+            }
         }
-        val official = NameConventionsDB.getDiscordTranslation(mon, guildid, english = true)!!.official
-        CropAuxiliaryDB.insertIgnore {
-            it[GUILD] = guildid
-            it[POKEMON] = official
+        try {
+            val official = NameConventionsDB.getDiscordTranslation(mon, guildid, english = true)!!.official
+            CropAuxiliaryDB.insertIgnore {
+                it[GUILD] = guildid
+                it[POKEMON] = official
+            }
+        } catch (e: ExposedR2dbcException) {
+            if (e.errorCode != 23503) { // foreign key violation, ignore
+                throw e
+            }
         }
     }
 

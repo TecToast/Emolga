@@ -225,6 +225,14 @@
               "Help": "Richtet die Tierliste ein",
               "DuplicatePokemon": "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: {pokemon}"
             },
+            "ReplaceUser_nested": {
+              "Help": "Ersetzt einen User durch einen anderen",
+              "ArgOldUser": "Der User, der ersetzt werden soll",
+              "ArgNewUser": "Der User, der den alten ersetzen soll",
+              "ArgSDName": "Der Showdown-Name des neuen Users (optional)",
+              "ArgTeamName": "Der Teamname des neuen Users (optional)",
+              "OldUserNotInLeague": "Der User, der ersetzt werden soll, ist in keiner Liga auf diesem Server angemeldet!"
+            },
             "RevealTeam_nested": {
               "NoPicksInTeam": "Dieses Team hat keine Picks!",
               "AllPicksRevealed": "Alle Picks in diesem Team sind bereits aufgedeckt!"

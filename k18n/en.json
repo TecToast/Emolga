@@ -225,6 +225,14 @@
               "Help": "Sets up the tierlist",
               "DuplicatePokemon": "Duplicate Pokemon were found in the tierlist! Please check the following Pokemon: {pokemon}"
             },
+            "ReplaceUser_nested": {
+              "Help": "Replaces a user in a league",
+              "ArgOldUser": "The user to be replaced",
+              "ArgNewUser": "The user to replace with",
+              "ArgSDName": "The Showdown name of the new user (optional)",
+              "ArgTeamName": "The team name of the new user (optional)",
+              "OldUserNotInLeague": "The user does not participate in a league on this server!"
+            },
             "RevealTeam_nested": {
               "NoPicksInTeam": "This team has no picks!",
               "AllPicksRevealed": "All picks in this team are already revealed!"

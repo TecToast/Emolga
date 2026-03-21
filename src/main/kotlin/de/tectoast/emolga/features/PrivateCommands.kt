@@ -714,32 +714,6 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    suspend fun switchUser(args: PrivateData) {
-        val league = mdb.league(args[0])
-        val uidOld = args[1].toLong()
-        val uidNew = args[2].toLong()
-        val idx = league(uidOld)
-        mdb.league.updateOne(
-            League::leaguename eq league.leaguename,
-            set(League::table.pos(idx) setTo uidNew)
-        )
-        league.getSignup()?.let { signup ->
-            val uData = signup.users.first { it.users.contains(uidOld) }
-            uData.users.apply {
-                remove(uidOld)
-                add(uidNew)
-            }
-            args.getOrNull(3)?.let {
-                uData.data[SignUpInput.SDNAME_ID] = it
-            }
-            args.getOrNull(4)?.let {
-                uData.data[SignUpInput.TEAMNAME_ID] = it
-            } ?: TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
-            signup.save()
-        }
-    }
-
-    context(iData: InteractionData)
     suspend fun setSignupData(args: PrivateData) {
         val uid = args[1].toLong()
         val sdName = args[2]

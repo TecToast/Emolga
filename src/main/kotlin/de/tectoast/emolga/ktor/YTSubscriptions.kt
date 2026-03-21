@@ -139,8 +139,6 @@ fun Route.ytSubscriptions() {
                     mdb.config.only().ytLeagues.forEach { (short, gid) ->
                         if (title.contains(short, ignoreCase = true)) {
                             handleVideo(channelId, videoId, gid)
-                        } else {
-                            logger.info("Title does not contain league short: $short")
                         }
                     }
                 }

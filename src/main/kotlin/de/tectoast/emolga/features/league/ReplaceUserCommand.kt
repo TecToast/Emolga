@@ -15,6 +15,11 @@ import org.litote.kmongo.setTo
 
 object ReplaceUserCommand :
     CommandFeature<ReplaceUserCommand.Args>(::Args, CommandSpec("replaceuser", K18n_ReplaceUser.Help)) {
+
+    init {
+        restrict(flo)
+    }
+
     class Args : Arguments() {
         val oldUser by member("OldUser", K18n_ReplaceUser.ArgOldUser)
         val newUser by member("NewUser", K18n_ReplaceUser.ArgNewUser)

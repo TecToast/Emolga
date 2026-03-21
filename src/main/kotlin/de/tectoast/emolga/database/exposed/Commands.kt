@@ -6,6 +6,7 @@ import de.tectoast.emolga.features.flo.AddRemove
 import de.tectoast.emolga.utils.Constants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.*
@@ -138,5 +139,10 @@ object CmdManager {
     suspend fun getAllGuildTargets() = dbTransaction {
         GuildGroupsDB.select(GuildGroupsDB.GUILD).union(GuildCommandsDB.select(GuildCommandsDB.GUILD))
             .map { it[GuildGroupsDB.GUILD] }.toSet()
+    }
+
+    suspend fun getGroups() = dbTransaction {
+        GuildGroupsDB.select(GuildGroupsDB.GROUP).withDistinct(true).orderBy(GuildGroupsDB.GROUP)
+            .map { it[GuildGroupsDB.GROUP] }.toList()
     }
 }

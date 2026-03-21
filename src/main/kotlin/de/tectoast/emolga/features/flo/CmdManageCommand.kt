@@ -14,7 +14,11 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     ) {
         class Args : Arguments() {
             var guildId by long("guildid", "Die ID des Servers".k18n)
-            var group by string("group", "Der Name der Gruppe".k18n)
+            var group by string("group", "Der Name der Gruppe".k18n) {
+                slashCommand { s, _ ->
+                    CmdManager.getGroups().filterContainsIgnoreCase(s)
+                }
+            }
             var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
@@ -49,7 +53,11 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     object GroupCommand :
         CommandFeature<GroupCommand.Args>(::Args, CommandSpec("groupcommand", "GroupCommand verwalten".k18n)) {
         class Args : Arguments() {
-            var group by string("group", "Der Name der Gruppe".k18n)
+            var group by string("group", "Der Name der Gruppe".k18n) {
+                slashCommand { s, _ ->
+                    CmdManager.getGroups().filterContainsIgnoreCase(s)
+                }
+            }
             var command by commandArg()
             var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD

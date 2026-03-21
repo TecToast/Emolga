@@ -109,6 +109,7 @@ dependencies {
     // Database
     // MySQL
     implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
+    implementation("io.r2dbc:r2dbc-spi:1.0.0.RELEASE")
     implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")

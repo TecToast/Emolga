@@ -1,10 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.CropAuxiliaryDB
-import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.toMap
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.league.draft.K18n_QueuePicks
 import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
 import de.tectoast.emolga.ktor.TransactionPokemonData
@@ -100,18 +97,12 @@ data class Tierlist(
                 it[TIER] = tier
                 it[IDENTIFIER] = identifier
             }
-        }
-        try {
             val official = NameConventionsDB.getDiscordTranslation(mon, guildid, english = true)!!.official
-            CropAuxiliaryDB.insertIgnore {
-                it[GUILD] = guildid
-                it[POKEMON] = official
-            }
-        } catch (e: ExposedR2dbcException) {
-            if (e.errorCode != 23503) { // foreign key violation, ignore
-                throw e
-            }
+            CropAuxiliaryDB.insertIgnore(
+                TeamGraphicsMetaDB.select(TeamGraphicsMetaDB.GUILD, stringParam(official))
+                    .where { (TeamGraphicsMetaDB.GUILD eq guildid) })
         }
+
     }
 
     suspend fun getByTier(tier: String): List<String>? {

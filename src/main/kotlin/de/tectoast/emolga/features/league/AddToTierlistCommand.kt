@@ -16,10 +16,10 @@ import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.mdb
+import io.r2dbc.spi.R2dbcDataIntegrityViolationException
 import mu.KotlinLogging
-import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
+import org.jetbrains.exposed.v1.r2dbc.ExposedR2dbcException
 import org.litote.kmongo.eq
-import java.sql.SQLIntegrityConstraintViolationException
 
 object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     ::Args,
@@ -55,8 +55,8 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         }
         try {
             tierlist.addPokemon(mon, tier)
-        } catch (ex: ExposedSQLException) {
-            if (ex.cause is SQLIntegrityConstraintViolationException) {
+        } catch (ex: ExposedR2dbcException) {
+            if (ex.cause is R2dbcDataIntegrityViolationException) {
                 return iData.reply(K18n_AddToTierlist.PokemonAlreadyInTierlist(mon))
             }
             throw ex

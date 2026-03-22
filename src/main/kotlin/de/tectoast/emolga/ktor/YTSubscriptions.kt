@@ -3,14 +3,16 @@
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
+import de.tectoast.emolga.utils.YTVideoSendRepository
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultScope
+import de.tectoast.emolga.utils.dependency
+import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -72,7 +74,7 @@ fun setupYTSuscribtions() {
 private val mac: Mac by lazy {
     val algorithm = "HmacSHA1"
     Mac.getInstance(algorithm).apply {
-        init(SecretKeySpec(Credentials.tokens.subscriber.secret.toByteArray(), algorithm))
+        init(SecretKeySpec(dependency<Tokens.Subscriber>().secret.toByteArray(), algorithm))
     }
 }
 
@@ -159,21 +161,16 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
             League.executeOnFreshLock(league) {
                 logger.info("League found: $leaguename")
                 val idx = this(uid)
-                val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
-                    ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
+                val gameday = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
                     ?: return@executeOnFreshLock
-                val ytSave = data.ytVideoSaveData
-                if (!ytSave.enabled) {
-                    logger.info("YT Save not enabled for $uid in $leaguename")
+                val battle = battleorder[gameday]?.indexOfFirst { it.contains(idx) } ?: return@executeOnFreshLock
+                val ytVideoSend = dependency<YTVideoSendRepository>()
+                if (!ytVideoSend.set(leaguename, gameday, battle, idx, videoId)) {
+                    logger.info("Failed to save video $videoId for $uid in $leaguename")
                     return@executeOnFreshLock
                 }
-                ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
-                    table.indexOf(
-                        uid
-                    )
-                )] = videoId
                 logger.info("Saving video $videoId for $uid in $leaguename")
-                data.checkIfBothVideosArePresent(this)
+                ytVideoSend.get(leaguename, gameday, battle).checkIfBothVideosArePresent(this, gameday, battle)
                 save()
                 successful = true
             }
@@ -194,7 +191,7 @@ object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
 
 
 suspend fun subscribeToYTChannel(channelID: String) {
-    val config = Credentials.tokens.subscriber
+    val config = dependency<Tokens.Subscriber>()
     val topic = "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID"
     recentlySubscribed += topic
     ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {

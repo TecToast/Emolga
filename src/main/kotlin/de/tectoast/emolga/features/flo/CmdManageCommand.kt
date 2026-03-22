@@ -95,7 +95,7 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     }
 
 
-    context(data: InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
 
     }

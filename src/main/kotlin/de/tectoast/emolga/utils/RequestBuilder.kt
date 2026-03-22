@@ -363,13 +363,14 @@ class RequestBuilder
         }
         val raw = raw
         val batch = batch
+        val google = dependency<Google>()
         try {
             supervisorScope {
                 launch {
                     if (batch.isNotEmpty()) {
-                        Google.batchUpdate(sid, batch)
+                        google.batchUpdate(sid, batch)
                         additionalSheets?.forEach {
-                            Google.batchUpdate(it, batch)
+                            google.batchUpdate(it, batch)
                         }
                     }
                 }
@@ -377,17 +378,17 @@ class RequestBuilder
                     launch {
                         if (userentered.isNotEmpty()) {
                             if (!suppressMessages) printUserEntered()
-                            Google.batchUpdate(sid, userentered, "USER_ENTERED")
+                            google.batchUpdate(sid, userentered, "USER_ENTERED")
                             additionalSheets?.forEach {
-                                Google.batchUpdate(it, userentered, "USER_ENTERED")
+                                google.batchUpdate(it, userentered, "USER_ENTERED")
                             }
                         }
                     }
                     launch {
                         if (raw.isNotEmpty()) {
-                            Google.batchUpdate(sid, raw, "RAW")
+                            google.batchUpdate(sid, raw, "RAW")
                             additionalSheets?.forEach {
-                                Google.batchUpdate(it, raw, "RAW")
+                                google.batchUpdate(it, raw, "RAW")
                             }
                         }
                     }

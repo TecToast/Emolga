@@ -47,7 +47,7 @@ class ADL : League() {
                 b.addSingle(idx.CoordXMod("Rosters", 5, 6, 3, 26, 10 + monIndex), officialToTL[newMon]!!)
             }
             b.addColumn(idx.CoordXMod("Rosters", 5, 6, 4, 26, 10), picksOfUser.filter { !it.quit }.map { it.tera })
-            val batchGet = Google.batchGet(sid, entry.picks.map {
+            val batchGet = dependency<Google>().batchGet(sid, entry.picks.map {
                 val monIndex = picksOfUser.getIndexOfMon(it)
                 val sourceY = idx.y(15, 3 + monIndex)
                 "Kills (type in)!I$sourceY:Q$sourceY"

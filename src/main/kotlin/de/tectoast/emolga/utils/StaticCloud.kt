@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.exposed.LogoNameDB
 import de.tectoast.emolga.utils.json.LogoInputData
+import de.tectoast.emolga.utils.json.Tokens
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -14,17 +15,8 @@ import javax.imageio.ImageIO
 /**
  * Utility object for interacting with the StaticCloud API (see https://github.com/TecToast/StaticCloud)
  */
-object StaticCloud {
-    private lateinit var token: String
-    private lateinit var baseUrl: String
-    var hashLength: Int = 24
-        private set
-
-    fun init(token: String, baseUrl: String, hashLength: Int) {
-        this.token = token
-        this.baseUrl = baseUrl
-        this.hashLength = hashLength
-    }
+class StaticCloud(private val credentials: Tokens.StaticCloud) {
+    val hashLength = credentials.hashLength
 
     suspend fun downloadImage(fileName: String): BufferedImage =
         httpClient.get(getImageDownloadLink(fileName)).bodyAsBytes().let {
@@ -32,7 +24,7 @@ object StaticCloud {
         }
 
 
-    fun getImageDownloadLink(fileName: String): String = "$baseUrl/i/$fileName"
+    fun getImageDownloadLink(fileName: String): String = "${credentials.baseUrl}/i/$fileName"
 
     /**
      * Uploads the specified file to the specified folder in the StaticCloud
@@ -43,14 +35,14 @@ object StaticCloud {
      */
     suspend fun uploadFileToCloud(name: String, mimeType: String, data: ByteArray): String =
         withContext(Dispatchers.IO) {
-            httpClient.submitFormWithBinaryData(url = "$baseUrl/upload", formData = formData {
+            httpClient.submitFormWithBinaryData(url = "${credentials.baseUrl}/upload", formData = formData {
                 append("file", data, Headers.build {
                     append(HttpHeaders.ContentType, mimeType)
                     append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
                 })
-                append("hash_length", hashLength)
+                append("hash_length", credentials.hashLength)
             }) {
-                header("Authorization", "Bearer $token")
+                header("Authorization", "Bearer ${credentials.token}")
             }.bodyAsText().trim('"')
         }
 

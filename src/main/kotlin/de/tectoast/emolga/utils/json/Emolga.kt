@@ -7,7 +7,6 @@ package de.tectoast.emolga.utils.json
 
 import com.mongodb.client.result.UpdateResult
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
@@ -89,7 +88,7 @@ private var delegateDb: MongoEmolga? = null
 
 private val logger = KotlinLogging.logger {}
 
-fun initMongo(dbUrl: String = Credentials.tokens.mongoDB, dbName: String = DEFAULT_DB_NAME) {
+fun initMongo(dbUrl: String = dependency("mongoDB"), dbName: String = DEFAULT_DB_NAME) {
     mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
     delegateDb?.let { error("MongoDB already initialized!") }
     delegateDb = MongoEmolga(dbUrl, dbName)
@@ -787,7 +786,7 @@ data class LigaStartData(
             config.logoSettings.handleLogo(this, signUpData, logoData.value)
             val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
             delay(UPLOAD_DELAY_MS - timeSinceLastUpload)
-            val checksum = StaticCloud.uploadLogoToCloud(logoData.value)
+            val checksum = dependency<StaticCloud>().uploadLogoToCloud(logoData.value)
             mdb.signups.updateOne(
                 mongoDbFilter,
                 set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
@@ -911,7 +910,7 @@ fun <T> CalcResult<T>.unwrap(): T {
 
 private fun hashBytes(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
     str + "%02x".format(it)
-}.take(StaticCloud.hashLength)
+}.take(dependency<StaticCloud>().hashLength)
 
 @Serializable
 data class SignUpData(
@@ -935,7 +934,7 @@ data class SignUpData(
 
     suspend fun downloadLogo(): BufferedImage? {
         val checksum = logoChecksum ?: return null
-        return StaticCloud.downloadImage(checksum)
+        return dependency<StaticCloud>().downloadImage(checksum)
     }
 }
 

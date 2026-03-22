@@ -84,7 +84,7 @@ object EnterResult {
             var opponent by long("opponent", "opponent".k18n)
         }
 
-        context(_: InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             handleStart(e.opponent, e.user, e.guild)
         }

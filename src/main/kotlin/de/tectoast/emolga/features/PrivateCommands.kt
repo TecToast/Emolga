@@ -325,11 +325,18 @@ object PrivateCommands {
         League.executeOnFreshLock(args[0]) {
             val gameday = args[2].toInt()
             val battle = args[3].toInt()
+
             executeYoutubeSend(
                 ytTC = args[1].toLong(),
                 gameday = gameday,
                 battle = battle,
-                strategy = VideoProvideStrategy.Subscribe(persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
+                strategy = VideoProvideStrategy.Subscribe(
+                    dependency<YTVideoSendRepository>().get(
+                        leaguename,
+                        gameday,
+                        battle
+                    )
+                ),
                 overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
             )
         }
@@ -403,7 +410,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
-            persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
+            dependency<ReplayDataStoreRepository>().getByGameday(leaguename, args[1].toInt()).forEach { (_, replay) ->
                 docEntry!!.analyseWithoutCheck(
                     replay, withSort = false, realExecute = args[2].toBooleanStrict()
                 )
@@ -657,7 +664,9 @@ object PrivateCommands {
     suspend fun executeHideGamesDocInsertion(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             docEntry!!.executeHideGamesDocInsertion(
-                persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+                dependency<ReplayDataStoreRepository>().getByGameday(leaguename, args[1].toInt()),
+                args[2].toLong(),
+                args[3].toLong()
             )
         }
     }

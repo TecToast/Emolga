@@ -734,9 +734,8 @@ sealed class League {
         ) to u1IsSecond
     }
 
-    fun storeFullGameData(fullGameData: FullGameData) {
-        persistentData.replayDataStore.data.getOrPut(fullGameData.gamedayData.gameday) { mutableMapOf() }[fullGameData.gamedayData.battleindex] =
-            fullGameData
+    suspend fun storeFullGameData(fullGameData: FullGameData) {
+        dependency<ReplayDataStoreRepository>().set(leaguename, fullGameData)
     }
 
     fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
@@ -866,17 +865,16 @@ sealed class League {
         ytTC: Long, gameday: Int, battle: Int, strategy: VideoProvideStrategy, overrideEnabled: Boolean = false
     ) {
         val ytConfig = config.youtube ?: return
-        val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return
-        ytVideoSaveData?.enabled = false
+        val ytVideoSend = dependency<YTVideoSendRepository>()
+        if (!overrideEnabled && !ytVideoSend.isEnabled(leaguename, gameday, battle)) return
+        ytVideoSend.disable(leaguename, gameday, battle)
         jda.getTextChannelById(ytTC)!!.sendMessage(ytConfig.messageConfig.formatMessage(gameday, battle, strategy))
             .queue()
-        save()
     }
 
     suspend fun buildStoreStatus(gameday: Int): String {
         config.replayDataStore ?: return "ReplayDataStore not enabled"
-        val gamedayData = persistentData.replayDataStore.data[gameday].orEmpty()
+        val gamedayData = dependency<ReplayDataStoreRepository>().getByGameday(leaguename, gameday)
         val gameplan = battleorder[gameday] ?: return "${K18n_Gameday.translateToLeague()} $gameday: -"
         return K18n_League.StoreStatus(gameday, leaguename, gameplan.indices.joinToString("\n") {
             "${gameplan[it].joinToString(" vs. ") { u -> "<@${this[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
@@ -1015,7 +1013,12 @@ sealed class League {
                 ) { gameday ->
                     logger.info("SendReminderToParticipants $leaguename $gameday $battle")
                     executeOnFreshLock(leaguename) {
-                        if (persistentData.replayDataStore.data[gameday]?.get(battle) != null) return@executeOnFreshLock
+                        if (dependency<ReplayDataStoreRepository>().get(
+                                leaguename,
+                                gameday,
+                                battle
+                            ) != null
+                        ) return@executeOnFreshLock
                         val toRemind = battleorder[gameday]?.get(battle) ?: return@executeOnFreshLock
                         for ((index, idx) in toRemind.withIndex()) {
                             val opponent = toRemind[1 - index]
@@ -1038,13 +1041,18 @@ sealed class League {
                         data.amount,
                         data.intervalBetweenGD,
                     ) { gameday ->
-                        executeOnFreshLock(leaguename) {
-                            val ytData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-                                ?: return@executeOnFreshLock
-                            executeYoutubeSend(
-                                ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData)
+                        executeYoutubeSend(
+                            ytTC,
+                            gameday,
+                            battle,
+                            VideoProvideStrategy.Subscribe(
+                                dependency<YTVideoSendRepository>().get(
+                                    leaguename,
+                                    gameday,
+                                    battle
+                                )
                             )
-                        }
+                        )
                     }
                 }
             }
@@ -1448,7 +1456,7 @@ enum class TimerSkipResult {
 
 @Serializable
 data class GamedayData(
-    val gameday: Int, val battleindex: Int,
+    val gameday: Int, val battleIndex: Int,
 )
 
 sealed interface VideoProvideStrategy {
@@ -1456,7 +1464,7 @@ sealed interface VideoProvideStrategy {
 
     data class Subscribe(private val ytData: YTVideoSaveData) : VideoProvideStrategy {
         override suspend fun League.provideVideoId(index: Int, uindex: Int): String? {
-            return ytData.vids[index]
+            return ytData.vids[uindex]
         }
     }
 

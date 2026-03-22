@@ -7,7 +7,6 @@ import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
 import de.tectoast.emolga.database.exposed.SwitchType
-import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -108,10 +107,9 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config
         val store = config.replayDataStore
-        val gamedayData = fullGameData.gamedayData
+        val gameday = fullGameData.gameday
+        val battleindex = fullGameData.battleIndex
         league.config.predictionGame?.let { _ ->
-            val gameday = gamedayData.gameday
-            val battleindex = gamedayData.battleindex
             league.executePredictionGameLockButtonsIndividual(
                 gameday, battleindex
             )
@@ -126,7 +124,6 @@ class DocEntry private constructor(val league: League) {
             league.storeFullGameData(fullGameData)
             league.save()
             spoilerDocSid?.let { analyseWithoutCheck(fullGameData, withSort, overrideSid = it) }
-            val gameday = gamedayData.gameday
             if (store != null) {
                 val currentDay =
                     RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
@@ -135,7 +132,8 @@ class DocEntry private constructor(val league: League) {
             } else {
                 val hideGames = config.hideGames!!
                 if (gameday in hideGames.gamedays) {
-                    val dataForGameday = league.persistentData.replayDataStore.data[gameday]!!
+                    val dataForGameday =
+                        dependency<ReplayDataStoreRepository>().getByGameday(league.leaguename, gameday)
                     if (dataForGameday.size == league.battleorder[gameday]!!.size) {
                         executeHideGamesDocInsertion(dataForGameday, hideGames.replayChannel, hideGames.resultChannel)
                     }
@@ -166,11 +164,12 @@ class DocEntry private constructor(val league: League) {
         fullGameData: FullGameData, withSort: Boolean = true, realExecute: Boolean = true, overrideSid: String? = null
     ) {
         if (fullGameData.games.isEmpty()) return
+        val gameday = fullGameData.gameday
+        val battleindex = fullGameData.battleIndex
         if (fullGameData.games.any { game -> game.kd.size != 2 }) {
-            logger.warn("Skipping analysis for league ${league.leaguename} gameday ${fullGameData.gamedayData.gameday} battle ${fullGameData.gamedayData.battleindex} due to invalid game data. (Not 1v1 games)")
+            logger.warn("Skipping analysis for league ${league.leaguename} gameday $gameday battle $battleindex due to invalid game data. (Not 1v1 games)")
             return
         }
-        val gamedayData = fullGameData.gamedayData
         val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
@@ -179,7 +178,7 @@ class DocEntry private constructor(val league: League) {
             customB ?: b,
             fullGameData,
             league.leaguename,
-            league.providePicksForGameday(gamedayData.gameday),
+            league.providePicksForGameday(gameday),
             monsOrder,
             statProcessors
         ) {
@@ -187,7 +186,6 @@ class DocEntry private constructor(val league: League) {
                 mdb.matchresults.insertOne(it)
             }
         }
-        val (gameday, battleindex) = gamedayData
         val bo3 = fullGameData.games.size > 1
         if (bo3) {
             val numbers = (0..1).map { fullGameData.groupedByWinnerIndex[it]?.size ?: 0 }
@@ -277,7 +275,7 @@ annotation class DocEntryInternal
 class StatProcessorData {
     val memIdx: Int
     val gdi: Int
-    val battleindex: Int
+    val battleIndex: Int
     val indexInBattle: Int
 
     @DocEntryInternal
@@ -306,7 +304,7 @@ class StatProcessorData {
     ) {
         this.memIdx = memIdx
         this.gdi = gdi
-        this.battleindex = battleindex
+        this.battleIndex = battleindex
         this.indexInBattle = indexInBattle
         this.matchNum = matchNum
         this.monIndex = monindex
@@ -505,12 +503,12 @@ enum class DataTypeForMon : MonDataProvider {
     }
 }
 
-@Serializable
+
 data class FullGameData(
     val uindices: List<Int>,
-    val gamedayData: GamedayData,
+    val gameday: Int,
+    val battleIndex: Int,
     val games: List<ReplayData>,
-    val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
 ) {
     val groupedByWinnerIndex by lazy {
         games.groupBy { it.winnerIndex }
@@ -522,21 +520,9 @@ data class FullGameData(
         uindices[winnerIndex]
     }
 
-    suspend fun checkIfBothVideosArePresent(league: League) {
-        val ytSave = ytVideoSaveData
-        val shouldExecute = ytSave.vids.size == uindices.size
-        val sendChannel = league.config.youtube?.sendChannel ?: return
-        if (shouldExecute) {
-            league.executeYoutubeSend(
-                sendChannel, gamedayData.gameday, gamedayData.battleindex, VideoProvideStrategy.Subscribe(ytSave)
-            )
-        }
-    }
-
     suspend fun sendInto(replayChannel: Long, resultChannel: Long, league: League) {
         val replay by lazy { jda.getTextChannelById(replayChannel)!! }
         val result = jda.getTextChannelById(resultChannel)!!
-        val gameday = gamedayData.gameday
         val fullGameData = this
         for (game in games) {
             if (game.url.startsWith("https")) {
@@ -565,8 +551,18 @@ data class KD(
 
 @Serializable
 data class YTVideoSaveData(
-    var enabled: Boolean = false, val vids: MutableMap<Int, String> = mutableMapOf()
-)
+    var enabled: Boolean = false, val vids: Map<Int, String> = mutableMapOf()
+) {
+    suspend fun checkIfBothVideosArePresent(league: League, gameday: Int, battleIndex: Int) {
+        val shouldExecute = vids.size == 2
+        val sendChannel = league.config.youtube?.sendChannel ?: return
+        if (shouldExecute) {
+            league.executeYoutubeSend(
+                sendChannel, gameday, battleIndex, VideoProvideStrategy.Subscribe(this)
+            )
+        }
+    }
+}
 
 @Suppress("unused")
 data class AdvancedResult(

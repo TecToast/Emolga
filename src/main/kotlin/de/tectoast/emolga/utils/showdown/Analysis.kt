@@ -237,8 +237,14 @@ object Analysis {
         }
         if (games.isNotEmpty() && league != null) {
             League.executeOnFreshLock(league.leaguename) {
+                val gamedayData = gamedayData ?: throw IllegalStateException("GamedayData not set")
                 docEntry?.analyse(
-                    FullGameData(uindices = uindicesInOrder!!, gamedayData = gamedayData!!, games = games),
+                    FullGameData(
+                        uindices = uindicesInOrder!!,
+                        gameday = gamedayData.gameday,
+                        battleIndex = gamedayData.battleIndex,
+                        games = games
+                    ),
                     withSort = withSort
                 )
             }

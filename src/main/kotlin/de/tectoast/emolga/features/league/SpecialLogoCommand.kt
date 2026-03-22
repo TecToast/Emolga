@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.StaticCloud
+import de.tectoast.emolga.utils.dependency
 import de.tectoast.emolga.utils.json.LogoInputData
 import de.tectoast.emolga.utils.json.unwrap
 import de.tectoast.emolga.utils.k18n
@@ -28,11 +29,12 @@ object SpecialLogoCommand : CommandFeature<SpecialLogoCommand.Args>(
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
+        val staticCloud = dependency<StaticCloud>()
         for (logoData in e.logos) {
             val logo = LogoInputData.fromAttachment(logoData, ignoreRequirements = true).unwrap()
-            val fileName = StaticCloud.uploadLogoToCloud(logo)
+            val fileName = staticCloud.uploadLogoToCloud(logo)
             iData.jda.getTextChannelById(447357526997073932)!!
-                .sendMessage("$fileName\n${StaticCloud.getImageDownloadLink(fileName)}").queue()
+                .sendMessage("$fileName\n${staticCloud.getImageDownloadLink(fileName)}").queue()
             delay(3000)
         }
     }

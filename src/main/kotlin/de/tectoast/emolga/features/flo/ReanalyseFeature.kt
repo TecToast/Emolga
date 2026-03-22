@@ -39,7 +39,8 @@ object ReanalyseFeature : MessageContextFeature(MessageContextSpec("Reanalyse (D
             val (gamedayData, u1IsSecond) = getGamedayData(idxs[0], idxs[1])
             val fullGameData = FullGameData(
                 uindices = idxs.reversedIf(u1IsSecond),
-                gamedayData = gamedayData,
+                gameday = gamedayData.gameday,
+                battleIndex = gamedayData.battleIndex,
                 games = listOf(
                     ReplayData(
                         singleGame,

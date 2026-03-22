@@ -24,7 +24,8 @@ object StatProcessorService {
         statProcessors: Collection<StatProcessor>,
         matchResultHandler: suspend (LeagueEvent.MatchResult) -> Unit
     ): Set<Job> {
-        val gamedayData = fullGameData.gamedayData
+        val gameday = fullGameData.gameday
+        val battleIndex = fullGameData.battleIndex
         val uindices = fullGameData.uindices
         val matchResultJobs = mutableSetOf<Job>()
         val sortedUindices = uindices.sorted()
@@ -33,7 +34,6 @@ object StatProcessorService {
         val dataEntriesPerUser: List<MutableList<SingleMonData>> = uindices.map { mutableListOf() }
         for ((matchNum, replayData) in fullGameData.games.withIndex()) {
             val kd = replayData.kd
-            val (gameday, battleindex) = gamedayData
             if (gameday == -1) return emptySet()
             val lookUpIndex = if (uindices[0] == sortedUindices[0]) 0 else 1
             var totalKills = 0
@@ -72,7 +72,7 @@ object StatProcessorService {
                                 val statProcessorData = StatProcessorData(
                                     memIdx = idx,
                                     gdi = gameday - 1,
-                                    battleindex = battleindex,
+                                    battleindex = battleIndex,
                                     indexInBattle = i,
                                     matchNum = matchNum,
                                     monindex = monIndex,

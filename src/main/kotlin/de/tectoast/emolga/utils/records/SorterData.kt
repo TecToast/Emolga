@@ -1,9 +1,6 @@
 package de.tectoast.emolga.utils.records
 
-import de.tectoast.emolga.utils.DocEntry
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.OneTimeCache
-import de.tectoast.emolga.utils.UserTableData
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LeagueEvent
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.json.mdb
@@ -88,12 +85,12 @@ class DefaultSorter(
 
 class TableSortDataStorage(val sorter: TableSorter) {
     val league = sorter.docEntry.league
-    val formula = OneTimeCache { Google.get(league.sid, sorter.formulaRange, true) }
+    val formula = OneTimeCache { dependency<Google>().get(league.sid, sorter.formulaRange, true) }
     val idxToFormulaLoc =
         OneTimeCache { formula().withIndex().associate { sorter.indexer(it.value[0].toString()) to it.index } }
 
     val docData = OneTimeCache {
-        Google.get(league.sid, sorter.formulaRange, false).withIndex()
+        dependency<Google>().get(league.sid, sorter.formulaRange, false).withIndex()
             .associate { idxToFormulaLoc().reverseGet(it.index) to it.value }
     }
     val matchResultData = OneTimeCache {

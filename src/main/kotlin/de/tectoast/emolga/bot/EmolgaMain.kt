@@ -1,7 +1,6 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
-import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.CmdManager
 import de.tectoast.emolga.features.FeatureManager
@@ -62,7 +61,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
      */
     fun launchBots() {
         Message.suppressContentIntentWarning()
-        emolgajda = default(Credentials.tokens.discord) {
+        emolgajda = default(dependency("discordToken")) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
@@ -76,7 +75,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
                 }
             }
         }
-        Credentials.tokens.discordflegmon?.let { flegmon ->
+        dependencyOrNull<String>("discordFlegmonToken")?.let { flegmon ->
             flegmonjda = default(flegmon) {
                 intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -84,7 +83,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         defaultScope.launch {
             if (mdb.config.only().raikou) {
-                Credentials.tokens.discordraikou.takeIf { it != "" }?.let {
+                dependencyOrNull<String>("discordRaikouToken").takeIf { it != "" }?.let {
                     raikoujda = default(it) {
                         intents += GatewayIntent.MESSAGE_CONTENT
                     }

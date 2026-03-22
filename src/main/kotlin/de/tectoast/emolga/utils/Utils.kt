@@ -28,6 +28,8 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.DiscordLocale
 import org.jetbrains.exposed.v1.core.Column
+import org.koin.core.qualifier.named
+import org.koin.mp.KoinPlatform
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.File
@@ -280,12 +282,13 @@ inline fun Boolean.ifTrueOrEmpty(builder: () -> String) = if (this) builder() el
 
 suspend fun String.mapToChannelIdPair(): Pair<String, String?> {
     val base = substringBefore("?")
+    val google = dependency<Google>()
     val result =
-        if ("@" !in base) base.substringAfter("channel/").takeIf { Google.validateChannelIdExists(it) }
+        if ("@" !in base) base.substringAfter("channel/").takeIf { google.validateChannelIdExists(it) }
             ?.let { it to null }
         else {
             val channelHandle = base.substringAfter("@")
-            Google.fetchChannelId(channelHandle)?.let { it to channelHandle }
+            google.fetchChannelId(channelHandle)?.let { it to channelHandle }
         }
     if (result == null) error("No channel found for $base")
     return result
@@ -294,3 +297,8 @@ fun DateTimeFormatter.parseToInstant(str: String): Instant {
     val localDateTime = LocalDateTime.parse(str, this)
     return Instant.fromEpochSeconds(localDateTime.atZone(ZoneId.systemDefault()).toEpochSecond())
 }
+
+// TODO: remove workaround as soon as everything is migrated
+inline fun <reified T : Any> dependency(named: String? = null) = KoinPlatform.getKoin().get<T>(named?.let { named(it) })
+inline fun <reified T : Any> dependencyOrNull(named: String? = null) =
+    KoinPlatform.getKoin().getOrNull<T>(named?.let { named(it) })

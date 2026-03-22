@@ -4,7 +4,6 @@ package de.tectoast.emolga.league.config
 
 import de.tectoast.emolga.features.league.InstantToStringSerializer
 import de.tectoast.emolga.utils.DurationSerializer
-import de.tectoast.emolga.utils.FullGameData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
@@ -39,8 +38,6 @@ sealed interface YTEnableConfig {
     ) : YTEnableConfig
 }
 
-@Serializable
-data class ReplayDataStoreData(val data: MutableMap<Int, MutableMap<Int, FullGameData>> = mutableMapOf())
 
 @Serializable
 data class GamesMadeReminder(

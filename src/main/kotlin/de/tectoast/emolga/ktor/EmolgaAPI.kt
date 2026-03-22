@@ -280,7 +280,8 @@ fun Route.emolgaAPI() {
                         // TODO: implement UI element to select winner on "draws"
                     )
                 }
-                val fullGameData = FullGameData(idxs.reversedIf(u1IsSecond), gamedayData, games)
+                val fullGameData =
+                    FullGameData(idxs.reversedIf(u1IsSecond), gamedayData.gameday, gamedayData.battleIndex, games)
                 if (config.replayDataStore != null) {
                     channel.sendResultEntryMessage(
                         resData[ResultCodesDB.GAMEDAY],
@@ -302,10 +303,10 @@ fun Route.emolgaAPI() {
         )
         val allLeagues = mdb.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
         val totalCount = AtomicInteger(0)
-        val entries = league.persistentData.replayDataStore.data.entries
-        val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
+        val entries = dependency<ReplayDataStoreRepository>().getAll(league.leaguename)
+        val maxGameday: Int = entries.maxOfOrNull { it.gameday } ?: 1
         val gameday = call.queryParameters["gameday"]?.toIntOrNull() ?: maxGameday
-        val data = entries.asSequence().filter { it.key <= gameday }.flatMap { it.value.values }
+        val data = entries.asSequence().filter { it.gameday <= gameday }
             .onEach { totalCount.incrementAndGet() }
             .flatMap { it.games.flatMap { g -> g.kd.flatMap { kd -> kd.keys } } }.groupingBy { it }
             .eachCount().entries.map { (mon, count) ->

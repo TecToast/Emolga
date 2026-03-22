@@ -8,20 +8,18 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.model.*
 import com.google.api.services.youtube.YouTube
-import de.tectoast.emolga.utils.Google.setCredentials
+import de.tectoast.emolga.utils.json.Tokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
+import org.koin.core.annotation.Single
 import java.net.SocketTimeoutException
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
-
-object Google {
+@Single
+class Google(val credentials: Tokens.Google) {
     private val logger = KotlinLogging.logger {}
-    private var REFRESHTOKEN: String? = null
-    private var CLIENTID: String? = null
-    private var CLIENTSECRET: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
     @OptIn(ExperimentalTime::class)
@@ -39,18 +37,6 @@ object Google {
             GsonFactory.getDefaultInstance(),
             Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
         ).setApplicationName("emolga").build()
-    }
-
-    /**
-     * Set the credentials for the Google API
-     * @param refreshToken The refresh token
-     * @param clientID The client ID
-     * @param clientSecret The client secret
-     */
-    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String) {
-        REFRESHTOKEN = refreshToken
-        CLIENTID = clientID
-        CLIENTSECRET = clientSecret
     }
 
     /**
@@ -160,15 +146,14 @@ object Google {
     /**
      * Generates an access token with the stored credentials
      * @return The access token
-     * @see setCredentials
      */
     private suspend fun generateAccessToken(): String = withContext(googleContext) {
         GoogleRefreshTokenRequest(
             GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),
-            REFRESHTOKEN,
-            CLIENTID,
-            CLIENTSECRET
+            credentials.refreshtoken,
+            credentials.clientid,
+            credentials.clientsecret
         ).execute().also { universalLogger.info("GENERATEACCESSTOKEN ${it.expiresInSeconds} ${it.scope}") }.accessToken
     }
 }

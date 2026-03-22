@@ -37,7 +37,6 @@ data class ResettableLeagueData(
 
 @Serializable
 data class PersistentLeagueData(
-    val replayDataStore: ReplayDataStoreData = ReplayDataStoreData(),
     val queuePicks: QueuePicksData = QueuePicksData(),
     val teamReveal: TeamRevealData = TeamRevealData(),
     val transaction: LeagueTransactionData = LeagueTransactionData(),

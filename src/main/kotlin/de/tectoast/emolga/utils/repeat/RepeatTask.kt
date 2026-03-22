@@ -4,8 +4,7 @@ package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.features.wrc.WRCManager
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.createCoroutineScope
-import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LadderTournament
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.parseToInstant
@@ -135,16 +134,13 @@ class RepeatTask(
         }
 
 
-        fun enableYTForGame(league: League, gameday: Int, battle: Int) {
-            val dataStore = league.persistentData.replayDataStore
-            dataStore.data[gameday]?.get(battle)?.let {
-                if (league.config.youtube != null) it.ytVideoSaveData.enabled = true
-            } ?: logger.info("YT: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
+        suspend fun enableYTForGame(league: League, gameday: Int, battle: Int) {
+            if (league.config.youtube == null) return
+            dependency<YTVideoSendRepository>().enable(league.leaguename, gameday, battle)
         }
 
         suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
-            val dataStore = league.persistentData.replayDataStore
-            dataStore.data[gameday]?.get(battle)?.let {
+            dependency<ReplayDataStoreRepository>().get(league.leaguename, gameday, battle)?.let {
                 league.docEntry?.analyseWithoutCheck(it)
                 league.save()
             }

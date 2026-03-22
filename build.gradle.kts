@@ -7,6 +7,7 @@ plugins {
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")
+    id("io.insert-koin.compiler.plugin") version "0.4.1"
     id("com.google.cloud.tools.jib") version "3.5.3"
     application
     id("de.tectoast.k18n") version "2.2.1"
@@ -106,6 +107,11 @@ dependencies {
     implementation("com.google.apis:google-api-services-drive:v3-rev20251210-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20251217-2.0.0")
 
+    // DI
+    implementation(platform("io.insert-koin:koin-bom:4.2.0"))
+    implementation("io.insert-koin:koin-core")
+    implementation("io.insert-koin:koin-annotations")
+
     // Database
     // MySQL
     implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
@@ -113,6 +119,7 @@ dependencies {
     implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration-r2dbc:$exposedVersion")
     // MongoDB

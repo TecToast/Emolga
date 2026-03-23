@@ -21,6 +21,8 @@ sealed class DraftTimer {
 
     var stallSeconds = 0
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
+
+    var oneTimerForAllPicks = false
     fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
         now = now,
         timerStart = timerStart,

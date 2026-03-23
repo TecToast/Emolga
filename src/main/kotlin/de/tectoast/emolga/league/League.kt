@@ -272,7 +272,8 @@ sealed class League {
         this.draftData.randomPick.currentMon?.disabled = true
         checkForQueuedPicksChanges()
         onAfterPick(data)
-        if (data.isMoved()) {
+        val isMoved = data.isMoved()
+        if (isMoved) {
             addPunishableSkippedRound(data)
             config.draftBan?.let { config ->
                 if (config.skipBehavior == BanSkipBehavior.RANDOM) {
@@ -322,8 +323,18 @@ sealed class League {
                     ) else K18n_League.StallSecondsUsedUp(getCurrentMention())).translateToLeague()
                 ).queue()
             }
+            var currentIdx = current
             nextUser()
             if (endOfTurn()) return
+            val isOneTimerForAllPicks = config.timer?.oneTimerForAllPicks == true
+            if (isOneTimerForAllPicks && isMoved) {
+                while (current == currentIdx) {
+                    addToMoved()
+                    currentIdx = current
+                    nextUser()
+                    if (endOfTurn()) return
+                }
+            }
         }
         if (result == TimerSkipResult.NOCONCRETE) {
             nextUser()

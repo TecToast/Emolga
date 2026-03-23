@@ -858,6 +858,55 @@ sealed interface TierlistPriceManager {
     }
 
     @Serializable
+    @SerialName("TierAndPoint")
+    data class TierAndPoint(
+        override val updraftHandler: UpdraftHandler,
+        override val generalChecks: List<GeneralCheck>,
+        override val globalPoints: Int,
+        override val teraMaxPoints: Int? = null
+    ) : TierlistPriceManager, TierBasedPriceManager, PointBasedPriceManager {
+        context(league: League, tl: Tierlist)
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
+            TODO("Not yet implemented")
+        }
+
+        override fun getTiers(): List<String> {
+            TODO("Not yet implemented")
+        }
+
+        context(league: League, tl: Tierlist)
+        override suspend fun checkLegalityOfQueue(
+            idx: Int,
+            currentState: List<QueuedAction>
+        ): ErrorOrNull {
+            TODO("Not yet implemented")
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
+            TODO("Not yet implemented")
+        }
+
+        context(tl: Tierlist)
+        override fun getSingleMap(): Map<String, Int> {
+            TODO("Not yet implemented")
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun getCurrentAvailableTiers(): List<String> {
+            TODO("Not yet implemented")
+        }
+
+        override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
+            TODO("Not yet implemented")
+        }
+
+        override fun getPointsForTier(tier: String): Int? {
+            TODO("Not yet implemented")
+        }
+    }
+
+    @Serializable
     @SerialName("Empty")
     data object Empty : TierlistPriceManager {
         override val generalChecks: List<GeneralCheck> = emptyList()

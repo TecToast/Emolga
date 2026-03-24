@@ -69,7 +69,7 @@ sealed interface RandomPickMode {
                         )
                     )
                 }?.let { return@firstAvailableMon false }
-                if (input.type != null) input.type in mdb.pokedex.get(english.toSDName())!!.types else true
+                if (typeAllowed && input.type != null) input.type in mdb.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
                 ?: return iData.replyNull(K18n_RandomPick.NoPokemonWithTypeAvailable)
         }

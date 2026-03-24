@@ -95,6 +95,16 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun addName(tlName: String, germanName: String, guildId: Long, language: Language) {
         dbTransaction {
+            if (germanName.startsWith("!")) {
+                insert {
+                    it[GUILD] = guildId
+                    it[GERMAN] = germanName.substring(1)
+                    it[ENGLISH] = germanName.substring(1)
+                    it[SPECIFIED] = tlName
+                    it[SPECIFIEDENGLISH] = tlName
+                }
+                return@dbTransaction
+            }
             val row = selectAll().where(GERMAN eq germanName and (GUILD eq 0)).first()
             insert {
                 it[GUILD] = guildId

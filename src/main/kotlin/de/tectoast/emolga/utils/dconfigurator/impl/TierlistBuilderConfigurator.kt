@@ -104,18 +104,24 @@ class TierlistBuilderConfigurator(
         deferReply().queue()
         if (test(this, options)) options.skipNextSteps = 1
     }), step<SlashCommandInteractionEvent> { options ->
+        if (name != "addconvention") {
+            options.dontSkip()
+            return@step
+        }
         val name = getOption<String>("name")!!
-        dbTransaction {
-            NameConventionsDB.run {
-                selectAll().where(GERMAN eq name).firstOrNull()
-            }
-        } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
+        if (!name.startsWith("!")) {
+            dbTransaction {
+                NameConventionsDB.run {
+                    selectAll().where(GERMAN eq name).firstOrNull()
+                }
+            } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
+        }
         dbTransaction {
             NameConventionsDB.run {
                 selectAll().where(GUILD eq guildId and (GERMAN eq name)).firstOrNull()
             }
         }?.let {
-            throw InvalidArgumentException("${it[NameConventionsDB.SPECIFIED]} steht bereits für ${name}!")
+            throw InvalidArgumentException("${it[NameConventionsDB.SPECIFIED]} steht bereits für ${this.name}!")
         }
         NameConventionsDB.addName(mons[index], name, guildId, language)
         deferReply().queue()

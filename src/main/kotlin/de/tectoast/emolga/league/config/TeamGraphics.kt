@@ -5,6 +5,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TeamGraphicsLeagueConfig(
-    val style: TeamGraphicStyle,
-    val channel: Long? = null
+    val style: TeamGraphicStyle
 )

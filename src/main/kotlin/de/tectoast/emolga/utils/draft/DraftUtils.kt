@@ -97,7 +97,6 @@ data class PickInput(
             pickData.savePick(noCost)
             invalidatePicksCache()
             pickData.reply(type)
-            league.sendTeamgraphicAfterPick(current)
             builder().apply { pickDoc(pickData) }.execute()
             return true
         }

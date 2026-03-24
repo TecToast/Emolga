@@ -848,19 +848,6 @@ sealed class League {
         }).translateToLeague()
     }
 
-    fun sendTeamgraphicAfterPick(idx: Int) {
-        config.teamgraphics?.let { tgConfig ->
-            val channel = tgConfig.channel ?: return
-            launch {
-                val channel = jda.getTextChannelById(channel)!!
-                val graphic = TeamGraphicGenerator.generate(
-                    TeamGraphicGenerator.TeamData.singleFromLeague(this@League, idx), tgConfig.style
-                )
-                channel.send("<@${table[idx]}>", files = graphic.toFileUpload().into()).queue()
-            }
-        }
-    }
-
     /**
      * Gets the index of the user by their ID or an allowed player that only has permission for one user.
      */

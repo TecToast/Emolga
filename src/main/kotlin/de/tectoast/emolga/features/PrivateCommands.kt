@@ -257,6 +257,14 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun getGuildNames() {
+        val lines = awaitMultilineInput()
+        iData.reply(lines.split("\n").joinToString("\n") {
+            "$it: ${iData.jda.getGuildById(it)?.name}"
+        })
+    }
+
+    context(iData: InteractionData)
     suspend fun deleteTierlist(args: PrivateData) {
         iData.reply(Tierlist(args().toLong()).deleteAllMons().toString())
     }

@@ -772,7 +772,7 @@ open class Arguments {
             validate {
                 val guildId = League.onlyChannel(tc)?.guild ?: gid
                 NameConventionsDB.getDiscordTranslation(
-                    it, guildId, english = Tierlist[guildId].isEnglish
+                    it, guildId, english = Tierlist[guildId].isEnglish, officialEnglish = false
                 ) ?: throw InvalidArgumentException(K18n_PokemonNotFound(it))
             }
         }

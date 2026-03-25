@@ -58,20 +58,21 @@ sealed interface RandomPickMode {
         ): Pair<DraftName, String>? {
             if (tierRequired && input.tier == null) return iData.replyNull(K18n_RandomPick.TierRequired)
             val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
-            val list = tierlist.getByTier(tier)!!.shuffled()
+            val dbTier = tierlist.withTL { it.publicTierToDBTier(tier) }
+            val list = tierlist.getByTier(dbTier)!!.shuffled()
             return firstAvailableMon(list) { german, english ->
                 if (german in input.skipMons) return@firstAvailableMon false
                 tierlist.withTL {
                     it.checkGeneralChecks(
                         DraftAction(
-                            officialTier = tier,
+                            officialTier = dbTier,
                             official = german,
                         )
                     )
                 }?.let { return@firstAvailableMon false }
                 if (typeAllowed && input.type != null) input.type in mdb.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
-                ?: return iData.replyNull(K18n_RandomPick.NoPokemonWithTypeAvailable)
+                ?: iData.replyNull(K18n_RandomPick.NoPokemonWithTypeAvailable)
         }
     }
 

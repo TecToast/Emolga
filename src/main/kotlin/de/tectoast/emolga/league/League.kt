@@ -26,8 +26,6 @@ import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.executeRegisterInDoc
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import de.tectoast.emolga.utils.showdown.AnalysisData
-import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
-import de.tectoast.emolga.utils.teamgraphics.toFileUpload
 import de.tectoast.generic.K18n_Gameday
 import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.coroutines.await
@@ -237,7 +235,7 @@ sealed class League {
         return allowed[current]?.any { it.u == member.idLong } == true
     }
 
-    open suspend fun isPicked(mon: String, tier: String? = null) =
+    open suspend fun isPicked(mon: String) =
         (picks.values + draftData.draftBan.bannedMons.values).any { l ->
             l.any {
                 !it.quit && it.name.equals(
@@ -254,7 +252,7 @@ sealed class League {
             (picks.values + draftData.draftBan.bannedMons.values).flatten().mapTo(mutableSetOf()) { it.name }
         return tlNames.firstNotNullOfOrNull {
             val draftName = NameConventionsDB.getDiscordTranslation(
-                it, guild, tierlist.isEnglish
+                it, guild, tierlist.isEnglish, officialEnglish = false
             )!!
             if (draftName.official !in alreadyPicked && draftName.checker(
                     draftName.official, NameConventionsDB.getDiscordTranslation(
@@ -453,6 +451,7 @@ sealed class League {
             round = 1
             draftState = DraftState.ON
             draftData = ResettableLeagueData()
+            tierlist.withTL { it.clearForDraftStart() }
             reset()
             sendRound()
             if (tryQueuePick()) return
@@ -648,7 +647,7 @@ sealed class League {
         return listOf(idOfOwner, *data.filter { it.teammate }.map { it.u }.toTypedArray())
     }
 
-    fun getCurrentName(idx: Int = current) = names[idx]
+    fun getCurrentName(idx: Int = current) = names[idx].ifEmpty { "N/A" }
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current)
 
@@ -1283,7 +1282,7 @@ class BanData(
     override val changedOnTeamsiteIndex = -1 // not used for BanData
 }
 
-data class TierData(val specified: String, val official: String)
+data class TierData(val specified: String, val official: String, val isTierSpecified: Boolean)
 
 sealed interface TimerSkipMode {
 

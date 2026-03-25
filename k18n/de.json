@@ -420,6 +420,7 @@
               "OnlyOneMega": "Du kannst nur ein Mega-Pokemon in deinem Team haben!",
               "SpeciesClause": "Du kannst nur ein Pokemon pro Dex-Nummer in deinem Team haben!",
               "NotEnoughPoints": "Dafür hast du nicht genug Punkte! (`{calculation}`)",
+              "TeamNotCompletable": "Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!",
               "MinimumNeededError": "Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens {minimumRequired:Int} Punkte haben, hättest aber nur noch {newPoints:Int})",
               "CantUpdraft": "Du kannst ein {officialTier}-Mon nicht ins {specifiedTier} hochdraften!",
               "GapError": "Du kannst ein {officialTier}-Mon nur bis zu {gap:Int} Tiers hochdraften!",

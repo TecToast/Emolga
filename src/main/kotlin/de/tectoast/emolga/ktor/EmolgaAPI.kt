@@ -381,7 +381,7 @@ fun Route.emolgaAPI() {
         val idx = league.originalorder[roundIndex + 1]?.getOrNull(indexInRound) ?: return@get call.respond(
             HttpStatusCode.NotFound
         )
-        call.respondTeamGraphic(league, idx, takePicks)
+        call.respondTeamGraphic(league, idx, takePicks, blankBackground = true)
     }
     get("/teamgraphic") {
         val token = call.request.queryParameters["token"] ?: return@get call.bad()
@@ -390,7 +390,7 @@ fun Route.emolgaAPI() {
         val idx = call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.bad()
         val mons = call.request.queryParameters["mons"]?.toIntOrNull()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
-        call.respondTeamGraphic(league, idx, mons)
+        call.respondTeamGraphic(league, idx, mons, blankBackground = false)
     }
     route("/transaction/{transactionid}") {
         get {
@@ -523,7 +523,7 @@ fun Route.emolgaAPI() {
 suspend fun RoutingCall.bad() = this.respond(HttpStatusCode.BadRequest)
 
 
-suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: Int?) {
+suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: Int?, blankBackground: Boolean) {
     val actualPickSize = league.picks(idx).size
     if (takePicks != null && takePicks > actualPickSize) {
         this.caching = CachingOptions(CacheControl.NoCache(null))
@@ -537,7 +537,7 @@ suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: 
         val img = TeamGraphicGenerator.generate(
             TeamGraphicGenerator.TeamData.singleFromLeague(
                 league, idx, takePickCount = actualTakePicks
-            ), league.config.teamgraphics!!.style, TeamGraphicGenerator.Options(blankBackground = true)
+            ), league.config.teamgraphics!!.style, TeamGraphicGenerator.Options(blankBackground)
         )
         ByteArrayOutputStream().use {
             ImageIO.write(img, "png", it)

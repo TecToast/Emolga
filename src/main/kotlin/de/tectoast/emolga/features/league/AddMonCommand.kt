@@ -2,7 +2,6 @@ package de.tectoast.emolga.features.league
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.features.league.draft.generic.K18n_NotInTierlist
 import de.tectoast.emolga.features.league.draft.generic.K18n_PokemonNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
@@ -14,6 +13,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.filterContainsIgnoreCase
 import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.utils.json.onFailureReply
 import de.tectoast.emolga.utils.translateToGuildLanguage
 import de.tectoast.generic.K18n_TooManyResults
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -71,8 +71,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             if (picks.size >= teamsize) {
                 return@l iData.reply(K18n_AddMon.TeamAlreadyComplete(Constants.MYTAG))
             }
-            val (tier, _) = (tl.getTierOfCommand(e.pokemon, null)
-                ?: return@l iData.reply(K18n_NotInTierlist(e.pokemon.tlName)))
+            val (tier, _, _) = tl.getTierOfCommand(e.pokemon, null).onFailureReply() ?: return@l
             tl.withTL {
                 it.handleDraftActionWithGeneralChecks(
                     DraftAction(

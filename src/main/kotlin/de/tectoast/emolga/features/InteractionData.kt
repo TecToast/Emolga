@@ -116,6 +116,25 @@ abstract class InteractionData(
         )
     )
 
+    fun replyFalse(
+        content: K18nMessage,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault,
+    ) = reply(
+        ephemeral, MessageCreate(
+            content = content.t(),
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    ).let { false }
+
     fun <T> replyNull(
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,

@@ -181,7 +181,12 @@ object NameConventionsDB : Table("nameconventions") {
      * @param english if the result should be in english
      * @return the [DraftName] or null, if no data could be found
      */
-    suspend fun getDiscordTranslation(input: String, guildIdArg: Long, english: Boolean = false): DraftName? {
+    suspend fun getDiscordTranslation(
+        input: String,
+        guildIdArg: Long,
+        english: Boolean = false,
+        officialEnglish: Boolean = english
+    ): DraftName? {
         val guildId = if (guildIdArg == Constants.G.MY) PrivateCommands.guildForMyStuff ?: guildIdArg else guildIdArg
         val list = mutableListOf<Pair<String, String?>>()
         val nc = emolgaDB.nameconventions.findOne(NameConventions::guild eq guildId)?.data
@@ -196,7 +201,7 @@ object NameConventionsDB : Table("nameconventions") {
         }
         list.forEach {
             getDBTranslation(
-                it.first, guildId, it.second, nc ?: defaultNameConventions, english
+                it.first, guildId, it.second, nc ?: defaultNameConventions, english, officialEnglish
             )?.let { d -> return d }
         }
         logger.warn("Could not find translation for $input in guild $guildId")
@@ -258,7 +263,12 @@ object NameConventionsDB : Table("nameconventions") {
     }
 
     private suspend fun getDBTranslation(
-        test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
+        test: String,
+        guildId: Long,
+        spec: String? = null,
+        nc: Map<String, String>,
+        english: Boolean = false,
+        officialEnglish: Boolean = english,
     ): DraftName? {
         return dbTransaction {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
@@ -276,10 +286,10 @@ object NameConventionsDB : Table("nameconventions") {
                                 )
                             } else s
                         },
-                        it[if (english) ENGLISH else GERMAN],
+                        it[if (officialEnglish) ENGLISH else GERMAN],
                         it[GUILD] != 0L || spec != null,
                         if (english) it[SPECIFIED] else it[SPECIFIEDENGLISH],
-                        if (english) it[GERMAN] else it[ENGLISH]
+                        if (officialEnglish) it[GERMAN] else it[ENGLISH]
                     )
                 }
             null

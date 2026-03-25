@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointManager
 import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.tierAmountToString
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
+import de.tectoast.emolga.utils.json.CalcResult
 import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
@@ -32,9 +33,7 @@ import org.litote.kmongo.eq
 @Suppress("unused")
 @Serializable
 data class Tierlist(
-    val guildid: Long,
-    val identifier: String = "",
-    val priceManager: TierlistPriceManager = TierlistPriceManager.Empty
+    val guildid: Long, val identifier: String = "", val priceManager: TierlistPriceManager = TierlistPriceManager.Empty
 ) {
     var language = Language.GERMAN
 
@@ -72,8 +71,7 @@ data class Tierlist(
         withPriceManager<TierBasedPriceManager, R>(block)
 
     inline fun <T> withTierBasedPriceManager(
-        league: League,
-        block: context(League) Tierlist.(TierBasedPriceManager) -> T
+        league: League, block: context(League) Tierlist.(TierBasedPriceManager) -> T
     ): T? = with(league) {
         return if (priceManager is TierBasedPriceManager) {
             block(priceManager)
@@ -116,23 +114,25 @@ data class Tierlist(
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
-    suspend fun getTierOf(mon: String) =
-        dbTransaction {
-            selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
-        }
+    suspend fun getTierOf(mon: String) = dbTransaction {
+        selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
+    }
 
-    suspend fun getTierOfCommand(pokemon: DraftName, requestedTier: String?): TierData? {
-        val real = getTierOf(pokemon.tlName) ?: return null
+    suspend fun getTierOfCommand(pokemon: DraftName, requestedTier: String?): CalcResult<TierData> {
+        val real = getTierOf(pokemon.tlName) ?: return CalcResult.Error(K18n_DraftUtils.PokemonNotInTierlist)
         return if (requestedTier != null && has<TierBasedPriceManager>()) {
-            // TODO maybe dont return an empty string
-            TierData(order.firstOrNull {
+            val specified = order.firstOrNull {
                 requestedTier.equals(
                     it, ignoreCase = true
                 )
-            } ?: "",
-                real)
+            } ?: return CalcResult.Error(K18n_TierNotFound(requestedTier))
+            CalcResult.Success(
+                TierData(
+                    specified = specified, official = real, isTierSpecified = true
+                )
+            )
         } else {
-            TierData(real, real)
+            CalcResult.Success(TierData(specified = real, official = real, isTierSpecified = false))
         }
     }
 
@@ -145,8 +145,7 @@ data class Tierlist(
     }
 
     suspend fun getWithTierAndType(tier: String, type: String) = dbTransaction {
-        selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }
-            .map { it[POKEMON] }.toList()
+        selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }.map { it[POKEMON] }.toList()
     }
 
     suspend fun retrieveAll() = dbTransaction {
@@ -162,10 +161,9 @@ data class Tierlist(
         if (existing != null) {
             if (existing != tier) {
                 dbTransaction {
-                    if (tier in order)
-                        update({ basePredicate and (POKEMON eq mon) }) {
-                            it[this.TIER] = tier
-                        }
+                    if (tier in order) update({ basePredicate and (POKEMON eq mon) }) {
+                        it[this.TIER] = tier
+                    }
                     else deleteWhere { basePredicate and (POKEMON eq mon) }
                 }
             }
@@ -197,9 +195,8 @@ data class Tierlist(
 
         suspend fun getAllPokemonWithTera(guild: Long, teraIdentifier: String) = dbTransaction {
             val normalTl = selectAll().where { GUILD eq guild and (IDENTIFIER eq "") }.toMap { it[POKEMON] to it[TIER] }
-            val teraTl =
-                selectAll().where { GUILD eq guild and (IDENTIFIER eq teraIdentifier) }
-                    .toMap { it[POKEMON] to it[TIER] }
+            val teraTl = selectAll().where { GUILD eq guild and (IDENTIFIER eq teraIdentifier) }
+                .toMap { it[POKEMON] to it[TIER] }
             normalTl.entries.map { (mon, tier) ->
                 val tera = teraTl[mon]
                 TransactionPokemonData(mon, tier, tera)
@@ -217,9 +214,9 @@ data class Tierlist(
          * Gets the tierlist for the given guild (or fetches it in case it's not in the cache, which is only possible in test env)
          */
         operator fun get(guild: Long, identifier: String? = null): Tierlist? {
-            return tierlists[guild]?.get(identifier ?: "")
-                ?: if (setupCalled) tierlists[guild]?.get("")?.copy(identifier = identifier ?: "")
-                else runBlocking { mdb.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
+            return tierlists[guild]?.get(identifier ?: "") ?: if (setupCalled) tierlists[guild]?.get("")
+                ?.copy(identifier = identifier ?: "")
+            else runBlocking { mdb.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }
 
         fun getAnyTierlist(guild: Long) = tierlists[guild]?.values?.firstOrNull()
@@ -230,9 +227,7 @@ val Tierlist?.isEnglish get() = this?.language == Language.ENGLISH
 
 @Suppress("unused")
 enum class TierlistMode(val withPoints: Boolean, val withTiers: Boolean) {
-    POINTS(true, false),
-    TIERS(false, true),
-    TIERS_WITH_FREE(true, true);
+    POINTS(true, false), TIERS(false, true), TIERS_WITH_FREE(true, true);
 
     fun isPoints() = this == POINTS
     fun isTiers() = this == TIERS
@@ -246,11 +241,11 @@ interface TierBasedPriceManager : TierlistPriceManager {
     context(league: League, tl: Tierlist)
     override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
         updraftHandler.handleUpdraft(action)?.let { return it }
-        return handleDraftActionAfterGeneralTierCheck(action)
+        return handleDraftActionAfterGeneralTierCheck(action, context)
     }
 
     context(league: League, tl: Tierlist)
-    fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull
+    fun handleDraftActionAfterGeneralTierCheck(action: DraftAction, context: DraftActionContext?): ErrorOrNull
 
     context(tl: Tierlist)
     fun getSingleMap(): Map<String, Int>
@@ -286,7 +281,10 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
     val tierOrder: List<String>
 
     context(league: League, tl: Tierlist)
-    override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
+    override fun handleDraftActionAfterGeneralTierCheck(
+        action: DraftAction,
+        context: DraftActionContext?
+    ): ErrorOrNull {
         val specifiedTier = action.specifiedTier
         val allTiers = getAllPossibleTiers()
         if (allTiers.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
@@ -304,8 +302,7 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
         val cpicks = league.picks()
         return combinedOptions.flatMap { opt ->
             val deducted = opt.deductPicks(cpicks)
-            if (deducted.any { it.value < 0 }) emptyList() else deducted.entries.filter { it.value > 0 }
-                .map { it.key }
+            if (deducted.any { it.value < 0 }) emptyList() else deducted.entries.filter { it.value > 0 }.map { it.key }
         }
     }
 
@@ -317,8 +314,7 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
 
     context(league: League, tl: Tierlist)
     override suspend fun checkLegalityOfQueue(
-        idx: Int,
-        currentState: List<QueuedAction>
+        idx: Int, currentState: List<QueuedAction>
     ): ErrorOrNull {
         val res = getAllPossibleTiers(idx)
         val finalMaps = res.map { map ->
@@ -345,8 +341,7 @@ interface PointBasedPriceManager : TierlistPriceManager {
 
     fun getPointsForTier(tier: String): Int?
     fun getPointsForMon(pokemon: DraftPokemon): Int {
-        return getPointsForTier(pokemon.tier)
-            ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
+        return getPointsForTier(pokemon.tier) ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
     }
 
     context(tl: Tierlist)
@@ -359,6 +354,11 @@ interface PointBasedPriceManager : TierlistPriceManager {
 
     context(league: League, tl: Tierlist)
     fun getPointsOfUser(idx: Int) = pointManager()[idx]
+
+    context(league: League)
+    override fun clearForDraftStart() {
+        pointManager().clear()
+    }
 
     companion object {
         val pointsManagers = mutableMapOf<String, PointsManager>()
@@ -386,6 +386,10 @@ interface PointBasedPriceManager : TierlistPriceManager {
         context(league: League, tl: Tierlist, pm: PointBasedPriceManager)
         fun add(idx: Int, points: Int) {
             this.points[idx] = this[idx] + points
+        }
+
+        fun clear() {
+            points.clear()
         }
     }
 }
@@ -427,9 +431,7 @@ sealed interface GeneralCheck {
         private suspend fun getDexNumber(official: String): Int = officialToDexNumberCache.getOrPut(official) {
             mdb.pokedex.get(
                 NameConventionsDB.getSDTranslation(
-                    official,
-                    league.guild,
-                    english = true
+                    official, league.guild, english = true
                 )!!.official.toSDName()
             )!!.num
         }
@@ -443,14 +445,18 @@ sealed interface GeneralCheck {
 sealed interface TierlistPriceManager {
     val generalChecks: List<GeneralCheck>
 
+    fun publicTierToDBTier(tier: String): String = tier
+
+    context(league: League)
+    fun clearForDraftStart() {
+    }
+
     context(tl: Tierlist)
-    fun compareTiers(tierA: String, tierB: String): Int? =
-        getTiers().compareTiersFromOrder(tierA, tierB)
+    fun compareTiers(tierA: String, tierB: String): Int? = getTiers().compareTiersFromOrder(tierA, tierB)
 
     context(league: League, tl: Tierlist)
     suspend fun handleDraftActionWithGeneralChecks(
-        action: DraftAction,
-        context: DraftActionContext? = null
+        action: DraftAction, context: DraftActionContext? = null
     ): ErrorOrNull {
         checkGeneralChecks(action)?.let { return it }
         return handleDraftAction(action, context)
@@ -481,10 +487,12 @@ sealed interface TierlistPriceManager {
         val tiers: Map<String, Int>,
         override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
         override val generalChecks: List<GeneralCheck> = emptyList()
-    ) :
-        TierlistPriceManager, TierBasedPriceManager {
+    ) : TierlistPriceManager, TierBasedPriceManager {
         context(league: League, tl: Tierlist)
-        override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
+        override fun handleDraftActionAfterGeneralTierCheck(
+            action: DraftAction,
+            context: DraftActionContext?
+        ): ErrorOrNull {
             val options = getPossibleTiers()
             if (options[action.specifiedTier]!! <= 0) {
                 if (tiers[action.specifiedTier] == 0) {
@@ -535,8 +543,7 @@ sealed interface TierlistPriceManager {
 
         context(league: League, tl: Tierlist)
         override suspend fun checkLegalityOfQueue(
-            idx: Int,
-            currentState: List<QueuedAction>
+            idx: Int, currentState: List<QueuedAction>
         ): ErrorOrNull {
             val map = getPossibleTiers(idx).toMutableMap()
             val tl = league.tierlist
@@ -560,17 +567,15 @@ sealed interface TierlistPriceManager {
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
             val pointManager = pointManager()
             val currentPoints = pointManager[league.current]
-            val cost = getPointsForTier(action.specifiedTier)
-                ?: return K18n_TierNotFound(action.specifiedTier)
+            val cost = getPointsForTier(action.specifiedTier) ?: return K18n_TierNotFound(action.specifiedTier)
             val pointsBack = action.switch?.let { switched -> getPointsForTier(switched.tier)!! } ?: 0
             val newPoints = currentPoints - cost + pointsBack
             if (newPoints < 0) {
                 return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0")
             }
             val cpicks = league.picks()
-            if (action.switch != null) {
-                val minimumRequired =
-                    minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
+            if (action.switch == null) {
+                val minimumRequired = minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
                 if (newPoints < minimumRequired) {
                     return K18n_Tierlist.MinimumNeededError(minimumRequired, newPoints)
                 }
@@ -598,15 +603,13 @@ sealed interface TierlistPriceManager {
 
         context(league: League, tl: Tierlist)
         override suspend fun checkLegalityOfQueue(
-            idx: Int,
-            currentState: List<QueuedAction>
+            idx: Int, currentState: List<QueuedAction>
         ): ErrorOrNull {
             var gPoints = 0
             var yPoints = 0
             for (data in currentState) {
                 gPoints += getPointsForTier(league.tierlist.getTierOf(data.g.tlName)!!)!!
-                yPoints += data.y?.let { getPointsForTier(league.tierlist.getTierOf(it.tlName)!!)!! }
-                    ?: 0
+                yPoints += data.y?.let { getPointsForTier(league.tierlist.getTierOf(it.tlName)!!)!! } ?: 0
             }
             if (pointManager()[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
                     (league.picks[idx]?.size ?: 0) + currentState.size
@@ -626,11 +629,11 @@ sealed interface TierlistPriceManager {
     @Serializable
     @SerialName("SimplePointBased")
     data class SimplePointBased(
-        val prices: Map<String, Int>, override val globalPoints: Int,
+        val prices: Map<String, Int>,
+        override val globalPoints: Int,
         override val generalChecks: List<GeneralCheck> = emptyList(),
         override val teraMaxPoints: Int? = null
-    ) : TierlistPriceManager,
-        OnlyPointBasedPriceManager {
+    ) : TierlistPriceManager, OnlyPointBasedPriceManager {
 
 
         override fun getPointsForTier(tier: String) = prices[tier]
@@ -753,7 +756,9 @@ sealed interface TierlistPriceManager {
     @Serializable
     @SerialName("ChoiceTierBased")
     data class ChoiceTierBased(
-        override val tierOrder: List<String>, val genericTiers: Map<String, Int>, val choices: List<ChoiceTierOption>,
+        override val tierOrder: List<String>,
+        val genericTiers: Map<String, Int>,
+        val choices: List<ChoiceTierOption>,
         override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
         override val generalChecks: List<GeneralCheck> = emptyList()
     ) : TierlistPriceManager, CombinedOptionsPriceManager {
@@ -774,8 +779,7 @@ sealed interface TierlistPriceManager {
 
 
         override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
-            val tierToInsert = picks.lastOrNull()?.tier
-                ?: error("No tier found in picks to use")
+            val tierToInsert = picks.lastOrNull()?.tier ?: error("No tier found in picks to use")
             var index = 0
             var tierBefore: String? = null
             for (entry in genericTiers.entries) {
@@ -788,8 +792,7 @@ sealed interface TierlistPriceManager {
                     val monsInChoiceSlots = picksAmountInTier - entry.value
                     return if (monsInChoiceSlots > 0) {
                         if (sumOfChoiceSlots > 0) index - monsInChoiceSlots else index + monsInChoiceSlots
-                    } else
-                        picksAmountInTier + index - 1
+                    } else picksAmountInTier + index - 1
                 }
                 index += entry.value
                 tierBefore = entry.key
@@ -836,8 +839,7 @@ sealed interface TierlistPriceManager {
 
         companion object {
             fun generateAllOptions(
-                choices: List<ChoiceTierOption>,
-                genericTiers: Map<String, Int>
+                choices: List<ChoiceTierOption>, genericTiers: Map<String, Int>
             ): List<Map<String, Int>> = buildList {
                 fun recursiveBuild(remainingChoices: List<SingularChoiceTierOption>, map: Map<String, Int>) {
                     if (remainingChoices.isEmpty()) {
@@ -860,50 +862,171 @@ sealed interface TierlistPriceManager {
     @Serializable
     @SerialName("TierAndPoint")
     data class TierAndPoint(
-        override val updraftHandler: UpdraftHandler,
-        override val generalChecks: List<GeneralCheck>,
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.NoCheck,
+        override val generalChecks: List<GeneralCheck> = emptyList(),
         override val globalPoints: Int,
-        override val teraMaxPoints: Int? = null
+        override val teraMaxPoints: Int? = null,
+        val tiers: Map<String, SingleTierAndPointData>
     ) : TierlistPriceManager, TierBasedPriceManager, PointBasedPriceManager {
         context(league: League, tl: Tierlist)
-        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
-            TODO("Not yet implemented")
+        override fun handleDraftActionAfterGeneralTierCheck(
+            action: DraftAction,
+            context: DraftActionContext?
+        ): ErrorOrNull {
+            val officialCost = getPointsForTier(action.officialTier) ?: return K18n_TierNotFound(action.specifiedTier)
+            val cost = if (action.tier.isTierSpecified) tiers[action.specifiedTier]!!.tiers.min() else officialCost
+            val specifiedTier = cost.toString().pointsToActualTier()
+            val options = getPossibleTiers()
+            if (options[specifiedTier]!! <= 0) {
+                if (tiers[specifiedTier]?.amount == 0) {
+                    return K18n_Tierlist.MustUpdraft(specifiedTier)
+                }
+                if (action.switch != null) return null
+                return K18n_Tierlist.CantPickTier(specifiedTier)
+            }
+            val pointManager = pointManager()
+            val currentPoints = pointManager[league.current]
+            if (officialCost - (officialCost % 2) - (cost - (cost % 2)) > 2) {
+                return K18n_Tierlist.GapError(action.official, 1)
+            }
+            val pointsBack = action.switch?.let { switched -> getPointsForTier(switched.tier)!! } ?: 0
+            val newPoints = currentPoints - cost + pointsBack
+            if (newPoints < 0) {
+                return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0")
+            }
+            if (action.switch == null && !canFinishTeamAfterPick(league.picks(), options, cost, newPoints)) {
+                return K18n_Tierlist.TeamNotCompletable
+            }
+            pointManager[league.current] = newPoints
+            context?.saveTier = cost.toString()
+            return null
         }
 
-        override fun getTiers(): List<String> {
-            TODO("Not yet implemented")
+        override fun publicTierToDBTier(tier: String): String {
+            return tiers[tier]?.tiers?.min()?.toString() ?: error("Tier $tier not found")
         }
+
+        fun canFinishTeamAfterPick(
+            picks: List<DraftPokemon>,
+            options: Map<String, Int>,
+            aboutToPickCost: Int,
+            newPoints: Int
+        ): Boolean {
+            val aboutToPickTier = aboutToPickCost.toString().pointsToActualTier()
+            val tempOptions = options.toMutableMap()
+            tempOptions.add(aboutToPickTier, -1)
+            return canFinishWithOptions(newPoints, tempOptions)
+        }
+
+        private fun canFinishWithOptions(
+            newPoints: Int,
+            tempOptions: Map<String, Int>
+        ): Boolean {
+            var points = newPoints
+            var pointsFromPreviousTier: Int? = null
+            for (tier in getTiers().reversed()) {
+                val pointsFromThisTier = tiers[tier]!!.tiers.min()
+                tempOptions[tier]?.takeIf { it > 0 }?.let { amount ->
+                    val actualPoints = pointsFromPreviousTier ?: pointsFromThisTier
+                    for (i in 0 until amount) {
+                        points -= actualPoints
+                        if (points < 0) return false
+                    }
+                }
+                pointsFromPreviousTier = pointsFromThisTier
+            }
+            return points >= 0
+        }
+
 
         context(league: League, tl: Tierlist)
         override suspend fun checkLegalityOfQueue(
-            idx: Int,
-            currentState: List<QueuedAction>
+            idx: Int, currentState: List<QueuedAction>
         ): ErrorOrNull {
-            TODO("Not yet implemented")
+            val map = getPossibleTiers(idx).toMutableMap()
+            val tl = league.tierlist
+            currentState.forEach {
+                map.add(tl.getTierOf(it.g.tlName)!!, -1)
+                it.y?.let { y -> map.add(tl.getTierOf(y.tlName)!!, 1) }
+            }
+            val result = map.entries.firstOrNull { it.value < 0 }
+            val isIllegalFromTiers = result != null
+            if (isIllegalFromTiers) {
+                return K18n_QueuePicks.LegalTooManyInSingleTier(result.key)
+            }
+            val cpoints =
+                pointManager()[idx] - currentState.sumOf { getPointsForTier(tl.getTierOf(it.g.tlName)!!)!! } + currentState.sumOf {
+                    it.y?.let { y -> getPointsForTier(tl.getTierOf(y.tlName)!!)!! } ?: 0
+                }
+            if (cpoints < 0 || !canFinishWithOptions(cpoints, map)) {
+                return K18n_QueuePicks.LegalTeamCompletion
+            }
+            return null
         }
 
         context(league: League, tl: Tierlist)
-        override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
-            TODO("Not yet implemented")
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
+            return getPossibleTiers(idx).entries.filterNot { it.value == 0 }
+                .joinToString { tierAmountToString(it.key, it.value) }.let {
+                    if (it.isEmpty()) null else K18n_League.PossibleTiers(it)
+                }?.let { tierMsg ->
+                    b {
+                        "${tierMsg()}, ${K18n_League.PossiblePoints(pointManager()[idx])()}"
+                    }
+                }
         }
 
+        override fun getTiers() = tiers.keys.toList()
+
         context(tl: Tierlist)
-        override fun getSingleMap(): Map<String, Int> {
-            TODO("Not yet implemented")
+        override fun getSingleMap() = tiers.mapValues { it.value.amount }
+
+        context(tl: Tierlist)
+        fun deductPicks(list: List<DraftPokemon>): Map<String, Int> {
+            val map = getSingleMap().toMutableMap()
+            for (pick in list) {
+                pick.takeUnless { it.free || it.quit }?.let { map.add(it.tier.pointsToActualTier(), -1) }
+            }
+            return map
         }
+
+        context(league: League, tl: Tierlist)
+        private fun getPossibleTiers(idx: Int = league.current) = deductPicks(league.picks(idx))
 
         context(league: League, tl: Tierlist)
         override fun getCurrentAvailableTiers(): List<String> {
-            TODO("Not yet implemented")
+            return getPossibleTiers().filter { it.value > 0 }.keys.toList()
         }
 
         override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
-            TODO("Not yet implemented")
+            val tier = picks.lastOrNull()?.tier ?: error("No picks to determine tier for index")
+            var index = 0
+            for (entry in tiers.entries) {
+                if (entry.key == tier) {
+                    return picks.count { !it.free && !it.quit && it.tier == tier } + index - 1
+                }
+                index += entry.value.amount
+            }
+            error("Tier $tier not found by")
         }
 
-        override fun getPointsForTier(tier: String): Int? {
-            TODO("Not yet implemented")
+        override fun getPicksInDocOrder(league: League, picks: List<DraftPokemon>): List<DraftPokemon> {
+            return picks.sortedWith(league.tierlist.tierorderingComparatorWithoutName)
         }
+
+        override fun getPointsForTier(tier: String) = tier.toIntOrNull()
+        val pointsToTier by lazy {
+            tiers.entries.flatMap { it.value.tiers.map { num -> num.toString() to it.key } }.toMap()
+        }
+
+        private fun String.pointsToActualTier(): String {
+            return pointsToTier[this] ?: error("No tier found for points $this")
+        }
+
+        @Serializable
+        data class SingleTierAndPointData(
+            val amount: Int, val tiers: List<Int>
+        )
     }
 
     @Serializable
@@ -921,8 +1044,7 @@ sealed interface TierlistPriceManager {
 
         context(league: League, tl: Tierlist)
         override suspend fun checkLegalityOfQueue(
-            idx: Int,
-            currentState: List<QueuedAction>
+            idx: Int, currentState: List<QueuedAction>
         ) = null
     }
 
@@ -935,6 +1057,7 @@ sealed interface TierlistPriceManager {
             return map
         }
 
+
         fun List<String>.compareTiersFromOrder(tierA: String, tierB: String): Int? {
             val indexA = indexOf(tierA)
             val indexB = indexOf(tierB)
@@ -942,26 +1065,34 @@ sealed interface TierlistPriceManager {
             return indexA - indexB
         }
     }
-
 }
 
 data class DraftAction(
-    val officialTier: String,
+    val tier: TierData,
     val official: String,
-    val specifiedTier: String = officialTier,
     val free: Boolean = false,
     val tera: Boolean = false,
     val switch: DraftPokemon? = null
-)
+) {
+
+    constructor(official: String, officialTier: String) : this(
+        tier = TierData(officialTier, officialTier, false), official = official
+    )
+
+    val officialTier: String
+        get() = tier.official
+
+    val specifiedTier: String
+        get() = tier.specified
+}
 
 data class DraftActionContext(
-    var isValidFreePick: Boolean = false
+    var saveTier: String? = null, var freePick: Boolean = false
 )
 
 @Serializable
 data class ChoiceTierOption(
-    val tiers: Set<String>,
-    val amount: Int
+    val tiers: Set<String>, val amount: Int
 ) {
     companion object {
         fun createSingularList(list: List<ChoiceTierOption>) = list.flatMapTo(mutableListOf()) { option ->
@@ -989,7 +1120,8 @@ sealed interface UpdraftHandler {
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
             val compareResult = priceManager.compareTiers(action.specifiedTier, action.officialTier)
                 ?: return K18n_TierNotFound(action.specifiedTier)
-            if (compareResult < 0 && action.switch == null) {
+            if (action.switch != null) return null
+            if (compareResult > 0) {
                 return K18n_Tierlist.CantUpdraft(action.official, action.specifiedTier)
             }
             return null
@@ -1001,12 +1133,15 @@ sealed interface UpdraftHandler {
     data class OnlyWithGap(val gap: Int) : UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
-            val diff = priceManager.compareTiers(action.specifiedTier, action.officialTier)
-                ?: return K18n_TierNotFound(action.specifiedTier)
-            if (diff < 0 && action.switch == null) {
-                if (-diff > gap) {
-                    return K18n_Tierlist.GapError(action.official, gap)
-                }
+            val diff = priceManager.compareTiers(action.specifiedTier, action.officialTier) ?: return K18n_TierNotFound(
+                action.specifiedTier
+            )
+            if (action.switch != null) return null
+            if (diff > 0) {
+                return K18n_Tierlist.CantUpdraft(action.official, action.specifiedTier)
+            }
+            if (diff < 0 && -diff > gap) {
+                return K18n_Tierlist.GapError(action.official, gap)
             }
             return null
         }
@@ -1024,5 +1159,12 @@ sealed interface UpdraftHandler {
             }
             return null
         }
+    }
+
+    @Serializable
+    @SerialName("NoCheck")
+    data object NoCheck : UpdraftHandler {
+        context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
+        override fun handleUpdraft(action: DraftAction): ErrorOrNull = null
     }
 }

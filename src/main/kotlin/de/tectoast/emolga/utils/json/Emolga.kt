@@ -863,6 +863,30 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray, val teamNam
 sealed interface CalcResult<T> {
     data class Success<T>(val value: T) : CalcResult<T>
     data class Error<T>(val message: K18nMessage) : CalcResult<T>
+
+}
+
+@OptIn(ExperimentalContracts::class)
+inline fun <T> CalcResult<T>.onFailure(action: (K18nMessage) -> Unit): T? {
+    contract {
+        returns(null) implies (this@onFailure is CalcResult.Error<T>)
+        returnsNotNull() implies (this@onFailure is CalcResult.Success<T>)
+    }
+    if (this.isError()) {
+        action(message)
+        return null
+    }
+    return value
+}
+
+@OptIn(ExperimentalContracts::class)
+context(iData: InteractionData)
+fun <T> CalcResult<T>.onFailureReply(): T? {
+    contract {
+        returns(null) implies (this@onFailureReply is CalcResult.Error<T>)
+        returnsNotNull() implies (this@onFailureReply is CalcResult.Success<T>)
+    }
+    return onFailure { iData.reply(it, ephemeral = true) }
 }
 
 @OptIn(ExperimentalContracts::class)

@@ -952,8 +952,8 @@ sealed interface TierlistPriceManager {
             val map = getPossibleTiers(idx).toMutableMap()
             val tl = league.tierlist
             currentState.forEach {
-                map.add(tl.getTierOf(it.g.tlName)!!, -1)
-                it.y?.let { y -> map.add(tl.getTierOf(y.tlName)!!, 1) }
+                map.add(tl.getTierOf(it.g.tlName)!!.pointsToActualTier(), -1)
+                it.y?.let { y -> map.add(tl.getTierOf(y.tlName)!!.pointsToActualTier(), 1) }
             }
             val result = map.entries.firstOrNull { it.value < 0 }
             val isIllegalFromTiers = result != null

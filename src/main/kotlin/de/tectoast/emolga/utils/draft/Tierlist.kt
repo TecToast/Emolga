@@ -874,7 +874,13 @@ sealed interface TierlistPriceManager {
             context: DraftActionContext?
         ): ErrorOrNull {
             val officialCost = getPointsForTier(action.officialTier) ?: return K18n_TierNotFound(action.specifiedTier)
-            val cost = if (action.tier.isTierSpecified) tiers[action.specifiedTier]!!.tiers.min() else officialCost
+            val cost = if (action.tier.isTierSpecified) {
+                val possibleTiers = tiers[action.specifiedTier]!!.tiers
+                if (officialCost > possibleTiers.max()) return K18n_Tierlist.CantUpdraft(
+                    officialCost.toString().pointsToActualTier(), action.specifiedTier
+                )
+                possibleTiers.min().coerceAtLeast(officialCost)
+            } else officialCost
             val specifiedTier = cost.toString().pointsToActualTier()
             val options = getPossibleTiers()
             if (options[specifiedTier]!! <= 0) {

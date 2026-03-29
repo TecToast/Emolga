@@ -305,10 +305,8 @@ sealed class League {
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
-        if (result != TimerSkipResult.SAME) {
-            timerRelated.handleStallSecondPunishment(ctm)
-            this@League.cancelCurrentTimer()
-        }
+        val isOneTimerForAllPicks = config.timer?.oneTimerForAllPicks == true
+        var currentIdx = current
         if (result == TimerSkipResult.NEXT) {
             draftData.timer.lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
                 tc.editMessageById(
@@ -321,10 +319,8 @@ sealed class League {
                     ) else K18n_League.StallSecondsUsedUp(getCurrentMention())).translateToLeague()
                 ).queue()
             }
-            var currentIdx = current
             nextUser()
             if (endOfTurn()) return
-            val isOneTimerForAllPicks = config.timer?.oneTimerForAllPicks == true
             if (isOneTimerForAllPicks && isMoved) {
                 while (current == currentIdx) {
                     addToMoved()
@@ -346,9 +342,11 @@ sealed class League {
 
         if (data !is NextPlayerData.InBetween) if (tryQueuePick()) return
 
-
         if (result != TimerSkipResult.SAME) {
-            restartTimer()
+            timerRelated.handleStallSecondPunishment(ctm)
+            if (!isOneTimerForAllPicks || current != currentIdx) {
+                restartTimer()
+            }
         }
         if (data is NextPlayerData.InBetween) currentOverride = null
         announcePlayer()
@@ -629,6 +627,7 @@ sealed class League {
     suspend fun finishDraft(msg: K18nMessage) {
         tc.sendMessage(msg.translateToLeague()).queue()
         draftState = DraftState.OFF
+        cancelCurrentTimer("Finish draft")
         save()
     }
 

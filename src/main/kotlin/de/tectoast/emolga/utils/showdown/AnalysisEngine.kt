@@ -306,7 +306,8 @@ sealed class SDEffect(vararg val types: String) {
             }
             split.getOrNull(3)?.substringAfter("[from] ")?.let {
                 when (it) {
-                    "psn", "tox", "brn" -> {
+                    // TODO: rework status effects
+                    "psn", "tox", "brn", "frz" -> {
                         damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, amount, by = it)
                     }
 

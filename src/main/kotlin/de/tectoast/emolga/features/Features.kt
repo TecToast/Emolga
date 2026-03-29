@@ -310,7 +310,7 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             modalEntries.forEach { (name, help, child) ->
                 label(
                     label = name,
-                    description = help.t(),
+                    description = help.t().ifEmpty { null },
                     child = child
                 )
             }

@@ -257,6 +257,13 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    fun flegmonUpdateRoles(args: PrivateData) {
+        flegmonjda!!.getTextChannelById(args[0].toLong())!!
+            .editMessageComponentsById(args[1], RoleManagement.RoleGetMenu(placeholder = "Rollen auswählen").into())
+            .queue()
+    }
+
+    context(iData: InteractionData)
     suspend fun getGuildNames() {
         val lines = awaitMultilineInput()
         iData.reply(lines.split("\n").joinToString("\n") {

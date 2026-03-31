@@ -82,6 +82,13 @@ object RoleManagement {
             "Für Shinyhunter, die nicht gerne alleine hunten",
             918210427798831104,
             Emoji.fromUnicode("✨")
+        ),
+        RoleData(
+            "quizshow",
+            "Quizshow",
+            "Für Quiz-Interessierte",
+            roleId = 1485989164586373190,
+            Emoji.fromCustom("Quizshow", 1488471550482059275, false)
         )
     )
 }

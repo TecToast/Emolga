@@ -3,6 +3,8 @@ package de.tectoast.emolga
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.di.ConfigModule
 import de.tectoast.emolga.di.DatabaseModule
+import de.tectoast.emolga.di.DiscordModule
+import de.tectoast.emolga.di.PlatformModule
 import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -19,7 +21,7 @@ import org.koin.plugin.module.dsl.startKoin
 
 private val logger = KotlinLogging.logger {}
 
-@Module(includes = [ConfigModule::class, DatabaseModule::class])
+@Module(includes = [ConfigModule::class, DatabaseModule::class, DiscordModule::class, PlatformModule::class])
 @ComponentScan("de.tectoast.emolga")
 class ProductionAppModule
 
@@ -43,4 +45,5 @@ suspend fun main() {
     Ktor.start()
     logger.info("Starting EmolgaMain...")
     EmolgaMain.startListeners()
+    TODO("AppBootstrapper")
 }

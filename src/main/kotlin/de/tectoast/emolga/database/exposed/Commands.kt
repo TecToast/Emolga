@@ -1,148 +1,162 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.flo.AddRemove
 import de.tectoast.emolga.utils.Constants
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.*
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Single
 
-object GuildGroupsDB : Table("cmd_guild_groups") {
-    val GUILD = long("guild")
-    val GROUP = varchar("group", 50)
+@Single
+class GuildGroupsDB : Table("cmd_guild_groups") {
+    val guild = long("guild")
+    val group = varchar("group", 50)
 
-    override val primaryKey = PrimaryKey(GUILD, GROUP)
+    override val primaryKey = PrimaryKey(guild, group)
 }
 
-object GuildCommandsDB : Table("cmd_guild_commands") {
-    val GUILD = long("guild")
-    val COMMAND = varchar("command", 50)
+@Single
+class GuildCommandsDB : Table("cmd_guild_commands") {
+    val guild = long("guild")
+    val command = varchar("command", 50)
 
-    override val primaryKey = PrimaryKey(GUILD, COMMAND)
+    override val primaryKey = PrimaryKey(guild, command)
 }
 
-object GroupCommandsDB : Table("cmd_group_commands") {
-    val GROUP = varchar("group", 50)
-    val COMMAND = varchar("command", 50)
+@Single
+class GroupCommandsDB : Table("cmd_group_commands") {
+    val group = varchar("group", 50)
+    val command = varchar("command", 50)
 
-    override val primaryKey = PrimaryKey(GROUP, COMMAND)
+    override val primaryKey = PrimaryKey(group, command)
 }
 
-object CmdManager {
+interface CommandManager {
+    suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove)
 
-    suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove) {
-        dbTransaction {
+    suspend fun modifyGuildCommand(guildId: Long, command: String, action: AddRemove)
+
+    suspend fun modifyGroupCommand(group: String, command: String, action: AddRemove)
+
+    suspend fun getFeaturesForGuild(gid: Long): Set<String>
+
+    suspend fun getAllGuildTargets(): Set<Long>
+
+    suspend fun getGroups(): List<String>
+
+    suspend fun getGuildsForGroup(group: String): Set<Long>
+
+    suspend fun startupCheck(allFeatureNames: Set<String>): Set<Long>
+}
+
+@Single
+class PostgresCommandManager(
+    val db: R2dbcDatabase,
+    val guildGroups: GuildGroupsDB,
+    val guildCommands: GuildCommandsDB,
+    val groupCommands: GroupCommandsDB
+) : CommandManager {
+
+    override suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove) {
+        suspendTransaction(db) {
             if (action.add()) {
-                GuildGroupsDB.insertIgnore {
-                    it[GuildGroupsDB.GUILD] = guildId
-                    it[GuildGroupsDB.GROUP] = group
+                guildGroups.insertIgnore {
+                    it[guildGroups.guild] = guildId
+                    it[guildGroups.group] = group
                 }
             } else {
-                GuildGroupsDB.deleteWhere { (GuildGroupsDB.GUILD eq guildId) and (GuildGroupsDB.GROUP eq group) }
+                guildGroups.deleteWhere { (guildGroups.guild eq guildId) and (guildGroups.group eq group) }
             }
         }
-        EmolgaMain.featureManager().updateCommandsForGuild(guildId)
     }
 
 
-    suspend fun modifyGuildCommand(guildId: Long, command: String, action: AddRemove) {
-        dbTransaction {
+    override suspend fun modifyGuildCommand(guildId: Long, command: String, action: AddRemove) {
+        suspendTransaction(db) {
             if (action.add()) {
-                GuildCommandsDB.insertIgnore {
-                    it[GUILD] = guildId
-                    it[COMMAND] = command
+                guildCommands.insertIgnore {
+                    it[guildCommands.guild] = guildId
+                    it[guildCommands.command] = command
                 }
             } else {
-                GuildCommandsDB.deleteWhere { (GUILD eq guildId) and (COMMAND eq command) }
+                guildCommands.deleteWhere { (guildCommands.guild eq guildId) and (guildCommands.command eq command) }
             }
         }
-        EmolgaMain.featureManager().updateCommandsForGuild(guildId)
     }
 
-    suspend fun modifyGroupCommand(group: String, command: String, action: AddRemove) {
-        dbTransaction {
+    override suspend fun modifyGroupCommand(group: String, command: String, action: AddRemove) {
+        suspendTransaction(db) {
             if (action.add()) {
-                GroupCommandsDB.insertIgnore {
-                    it[GroupCommandsDB.GROUP] = group
-                    it[GroupCommandsDB.COMMAND] = command
+                groupCommands.insertIgnore {
+                    it[groupCommands.group] = group
+                    it[groupCommands.command] = command
                 }
             } else {
-                GroupCommandsDB.deleteWhere { (GroupCommandsDB.GROUP eq group) and (GroupCommandsDB.COMMAND eq command) }
-            }
-        }
-        updateAllGuildsInGroup(group)
-    }
-
-    private suspend fun updateAllGuildsInGroup(group: String) {
-        dbTransaction {
-            GuildGroupsDB.select(GuildGroupsDB.GUILD).where { GuildGroupsDB.GROUP eq group }.collect {
-                EmolgaMain.featureManager().updateCommandsForGuild(it[GuildGroupsDB.GUILD])
-                delay(2000) // avoid rate limits
+                groupCommands.deleteWhere { (groupCommands.group eq group) and (groupCommands.command eq command) }
             }
         }
     }
 
-    suspend fun getFeaturesForGuild(gid: Long): Set<String> = dbTransaction {
-        GuildCommandsDB.select(GuildCommandsDB.COMMAND).where { GuildCommandsDB.GUILD eq gid }.union(
-            GroupCommandsDB.select(
-                GroupCommandsDB.COMMAND
+    override suspend fun getGuildsForGroup(group: String) = suspendTransaction(db) {
+        guildGroups.select(guildGroups.guild).where { guildGroups.group eq group }.map { it[guildGroups.guild] }.toSet()
+    }
+
+
+    override suspend fun getFeaturesForGuild(gid: Long): Set<String> = dbTransaction {
+        guildCommands.select(guildCommands.command).where { guildCommands.guild eq gid }.union(
+            groupCommands.select(
+                groupCommands.command
             ).where {
-                GroupCommandsDB.GROUP inSubQuery GuildGroupsDB.select(GuildGroupsDB.GROUP)
-                    .where { GuildGroupsDB.GUILD eq gid }
-            }).map { it[GuildCommandsDB.COMMAND] }.toSet()
+                groupCommands.group inSubQuery guildGroups.select(guildGroups.group)
+                    .where { guildGroups.guild eq gid }
+            }).map { it[guildCommands.command] }.toSet()
     }
 
-    suspend fun startupCheck() {
-        val allFeatures = EmolgaMain.featureManager().registeredFeatureList
-        val allFeatureNames = allFeatures.map { it.spec.name }.toSet()
-
+    override suspend fun startupCheck(allFeatureNames: Set<String>): Set<Long> {
         val allFeaturesOnMyGuild = getFeaturesForGuild(Constants.G.MY)
         val addedFeatures = allFeatureNames - allFeaturesOnMyGuild
         val removedFeatures = allFeaturesOnMyGuild - allFeatureNames
         val updatedGuilds = mutableSetOf<Long>()
         if (addedFeatures.isNotEmpty()) {
-            dbTransaction {
-                GuildCommandsDB.batchInsert(addedFeatures) {
-                    this[GuildCommandsDB.GUILD] = Constants.G.MY
-                    this[GuildCommandsDB.COMMAND] = it
+            suspendTransaction(db) {
+                guildCommands.batchInsert(addedFeatures) {
+                    this[guildCommands.guild] = Constants.G.MY
+                    this[guildCommands.command] = it
                 }
                 updatedGuilds.add(Constants.G.MY)
             }
         }
         if (removedFeatures.isNotEmpty()) {
-            dbTransaction {
-                val affectedGuilds = GuildCommandsDB.select(GuildCommandsDB.GUILD).where {
-                    (GuildCommandsDB.COMMAND inList removedFeatures)
-                }.union(GroupCommandsDB.select(GroupCommandsDB.GROUP).where {
-                    (GroupCommandsDB.COMMAND inList removedFeatures)
-                }).map { it[GuildCommandsDB.GUILD] }.toSet()
+            suspendTransaction(db) {
+                val affectedGuilds = guildCommands.select(guildCommands.guild).where {
+                    (guildCommands.command inList removedFeatures)
+                }.union(groupCommands.select(groupCommands.group).where {
+                    (groupCommands.command inList removedFeatures)
+                }).map { it[guildCommands.guild] }.toSet()
 
                 updatedGuilds.addAll(affectedGuilds)
-                GuildCommandsDB.deleteWhere {
-                    (GuildCommandsDB.COMMAND inList removedFeatures)
+                guildCommands.deleteWhere {
+                    (guildCommands.command inList removedFeatures)
                 }
-                GroupCommandsDB.deleteWhere {
-                    (GroupCommandsDB.COMMAND inList removedFeatures)
+                groupCommands.deleteWhere {
+                    (groupCommands.command inList removedFeatures)
                 }
             }
         }
-        for (gid in updatedGuilds) {
-            EmolgaMain.featureManager().updateCommandsForGuild(gid)
-            delay(2000) // avoid rate limits
-        }
+        return updatedGuilds
     }
 
-    suspend fun getAllGuildTargets() = dbTransaction {
-        GuildGroupsDB.select(GuildGroupsDB.GUILD).union(GuildCommandsDB.select(GuildCommandsDB.GUILD))
-            .map { it[GuildGroupsDB.GUILD] }.toSet()
+    override suspend fun getAllGuildTargets() = suspendTransaction(db) {
+        guildGroups.select(guildGroups.guild).union(guildCommands.select(guildCommands.guild))
+            .map { it[guildGroups.guild] }.toSet()
     }
 
-    suspend fun getGroups() = dbTransaction {
-        GuildGroupsDB.select(GuildGroupsDB.GROUP).withDistinct(true).orderBy(GuildGroupsDB.GROUP)
-            .map { it[GuildGroupsDB.GROUP] }.toList()
+    override suspend fun getGroups() = suspendTransaction(db) {
+        guildGroups.select(guildGroups.group).withDistinct(true).orderBy(guildGroups.group)
+            .map { it[guildGroups.group] }.toList()
     }
 }

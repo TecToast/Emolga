@@ -1,33 +1,45 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.database.dbTransaction
 import kotlinx.coroutines.flow.firstOrNull
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.insert
 import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Single
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-object LiveTeamDB : Table("liveteam") {
-    val CODE = uuid("code")
-    val LEAGUE = varchar("league", 100)
+interface LiveTeamRepository {
+    suspend fun getByCode(code: Uuid): String?
+    suspend fun generateForLeague(league: String): Uuid
+}
 
-    suspend fun getByCode(code: Uuid) = dbTransaction {
-        select(LEAGUE).where { CODE eq code }.firstOrNull()?.get(LEAGUE)
+@OptIn(ExperimentalUuidApi::class)
+class PostgresLiveTeamRepository(val db: R2dbcDatabase, val liveTeam: LiveTeamDB) : LiveTeamRepository {
+    override suspend fun getByCode(code: Uuid): String? = suspendTransaction(db) {
+        liveTeam.select(liveTeam.league).where { liveTeam.code eq code }.firstOrNull()?.get(liveTeam.league)
     }
 
-    suspend fun generateForLeague(league: String): Uuid {
+    override suspend fun generateForLeague(league: String): Uuid {
         val code = Uuid.random()
-        dbTransaction {
-            insert {
-                it[CODE] = code
-                it[LEAGUE] = league
+        suspendTransaction(db) {
+            liveTeam.insert {
+                it[liveTeam.code] = code
+                it[liveTeam.league] = league
             }
         }
         return code
     }
+}
 
-    override val primaryKey = PrimaryKey(CODE)
+@OptIn(ExperimentalUuidApi::class)
+@Single
+class LiveTeamDB : Table("liveteam") {
+    val code = uuid("code")
+    val league = varchar("league", 100)
+
+    override val primaryKey = PrimaryKey(code)
 }

@@ -781,7 +781,7 @@ sealed class League {
                         this.userindex = u2
                     }).into()
                 ).await().idLong
-                PredictionGameMessagesDB.set(leaguename, num, index, messageId)
+                dependency<PredictionGameRepository>().setMessageId(leaguename, num, index, messageId)
             }
             tip.roleToPing?.let { roleId ->
                 channel.sendMessage("<@&$roleId>").queue()
@@ -791,7 +791,7 @@ sealed class League {
 
     fun executePredictionGameLockButtons(gameday: Int) {
         launch {
-            PredictionGameMessagesDB.get(leaguename, gameday).forEachIndexed { mu, mid ->
+            dependency<PredictionGameRepository>().getMessageIds(leaguename, gameday).forEachIndexed { mu, mid ->
                 lockButtonsOnMessage(messageId = mid, gameday = gameday, mu = mu)
                 delay(2000)
             }
@@ -802,7 +802,7 @@ sealed class League {
         val conf = config.predictionGame?.updateConfig ?: return
         launch {
             jda.getTextChannelById(conf.channel)?.send(
-                PredictionGameAnalyseService.getTopNOfGuild(
+                dependency<PredictionGameAnalyseService>().getTopNOfGuild(
                     guild,
                     conf.topN
                 ).translateToLeague()
@@ -813,7 +813,7 @@ sealed class League {
 
     fun executePredictionGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
-            PredictionGameMessagesDB.get(leaguename, gameday, mu).forEach {
+            dependency<PredictionGameRepository>().getMessageIds(leaguename, gameday, mu).forEach {
                 lockButtonsOnMessage(messageId = it, gameday = gameday, mu = mu)
             }
         }
@@ -841,7 +841,7 @@ sealed class League {
     suspend fun buildCurrentPredictionGameState(
         gameday: Int, battleIndex: Int
     ): String {
-        val stateMap = PredictionGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
+        val stateMap = dependency<PredictionGameRepository>().getCurrentVoteState(leaguename, gameday, battleIndex)
         return K18n_PredictionGame.VotesUntilNow(battleorder.getValue(gameday)[battleIndex].joinToString(":") {
             stateMap.getOrDefault(it, 0).toString()
         }).translateToLeague()

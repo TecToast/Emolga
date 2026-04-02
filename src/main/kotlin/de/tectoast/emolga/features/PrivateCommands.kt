@@ -6,6 +6,7 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
+import de.tectoast.emolga.database.exposed.PredictionGameRepository
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.gpc.GPCLeagueSubmit
@@ -86,7 +87,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun printPredictionGame(args: PrivateData) {
-        iData.reply(PredictionGameAnalyseService.getFullResultsSummary(args()))
+        iData.reply(dependency<PredictionGameAnalyseService>().getFullResultsSummary(args()))
     }
 
     private suspend fun String.getSignup(): LigaStartData {
@@ -491,8 +492,8 @@ object PrivateCommands {
                 archiveMR.insertMany(matchResults)
                 currentMR.deleteMany(LeagueEvent::leaguename eq it)
             }
-            ResultCodesDB.deleteFromLeague(it)
-            PredictionGameMessagesDB.deleteFromLeague(it)
+            dependency<ResultCodesRepository>().deleteFromLeague(it)
+            dependency<PredictionGameRepository>().deleteMessagesFromLeague(it)
         }
     }
 
@@ -615,7 +616,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun urlIntoStatistics(args: PrivateData) {
-        AnalysisStatistics.addDirectlyFromURL(args())
+        dependency<StatisticsRepository>().addDirectlyFromURL(args())
     }
 
     context(iData: InteractionData)
@@ -675,14 +676,10 @@ object PrivateCommands {
     suspend fun fillCropAuxiliary(args: PrivateData) {
         iData.done()
         val gid = args().toLong()
-        dbTransaction {
-            CropAuxiliaryDB.batchInsert(Tierlist[gid]!!.retrieveAll().map {
-                NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
-            }, shouldReturnGeneratedValues = false, ignore = true) {
-                this[CropAuxiliaryDB.GUILD] = gid
-                this[CropAuxiliaryDB.POKEMON] = it
-            }
+        val pokemonList = Tierlist[gid]!!.retrieveAll().map {
+            NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
         }
+        dependency<PokemonCropRepository>().fillCropAuxiliary(gid, pokemonList)
     }
 
     context(iData: InteractionData)
@@ -708,7 +705,8 @@ object PrivateCommands {
 
     @OptIn(ExperimentalUuidApi::class)
     context(iData: InteractionData) suspend fun liveteam(args: PrivateData) {
-        iData.reply(LiveTeamDB.generateForLeague(args()).toString())
+        val code = dependency<LiveTeamRepository>().generateForLeague(args())
+        iData.reply(code.toString())
     }
 
     context(iData: InteractionData)
@@ -754,7 +752,7 @@ object PrivateCommands {
     suspend fun generateCropOverview(args: PrivateData) {
         iData.deferReply()
         val gid = args().toLong()
-        PokemonCropService.generateOverviewImage(gid)
+        dependency<PokemonCropRepository>().generateOverviewImage(gid)
         iData.done()
     }
 }

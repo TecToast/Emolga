@@ -47,11 +47,11 @@ import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.modals.Modal
+import org.koin.core.component.KoinComponent
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
-import kotlin.reflect.full.isSubclassOf
 
 sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent, A : Arguments>(
     val argsFun: () -> @UnsafeVariance A,
@@ -174,9 +174,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
         defaultArgs.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
             .toMap()
     }
-    val children = (this::class.nestedClasses as Collection<KClass<out CommandFeature<*>>>).filter {
-        it.isSubclassOf(CommandFeature::class)
-    }.map { it.objectInstance!! }
+    open val children: List<CommandFeature<*>> = emptyList()
     val childCommands = children.associateBy { it.spec.name }
     var slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.ENABLED
 
@@ -458,7 +456,7 @@ interface ModalArgOption {
 }
 
 data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
-open class Arguments {
+open class Arguments : KoinComponent {
     private val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
     inline fun string(

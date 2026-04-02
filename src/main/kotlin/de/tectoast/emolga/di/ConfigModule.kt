@@ -27,10 +27,6 @@ class ConfigModule {
     fun discordFlegmon(): String? = tokens.discordflegmon
 
     @Single
-    @Named("discordRaikouToken")
-    fun discordRaikou(): String? = tokens.discordraikou
-
-    @Single
     fun subscriber(): Tokens.Subscriber = tokens.subscriber
 
     @Single

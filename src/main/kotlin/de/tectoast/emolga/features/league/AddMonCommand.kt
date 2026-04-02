@@ -25,6 +25,7 @@ import org.litote.kmongo.eq
 object AddMonCommand : CommandFeature<AddMonCommand.Args>(
     ::Args, CommandSpec("addmon", K18n_AddMon.Help).apply { inDM = true }) {
     class Args : Arguments() {
+        val service by
         var pokemon by createArg(
             "pokemon", K18n_AddMon.ArgPokemon, OptionType.STRING
         ) {

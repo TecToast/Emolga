@@ -1,7 +1,7 @@
 package de.tectoast.emolga.features.league
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.ResultCodesDB
+import de.tectoast.emolga.database.exposed.ResultCodesRepository
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoLeagueForGuildFound
 import de.tectoast.emolga.league.League
@@ -102,7 +102,8 @@ object EnterResult {
         val idx1 = league(u)
         val idx2 = league(opponent)
         val gameday = league.getGamedayData(idx1, idx2).first.gameday
-        val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
+        val uuid =
+            de.tectoast.emolga.utils.dependency<ResultCodesRepository>().add(league.leaguename, gameday, idx1, idx2)
         iData.reply(
             K18n_EnterResult.Success(uuid.toString()),
             ephemeral = true

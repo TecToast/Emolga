@@ -3,10 +3,8 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.AnalysisStatistics
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
-import de.tectoast.emolga.database.exposed.SwitchType
+import de.tectoast.emolga.database.exposed.*
+import de.tectoast.emolga.database.exposed.PredictionGameRepository
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -113,7 +111,7 @@ class DocEntry private constructor(val league: League) {
             league.executePredictionGameLockButtonsIndividual(
                 gameday, battleindex
             )
-            PredictionGameVotesDB.updateCorrectBattles(
+            dependency<PredictionGameRepository>().updateCorrectBattles(
                 league.leaguename,
                 gameday,
                 battleindex,
@@ -340,7 +338,7 @@ interface AnalysisProvider {
 
 object BuiltInAnalysisProvider : AnalysisProvider {
     override fun getEvents(replayData: ReplayData): AnalysisEvents {
-        return AnalysisStatistics.lastEventsCache[replayData.url]
+        return dependency<StatisticsRepository>().getEvents(replayData.url)
             ?: error("No analysis events found for replay ${replayData.url}") // TODO: better error handling
     }
 }

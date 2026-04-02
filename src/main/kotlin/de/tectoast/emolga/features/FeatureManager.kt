@@ -2,17 +2,18 @@
 
 package de.tectoast.emolga.features
 
-import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.K18n_FeatureManager
-import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.CmdManager
+import de.tectoast.emolga.database.exposed.CommandManager
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
+import de.tectoast.emolga.di.StartupTask
+import de.tectoast.emolga.features.flo.AddRemove
 import de.tectoast.emolga.utils.*
 import de.tectoast.k18n.generated.K18nLanguage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -23,19 +24,40 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
+import org.koin.core.annotation.Single
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
+interface FeatureManager {
+    suspend fun handleEvent(e: GenericEvent)
+
+    suspend fun updateCommandsForGuild(gid: Long)
+
+    suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove)
+
+    suspend fun modifyGuildCommand(guildId: Long, command: String, action: AddRemove)
+
+    suspend fun modifyGroupCommand(group: String, command: String, action: AddRemove)
+}
+
+interface JDAProvider {
+    fun provideJDA(guild: Long): JDA
+}
+
+@Single
+class ProductionJDAProvider(val emolgaJDA: JDA, val flegmonJDA: JDA) : JDAProvider {
+    override fun provideJDA(guild: Long) = if (guild == Constants.G.PEPE) flegmonJDA else emolgaJDA
+}
+
+@Single
+class JDAFeatureManager(
+    private val loadListeners: Set<ListenerProvider>,
+    private val cmdManager: CommandManager,
+    private val jdaProvider: JDAProvider
+) : FeatureManager, StartupTask {
     private val listenerScope = createCoroutineScope("FeatureManagerListener")
     private val surveillanceScope = createCoroutineScope("FeatureManagerSurveillance")
-
-    constructor(packageName: String) : this(packageName.let {
-        ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {
-            findAllFeaturesRecursively(it.load().kotlin)
-        }.flatten().toSet()
-    })
 
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String>
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>
@@ -66,8 +88,50 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
     }
 
+    override suspend fun modifyGuildGroup(
+        guildId: Long,
+        group: String,
+        action: AddRemove
+    ) {
+        cmdManager.modifyGuildGroup(guildId, group, action)
+        updateCommandsForGuild(guildId)
+    }
 
-    suspend fun handleEvent(e: GenericEvent) {
+    override suspend fun modifyGuildCommand(
+        guildId: Long,
+        command: String,
+        action: AddRemove
+    ) {
+        cmdManager.modifyGuildCommand(guildId, command, action)
+        updateCommandsForGuild(guildId)
+    }
+
+    override suspend fun modifyGroupCommand(
+        group: String,
+        command: String,
+        action: AddRemove
+    ) {
+        cmdManager.modifyGroupCommand(group, command, action)
+        updateAllGuildsInGroup(group)
+    }
+
+    private suspend fun updateAllGuildsInGroup(group: String) {
+        for (guild in cmdManager.getGuildsForGroup(group)) {
+            updateCommandsForGuild(guild)
+            delay(2000)
+        }
+    }
+
+    override suspend fun onStartup() {
+        val registeredFeatureNames = registeredFeatureList.map { it.spec.name }.toSet()
+        val updatedGuilds = cmdManager.startupCheck(registeredFeatureNames)
+        for (gid in updatedGuilds) {
+            updateCommandsForGuild(gid)
+            delay(2000) // avoid rate limits
+        }
+    }
+
+    override suspend fun handleEvent(e: GenericEvent) {
         logger.trace { "Handling ${e::class.simpleName}" }
         val kClass = e::class
         listeners[kClass]?.forEach {
@@ -180,9 +244,9 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         } else addOptions(generateOptionData(cmd, gid))
     }
 
-    suspend fun updateCommandsForGuild(gid: Long) {
+    override suspend fun updateCommandsForGuild(gid: Long) {
         val guildFeatures: MutableSet<CommandData> = mutableSetOf()
-        val allFeatureNames = CmdManager.getFeaturesForGuild(gid)
+        val allFeatureNames = cmdManager.getFeaturesForGuild(gid)
         with(guildFeatures) {
             loadListeners.filterIsInstance<Feature<*, *, *>> { it.spec.name in allFeatureNames }.forEach { cmd ->
                 when (cmd) {
@@ -198,7 +262,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             }
         }
-        val usedJda = if (gid == Constants.G.PEPE) EmolgaMain.flegmonjda!! else jda
+        val usedJda = jdaProvider.provideJDA(gid)
         (if (gid == -1L) usedJda.updateCommands()
         else usedJda.getGuildById(gid)?.updateCommands())?.addCommands(guildFeatures)?.queue()
     }

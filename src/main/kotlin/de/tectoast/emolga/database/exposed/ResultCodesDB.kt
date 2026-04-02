@@ -1,7 +1,5 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.mdb
@@ -9,37 +7,63 @@ import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.JDA
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insert
 import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Single
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-object ResultCodesDB : Table("resultcodes") {
-    val CODE = uuid("code")
-    val LEAGUENAME = varchar("leaguename", 32)
-    val GAMEDAY = integer("gameday")
-    val P1 = integer("p1")
-    val P2 = integer("p2")
+@Serializable
+data class ResultCodeEntry(
+    val code: Uuid,
+    val leagueName: String,
+    val gameday: Int,
+    val p1: Int,
+    val p2: Int
+)
 
-    override val primaryKey = PrimaryKey(CODE)
+@OptIn(ExperimentalUuidApi::class)
+interface ResultCodesRepository {
+    suspend fun getEntryByCode(resultid: String): ResultCodeEntry?
+    suspend fun getResultDataForUser(resultid: String): ResultCodeResponse?
+    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid
+    suspend fun delete(code: Uuid)
+    suspend fun deleteFromLeague(league: String)
+}
 
-    suspend fun getEntryByCode(resultid: String) = dbTransaction {
-        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@dbTransaction null
-        selectAll().where { CODE eq uuid }.singleOrNull()
+@OptIn(ExperimentalUuidApi::class)
+@Single(binds = [ResultCodesRepository::class])
+class PostgresResultCodesRepository(val db: R2dbcDatabase, val resultCodes: ResultCodesDB, val jda: JDA) :
+    ResultCodesRepository {
+    override suspend fun getEntryByCode(resultid: String): ResultCodeEntry? = suspendTransaction(db) {
+        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@suspendTransaction null
+        resultCodes.selectAll().where { resultCodes.CODE eq uuid }.singleOrNull()?.let {
+            ResultCodeEntry(
+                code = it[resultCodes.CODE],
+                leagueName = it[resultCodes.LEAGUENAME],
+                gameday = it[resultCodes.GAMEDAY],
+                p1 = it[resultCodes.P1],
+                p2 = it[resultCodes.P2]
+            )
+        }
     }
 
-    suspend fun getResultDataForUser(resultid: String) = dbTransaction {
-        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@dbTransaction null
-        val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@dbTransaction null
-        val league = mdb.league(entry[LEAGUENAME])
+    override suspend fun getResultDataForUser(resultid: String) = suspendTransaction(db) {
+        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@suspendTransaction null
+        val entry =
+            resultCodes.selectAll().where { resultCodes.CODE eq uuid }.singleOrNull() ?: return@suspendTransaction null
+        val league = mdb.league(entry[resultCodes.LEAGUENAME])
         val gid = league.guild
-        val guild = jda.getGuildById(gid) ?: return@dbTransaction null
-        val idxes = listOf(entry[P1], entry[P2])
-        val memberData = guild.retrieveMembersByIds(idxes.map { league[it] }).await().associateBy { it.idLong }
+        val guild = jda.getGuildById(gid) ?: return@suspendTransaction null
+        val idxes = listOf(entry[resultCodes.P1], entry[resultCodes.P2])
+        val memberData = guild.retrieveMembersByIds(idxes.mapNotNull { league[it] }).await().associateBy { it.idLong }
         val tlEnglish = league.tierlist.isEnglish
         val allMonsTranslations =
             NameConventionsDB.getAllData(
@@ -49,10 +73,10 @@ object ResultCodesDB : Table("resultcodes") {
             guildName = guild.name,
             logoUrl = guild.iconUrl,
             bo3 = league.config.triggers.bo3,
-            gameday = entry[GAMEDAY],
+            gameday = entry[resultCodes.GAMEDAY],
             data = idxes.map { idx ->
                 val picks = league.picks(idx)
-                val uid = league[idx]
+                val uid = league[idx] ?: 0L
                 val member = memberData[uid]!!
                 val avatarUrl = member.effectiveAvatarUrl
                 ResultUserData(
@@ -71,28 +95,43 @@ object ResultCodesDB : Table("resultcodes") {
             })
     }
 
-    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
+    override suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
         val code: Uuid = Uuid.generateV7()
-        dbTransaction {
-            insert {
-                it[CODE] = code
-                it[LEAGUENAME] = leaguename
-                it[GAMEDAY] = gameday
-                it[P1] = p1
-                it[P2] = p2
+        suspendTransaction(db) {
+            resultCodes.insert {
+                it[resultCodes.CODE] = code
+                it[resultCodes.LEAGUENAME] = leaguename
+                it[resultCodes.GAMEDAY] = gameday
+                it[resultCodes.P1] = p1
+                it[resultCodes.P2] = p2
             }
         }
         return code
     }
 
-    suspend fun delete(code: Uuid) = dbTransaction {
-        deleteWhere { CODE eq code }
+    override suspend fun delete(code: Uuid) {
+        suspendTransaction(db) {
+            resultCodes.deleteWhere { resultCodes.CODE eq code }
+        }
     }
 
-    suspend fun deleteFromLeague(league: String) = dbTransaction {
-        deleteWhere { LEAGUENAME eq league }
+    override suspend fun deleteFromLeague(league: String) {
+        suspendTransaction(db) {
+            resultCodes.deleteWhere { resultCodes.LEAGUENAME eq league }
+        }
     }
+}
 
+@OptIn(ExperimentalUuidApi::class)
+@Single
+class ResultCodesDB : Table("resultcodes") {
+    val CODE = uuid("code")
+    val LEAGUENAME = varchar("leaguename", 32)
+    val GAMEDAY = integer("gameday")
+    val P1 = integer("p1")
+    val P2 = integer("p2")
+
+    override val primaryKey = PrimaryKey(CODE)
 }
 
 @Serializable

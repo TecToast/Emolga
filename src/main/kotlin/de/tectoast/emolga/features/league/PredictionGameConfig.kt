@@ -2,7 +2,7 @@
 
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.database.exposed.PredictionGameVotesDB
+import de.tectoast.emolga.database.exposed.PredictionGameRepository
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
@@ -44,7 +44,7 @@ object PredictionGameManager {
             iData.deferReply()
             val league = mdb.getLeague(e.leaguename) ?: return reportMissing()
             val predictionGame = league.config.predictionGame ?: return reportMissing()
-            PredictionGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
+            dependency<PredictionGameRepository>().addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
             iData.reply(K18n_PredictionGame.PredictionSaved)
             if (predictionGame.currentState == PredictionGameCurrentStateType.ALWAYS) {
                 iData.message.editMessageEmbeds(

@@ -2,7 +2,7 @@ package de.tectoast.emolga.utils
 
 import com.mongodb.client.model.Filters
 import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.SpoilerTagsDB
+import de.tectoast.emolga.database.exposed.SpoilerTagsRepository
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.features.league.K18n_Nominate
@@ -94,7 +94,7 @@ suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEnt
     val gamedayString = K18n_Gameday.translateToGuildLanguage(league.guild)
     val embeds = if (input is ResultEntryDescription.Bo3) {
         // TODO: Clean this up
-        val spoiler = SpoilerTagsDB.contains(league.guild)
+        val spoiler = dependency<SpoilerTagsRepository>().contains(league.guild)
         val fullGameData = input.fullGameData
         val descriptions =
             fullGameData.games.map { game -> generateFinalMessage(league, fullGameData.uindices, game.kd) }

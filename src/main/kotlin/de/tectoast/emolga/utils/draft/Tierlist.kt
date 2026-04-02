@@ -28,6 +28,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.*
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.litote.kmongo.eq
 
 @Suppress("unused")
@@ -96,9 +97,13 @@ data class Tierlist(
                 it[IDENTIFIER] = identifier
             }
             val official = NameConventionsDB.getDiscordTranslation(mon, guildid, english = true)!!.official
-            CropAuxiliaryDB.insertIgnore(
-                TeamGraphicsMetaDB.select(TeamGraphicsMetaDB.GUILD, stringParam(official))
-                    .where { (TeamGraphicsMetaDB.GUILD eq guildid) })
+            val teamGraphicsMeta = dependency<TeamGraphicsMetaDB>()
+            val cropAuxiliary = dependency<CropAuxiliaryDB>()
+            suspendTransaction {
+                cropAuxiliary.insertIgnore(
+                    teamGraphicsMeta.select(teamGraphicsMeta.GUILD, stringParam(official))
+                        .where { (teamGraphicsMeta.GUILD eq guildid) })
+            }
         }
 
     }

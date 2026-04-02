@@ -82,7 +82,8 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun checkIfExists(name: String, guildId: Long, language: Language): Boolean {
         return dbTransaction {
-            selectAll().where((language.ncSpecifiedCol eq name) and (GUILD eq 0 or (GUILD eq guildId))).count() > 0
+            selectAll().where((if (language == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH eq name) and (GUILD eq 0 or (GUILD eq guildId)))
+                .count() > 0
         }
     }
 

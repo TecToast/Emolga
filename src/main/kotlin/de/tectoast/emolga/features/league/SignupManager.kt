@@ -1,16 +1,12 @@
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.GuildLanguageDB
-import de.tectoast.emolga.database.exposed.SDNamesDB
+import de.tectoast.emolga.database.exposed.GuildLanguageRepository
+import de.tectoast.emolga.database.exposed.SDNamesRepository
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoSignupInGuild
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.*
-import de.tectoast.emolga.utils.mapToChannelIdPair
-import de.tectoast.emolga.utils.translateToGuildLanguage
 import de.tectoast.generic.K18n_SignupVerb
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
@@ -20,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -117,7 +114,7 @@ object SignupManager {
         config: LigaStartConfig
     ) {
         if (mdb.signups.get(gid, config.identifier) != null) return
-        val tc = jda.getTextChannelById(config.announceChannel)!!
+        val tc = dependency<JDA>().getTextChannelById(config.announceChannel)!!
 
         val messageid =
             tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) {
@@ -126,7 +123,7 @@ object SignupManager {
                     config.maxUsers.takeIf { it > 0 }?.toString() ?: "?"
                 ).translateToGuildLanguage(gid)
             })
-                .addComponents(Button.withoutIData(language = GuildLanguageDB.getLanguage(gid)) {
+                .addComponents(Button.withoutIData(language = dependency<GuildLanguageRepository>().getLanguage(gid)) {
                     this.identifier = config.identifier
                 }.into())
                 .await().idLong
@@ -175,7 +172,7 @@ object SignupManager {
                         }
                     }
                 }
-                val jda = iData?.jda ?: jda
+                val jda = iData?.jda ?: dependency<JDA>()
                 if (isChange) {
                     val oldData = getDataByUser(uid) ?: return iData?.reply(K18n_Signup.NotSignedUp)
                     oldData.data.putAll(data)
@@ -207,7 +204,7 @@ object SignupManager {
                     logoAttachment?.handleLogo(uid, iData)
                     @Suppress("DeferredResultUnused")
                     data[SignUpInput.SDNAME_ID]?.let {
-                        SDNamesDB.addIfAbsent(it, uid)
+                        dependency<SDNamesRepository>().addIfAbsent(it, uid)
                     }
                     data[SignUpInput.YT_CHANNEL_ID]?.let {
                         YTChannelsDB.insertSingle(uid, it.mapToChannelIdPair())

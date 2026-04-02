@@ -283,9 +283,6 @@ data class TypeIcon(
 
 @Serializable
 data class GeneralConfig(
-    val teamgraphicShinyOdds: Int,
-    val guildsToUpdate: List<Long> = listOf(),
-    val raikou: Boolean = false,
     val ytLeagues: Map<String, Long> = mapOf(),
     var maintenance: String? = null,
 )
@@ -867,6 +864,21 @@ sealed interface CalcResult<T> {
     data class Error<T>(val message: K18nMessage) : CalcResult<T>
 
 }
+typealias K18nMessageOrError = CalcResult<K18nMessage>
+
+fun <T> T.success() = CalcResult.Success(this)
+fun <T> K18nMessage.error() = CalcResult.Error<T>(this)
+fun K18nMessageOrError.msg() = when (this) {
+    is CalcResult.Success -> value
+    is CalcResult.Error -> message
+}
+
+inline fun <T, R> CalcResult<T>.getOrReturn(action: (CalcResult.Error<R>) -> Nothing): T =
+    when (this) {
+        is CalcResult.Success -> value
+        is CalcResult.Error -> action(message.error())
+    }
+
 
 @OptIn(ExperimentalContracts::class)
 inline fun <T> CalcResult<T>.onFailure(action: (K18nMessage) -> Unit): T? {

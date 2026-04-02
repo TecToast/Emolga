@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.showdown
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.ProductionGeneralDiscordService
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
@@ -72,7 +72,7 @@ object Analysis {
         logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
         val g = resultchannelParam.guild
         val gid = customGuild ?: g.idLong
-        val lang = GuildLanguageDB.getLanguage(gid)
+        val lang = dependency<GuildLanguageRepository>().getLanguage(gid)
         suspend fun send(msg: K18nMessage) {
             fromReplayCommand?.reply(msg) ?: resultchannelParam.sendMessage(msg.translateTo(lang)).queue()
         }
@@ -128,10 +128,10 @@ object Analysis {
             val url = ctx.url
             val u1 = game[0].nickname
             val u2 = game[1].nickname
-            val uid1db = SDNamesDB.getIDByName(u1)
-            val uid2db = SDNamesDB.getIDByName(u2)
+            val uid1db = dependency<SDNamesRepository>().getIDByName(u1)
+            val uid2db = dependency<SDNamesRepository>().getIDByName(u2)
             logger.info("Analysed!")
-            val spoiler = SpoilerTagsDB.contains(gid)
+            val spoiler = dependency<SpoilerTagsRepository>().contains(gid)
             game.forEach { player ->
                 player.pokemon.addAll(List((player.teamSize - player.pokemon.size).coerceAtLeast(0)) {
                     SDPokemon(
@@ -180,7 +180,8 @@ object Analysis {
             } else {
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.reply(msgCreateData = tosend)
-                val dontTranslate = dontTranslateFromReplayServer || EnglishResultsDB.contains(gid)
+                val dontTranslate =
+                    dontTranslateFromReplayServer || dependency<EnglishResultsRepository>().contains(gid)
                 val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate, lang)
                 if (league != null) {
                     resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
@@ -211,9 +212,9 @@ object Analysis {
                 }
             }
 
-            AnalysisStatistics.addToStatisticsSync(ctx)
+            dependency<StatisticsRepository>().addToStatisticsSync(ctx)
             Database.dbScope.launch {
-                EmolgaMain.updatePresence()
+                dependency<ProductionGeneralDiscordService>().updatePresence()
             }
 
             logger.info("In Emolga Listener!")

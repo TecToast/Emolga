@@ -1,12 +1,12 @@
 package de.tectoast.emolga.utils.teamgraphics
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.ktor.TeamgraphicsSpriteStyle
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.dependency
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.SignUpInput
 import de.tectoast.emolga.utils.json.get
@@ -24,11 +24,6 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.utils.FileUpload
-import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.r2dbc.selectAll
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Shape
@@ -80,25 +75,12 @@ object TeamGraphicGenerator {
     suspend fun generate(
         teamData: TeamData, style: TeamGraphicStyle, options: Options = Options()
     ): BufferedImage {
-        val monData = dbTransaction {
-            PokemonCropDB.selectAll()
-                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames.values)) }
-                .toMap { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
-        }
+        val monData =
+            dependency<PokemonCropRepository>().getDrawData(style.guild, teamData.englishNames.values.toList())
         return createOneTeamGraphic(
             teamData.teamOwner, teamData.teamName, teamData.logo, teamData.englishNames.mapValues { (_, name) ->
                 (monData[name] ?: error("MonData for $name not found"))
             }.toMap(), style, options
-        )
-    }
-
-    private fun ResultRow.toDrawData(): DrawData {
-        return DrawData(
-            name = this[PokemonCropDB.OFFICIAL],
-            x = this[PokemonCropDB.X],
-            y = this[PokemonCropDB.Y],
-            size = this[PokemonCropDB.SIZE],
-            flipped = this[PokemonCropDB.FLIPPED]
         )
     }
 
@@ -143,7 +125,11 @@ object TeamGraphicGenerator {
         g2d.setCommonRenderingHints()
         g2d.drawOptionalText(teamOwner?.let(style::transformUsername), style.playerText)
         g2d.drawOptionalText(teamName, style.teamnameText)
-        g2d.drawMons(monData, style, TeamGraphicsMetaDB.getSpriteStyle(style.guild) ?: TeamgraphicsSpriteStyle.SUGIMORI)
+        g2d.drawMons(
+            monData,
+            style,
+            dependency<TeamGraphicsMetaRepository>().getSpriteStyle(style.guild) ?: TeamgraphicsSpriteStyle.SUGIMORI
+        )
         style.overlayPath?.let {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }

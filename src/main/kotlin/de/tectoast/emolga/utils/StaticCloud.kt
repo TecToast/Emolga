@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.database.exposed.LogoNameDB
+import de.tectoast.emolga.database.exposed.LogoNameRepository
 import de.tectoast.emolga.utils.json.LogoInputData
 import de.tectoast.emolga.utils.json.Tokens
 import io.ktor.client.request.*
@@ -9,13 +9,15 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.annotation.Single
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
 /**
  * Utility object for interacting with the StaticCloud API (see https://github.com/TecToast/StaticCloud)
  */
-class StaticCloud(private val credentials: Tokens.StaticCloud) {
+@Single
+class StaticCloud(private val credentials: Tokens.StaticCloud, private val logoNameRepository: LogoNameRepository) {
     val hashLength = credentials.hashLength
 
     suspend fun downloadImage(fileName: String): BufferedImage =
@@ -50,12 +52,12 @@ class StaticCloud(private val credentials: Tokens.StaticCloud) {
         data: LogoInputData
     ) = withContext(Dispatchers.IO) {
         val fileName = data.fileName
-        if (!LogoNameDB.fileNameExists(data.fileName)) {
+        if (!logoNameRepository.fileNameExists(data.fileName)) {
             uploadFileToCloud(
                 data.fileName, "image/${data.fileExtension}", data.bytes
             )
         }
-        LogoNameDB.insertFileName(fileName, data.teamName)
+        logoNameRepository.insertFileName(fileName, data.teamName)
         fileName
     }
 }

@@ -1,47 +1,66 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.database.dbTransaction
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.singleOrNull
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insert
 import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Single
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-object TransactionCodesDB : Table("transactioncodes") {
-    val CODE = uuid("code")
-    val LEAGUENAME = varchar("leaguename", 32)
-    val IDX = integer("idx")
+interface TransactionCodesRepository {
+    suspend fun getDataByCode(transactionid: String): Pair<String, Int>?
+    suspend fun add(leaguename: String, idx: Int): Uuid
+    suspend fun deleteCode(transactionid: String)
+}
 
-    override val primaryKey = PrimaryKey(CODE)
+@OptIn(ExperimentalUuidApi::class)
+@Single(binds = [TransactionCodesRepository::class])
+class PostgresTransactionCodesRepository(
+    private val db: R2dbcDatabase,
+    private val table: TransactionCodesDB
+) : TransactionCodesRepository {
 
-    suspend fun getDataByCode(transactionid: String) = dbTransaction {
-        val uuid = Uuid.parseHexDashOrNull(transactionid) ?: return@dbTransaction null
-        selectAll().where { CODE eq uuid }.map { it[LEAGUENAME] to it[IDX] }.singleOrNull()
+    override suspend fun getDataByCode(transactionid: String): Pair<String, Int>? {
+        val uuid = Uuid.parseHexDashOrNull(transactionid) ?: return null
+        return suspendTransaction(db) {
+            table.selectAll().where { table.CODE eq uuid }.map { it[table.LEAGUENAME] to it[table.IDX] }.singleOrNull()
+        }
     }
 
-    suspend fun add(leaguename: String, idx: Int): Uuid {
+    override suspend fun add(leaguename: String, idx: Int): Uuid {
         val code: Uuid = Uuid.generateV7()
-        dbTransaction {
-            insert {
-                it[CODE] = code
-                it[LEAGUENAME] = leaguename
-                it[IDX] = idx
+        suspendTransaction(db) {
+            table.insert {
+                it[table.CODE] = code
+                it[table.LEAGUENAME] = leaguename
+                it[table.IDX] = idx
             }
         }
         return code
     }
 
-
-    suspend fun deleteCode(transactionid: String) {
+    override suspend fun deleteCode(transactionid: String) {
         val uuid = Uuid.parseHexDashOrNull(transactionid) ?: return
-        dbTransaction {
-            deleteWhere { CODE eq uuid }
+        suspendTransaction(db) {
+            table.deleteWhere { table.CODE eq uuid }
         }
     }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+@Single
+class TransactionCodesDB : Table("transactioncodes") {
+    val CODE = uuid("code")
+    val LEAGUENAME = varchar("leaguename", 32)
+    val IDX = integer("idx")
+
+    override val primaryKey = PrimaryKey(CODE)
 
 }

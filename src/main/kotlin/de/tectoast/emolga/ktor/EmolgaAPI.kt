@@ -3,6 +3,7 @@
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.GuildManagerDB.getGuildsForUser
 import de.tectoast.emolga.features.league.K18n_Transaction
@@ -30,6 +31,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.*
@@ -42,6 +44,8 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.DiscordAssets
 import net.dv8tion.jda.api.utils.ImageFormat
 import org.bson.conversions.Bson
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.select
 import org.litote.kmongo.contains
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
@@ -110,7 +114,7 @@ fun Route.emolgaAPI() {
                     name = g.name,
                     icon = g.iconUrl ?: "",
                     mdb.signups.findOne(LigaStartData::guild eq it) != null,
-                    TeamGraphicsMetaDB.getShape(it)
+                    dependency<TeamGraphicsMetaRepository>().getShape(it)
                 )
             })
         }
@@ -118,14 +122,14 @@ fun Route.emolgaAPI() {
             route("/teamgraphics") {
                 get("/new") {
                     val gid = call.requireGuild() ?: return@get
-                    PokemonCropService.getNewPokemonToCrop(gid)?.let {
+                    dependency<PokemonCropRepository>().getNewPokemonToCrop(gid)?.let {
                         call.respond(it)
                     } ?: call.respond(HttpStatusCode.NotFound)
                 }
                 post("/data") {
                     val gid = call.requireGuild() ?: return@post
                     val data = call.receive<PokemonCropData>()
-                    PokemonCropService.insertPokemonCropData(gid, data, call.userId)
+                    dependency<PokemonCropRepository>().insertPokemonCropData(gid, data, call.userId)
                     call.respond(HttpStatusCode.Accepted)
                 }
                 staticFiles("/img", File("/teamgraphics/sprites"), index = null)
@@ -237,21 +241,23 @@ fun Route.emolgaAPI() {
     route("/result/{resultid}") {
         get {
             val resultId = call.parameters["resultid"] ?: return@get call.bad()
-            ResultCodesDB.getResultDataForUser(resultId)?.let { resultData ->
+            dependency<ResultCodesRepository>().getResultDataForUser(resultId)?.let { resultData ->
                 call.respond(resultData)
             } ?: call.respond(HttpStatusCode.NotFound)
         }
         post {
             val resultId = call.parameters["resultid"] ?: return@post call.bad()
-            val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
+            val resultCodesRepository = dependency<ResultCodesRepository>()
+            val resData =
+                resultCodesRepository.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
             val body = call.receive<List<List<Map<String, KD>>>>()
             if (body.size > 3 || body.isEmpty()) return@post call.bad()
             // TODO: Maybe combine with ResultEntry? and clean up
-            val idx1 = resData[ResultCodesDB.P1]
-            val idx2 = resData[ResultCodesDB.P2]
+            val idx1 = resData.p1
+            val idx2 = resData.p2
             val idxs = listOf(idx1, idx2)
-            ResultCodesDB.delete(resData[ResultCodesDB.CODE])
-            League.executeOnFreshLock(resData[ResultCodesDB.LEAGUENAME]) {
+            resultCodesRepository.delete(resData.code)
+            League.executeOnFreshLock(resData.leagueName) {
                 val channel = jda.getTextChannelById(resultChannel!!)!!
                 // TODO: refactor DraftPlayer GamedayData etc
                 val (gamedayData, u1IsSecond) = getGamedayData(idx1, idx2)
@@ -284,7 +290,7 @@ fun Route.emolgaAPI() {
                     FullGameData(idxs.reversedIf(u1IsSecond), gamedayData.gameday, gamedayData.battleIndex, games)
                 if (config.replayDataStore != null) {
                     channel.sendResultEntryMessage(
-                        resData[ResultCodesDB.GAMEDAY],
+                        resData.gameday,
                         ResultEntryDescription.MatchPresent(fullGameData.uindices.map { this[it] })
                     )
                 } else {
@@ -359,7 +365,9 @@ fun Route.emolgaAPI() {
     get("/liveteam") {
         val token = call.request.queryParameters["token"] ?: return@get call.bad()
         val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
-        val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val leaguename = dbTransaction {
+            LiveTeamDB.select(LiveTeamDB.LEAGUE).where { LiveTeamDB.CODE eq uuid }.firstOrNull()?.get(LiveTeamDB.LEAGUE)
+        } ?: return@get call.respond(HttpStatusCode.NotFound)
         val numRaw = call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.bad()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         val style = league.config.teamgraphics?.style ?: return@get call.respond(
@@ -387,7 +395,9 @@ fun Route.emolgaAPI() {
     get("/teamgraphic") {
         val token = call.request.queryParameters["token"] ?: return@get call.bad()
         val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
-        val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val leaguename = dbTransaction {
+            LiveTeamDB.select(LiveTeamDB.LEAGUE).where { LiveTeamDB.CODE eq uuid }.firstOrNull()?.get(LiveTeamDB.LEAGUE)
+        } ?: return@get call.respond(HttpStatusCode.NotFound)
         val idx = call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.bad()
         val mons = call.request.queryParameters["mons"]?.toIntOrNull()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
@@ -396,7 +406,8 @@ fun Route.emolgaAPI() {
     route("/transaction/{transactionid}") {
         get {
             val transactionid = call.parameters["transactionid"] ?: return@get call.bad()
-            val (leaguename, idx) = TransactionCodesDB.getDataByCode(transactionid) ?: return@get call.respond(
+            val (leaguename, idx) = dependency<TransactionCodesRepository>().getDataByCode(transactionid)
+                ?: return@get call.respond(
                 HttpStatusCode.NotFound
             )
             val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
@@ -430,7 +441,8 @@ fun Route.emolgaAPI() {
         }
         post {
             val transactionid = call.parameters["transactionid"] ?: return@post call.bad()
-            val (leaguename, idx) = TransactionCodesDB.getDataByCode(transactionid) ?: return@post call.respond(
+            val (leaguename, idx) = dependency<TransactionCodesRepository>().getDataByCode(transactionid)
+                ?: return@post call.respond(
                 HttpStatusCode.NotFound
             )
             val data = call.receive<TransactionRequestData>()
@@ -492,7 +504,7 @@ fun Route.emolgaAPI() {
                 amounts.extraTeras += newTeraUsers.size - teraUserDiscount
                 save()
                 call.respond(HttpStatusCode.NoContent)
-                TransactionCodesDB.deleteCode(transactionid)
+                dependency<TransactionCodesRepository>().deleteCode(transactionid)
                 tc.send(
                     K18n_Transaction.Done(
                         this[idx],
@@ -591,7 +603,7 @@ data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: L
 data class UsageData(val mon: String, val count: Int)
 
 suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map<String, KD>>): String {
-    val spoiler = SpoilerTagsDB.contains(league.guild)
+    val spoiler = dependency<SpoilerTagsRepository>().contains(league.guild)
     return "${
         data.mapIndexed { index, sdPlayer ->
             mutableListOf<Any>("<@${league[idxs[index]]}>", sdPlayer.count { it.value.deaths == 0 }).apply {

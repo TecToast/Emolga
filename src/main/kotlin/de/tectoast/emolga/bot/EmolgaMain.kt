@@ -1,22 +1,20 @@
 package de.tectoast.emolga.bot
 
-import de.tectoast.emolga.bot.EmolgaMain.emolgajda
-import de.tectoast.emolga.database.exposed.AnalysisStatistics
-import de.tectoast.emolga.database.exposed.CmdManager
+import de.tectoast.emolga.bot.GeneralDiscordService.Companion.ROUTINE_MAINTENANCE_KEY
+import de.tectoast.emolga.database.exposed.StatisticsRepository
+import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.marker
+import de.tectoast.emolga.utils.translateToGuildLanguage
 import de.tectoast.generic.K18n_RoutineMaintenance
 import dev.minn.jda.ktx.events.listener
-import dev.minn.jda.ktx.jdabuilder.cache
-import dev.minn.jda.ktx.jdabuilder.default
-import dev.minn.jda.ktx.jdabuilder.intents
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Activity
@@ -24,48 +22,51 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
-import net.dv8tion.jda.api.requests.GatewayIntent
-import net.dv8tion.jda.api.utils.MemberCachePolicy
-import net.dv8tion.jda.api.utils.cache.CacheFlag.*
+import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
 import org.litote.kmongo.ne
-import org.slf4j.LoggerFactory
 
-var injectedJDA: JDA? = null
-    get() {
-        if (field == null) {
-            System.getenv("EMOLGATOKEN")?.let {
-                usedJDA = true
-                field = default(it, intents = listOf()) {
-                    cache -= listOf(VOICE_STATE, EMOJI, STICKER, SCHEDULED_EVENTS)
-                }.awaitReady()
-            }
-        }
-        return field
+interface GeneralDiscordService {
+    suspend fun updatePresence()
+    suspend fun enableMaintenance(reason: String)
+    suspend fun disableMaintenance()
+
+    companion object {
+        const val ROUTINE_MAINTENANCE_KEY = "ROUTINE"
     }
-var usedJDA = false
-    private set
-val jda: JDA by lazy { injectedJDA ?: emolgajda }
+}
 
-object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
-    lateinit var emolgajda: JDA
-    var flegmonjda: JDA? = null
-    var raikoujda: JDA? = null
-    private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
+@Single
+class ProductionGeneralDiscordService(
+    val emolgajda: JDA,
+    @Named("flegmon") val flegmonjda: JDA?,
+    val featureManager: FeatureManager,
+    private val statisticsRepository: StatisticsRepository
+) : GeneralDiscordService, StartupTask {
 
-    val featureManager = OneTimeCache { FeatureManager("de.tectoast.emolga.features") }
-    const val ROUTINE_MAINTENANCE_KEY = "ROUTINE"
+    private val logger = KotlinLogging.logger {}
     var maintenance: String? = null
+
+    override suspend fun enableMaintenance(reason: String) {
+        maintenance = reason
+        updatePresence()
+    }
+
+    override suspend fun disableMaintenance() {
+        maintenance = null
+        updatePresence()
+    }
+
+    override suspend fun onStartup() {
+
+    }
 
     /**
      * Starts the discord bots
      */
     fun launchBots() {
         Message.suppressContentIntentWarning()
-        emolgajda = default(dependency("discordToken")) {
-            //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            intents -= GatewayIntent.MESSAGE_CONTENT
-            setMemberCachePolicy(MemberCachePolicy.DEFAULT)
-        }
+
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
             mdb.league.find(League::draftState ne DraftState.OFF).toFlow().collect {
@@ -75,31 +76,12 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
                 }
             }
         }
-        dependencyOrNull<String>("discordFlegmonToken")?.let { flegmon ->
-            flegmonjda = default(flegmon) {
-                intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-                setMemberCachePolicy(MemberCachePolicy.ALL)
-            }
-        }
-        defaultScope.launch {
-            if (mdb.config.only().raikou) {
-                dependencyOrNull<String>("discordRaikouToken").takeIf { it != "" }?.let {
-                    raikoujda = default(it) {
-                        intents += GatewayIntent.MESSAGE_CONTENT
-                    }
-                }
-            }
-        }
     }
 
     /**
      * Starts the listeners for the discord bots
      */
     suspend fun startListeners() {
-        launch {
-            featureManager.updateCachedValue()
-            CmdManager.startupCheck()
-        }
         mdb.config.only().maintenance?.let {
             maintenance = it
         }
@@ -115,7 +97,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
                         return@listener
                     }
                 }
-                featureManager().handleEvent(it)
+                featureManager.handleEvent(it)
             }
             DConfiguratorManager.registerEvent(jda)
             jda.awaitReady()
@@ -128,13 +110,13 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     /**
      * Updates the presence of Emolga to the current amount of replays (or maintencance mode message)
      */
-    suspend fun updatePresence() {
+    override suspend fun updatePresence() {
         if (maintenance != null) {
             emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.customStatus("Maintenance"))
             return
         }
         val amountInLastSystem = 47474
-        val count = AnalysisStatistics.getCurrentAmountOfReplays() + amountInLastSystem
+        val count = statisticsRepository.getCurrentAmountOfReplays() + amountInLastSystem
         emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("$count analyzed replays"))
     }
 

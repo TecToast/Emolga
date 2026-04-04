@@ -51,65 +51,45 @@ data class CorrectTotalData(
     val total: Int
 )
 
-interface PredictionGameVoteRepository {
-    suspend fun updateCorrectBattles(league: String, gameday: Int, battle: Int, winningIndex: Int)
-    suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, idx: Int)
-    suspend fun getCurrentVoteState(league: String, gameday: Int, battle: Int): Map<Int, Long>
-
-    suspend fun getFullResultsSummary(league: String): List<BasicUserPredictionScore>
-    suspend fun getTopNOfGuild(guild: Long, n: Int): List<AdvancedUserPredictionScore>
-    suspend fun getStatsWithAboveAndBelow(guild: Long, userId: Long): List<AboveBelowUserPredictionScore>?
-    suspend fun getUserStatsPerLeague(guild: Long, userId: Long): Map<String, CorrectTotalData>
-    suspend fun getMissingVotesForGameday(
-        guild: Long,
-        gameday: Int,
-        user: Long
-    ): MissingVotesData
-
-    suspend fun getOwnVotesForLeagueAndGameday(
-        guild: Long,
-        leagueName: String,
-        gameday: Int,
-        userId: Long,
-    ): CalcResult<List<OwnVotesData>>
-}
-
-
 private const val ABOVE_BELOW_COUNT = 3
 
+// TODO maybe create a service
 @Single
-class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: PredictionGameVotesDB) :
-    PredictionGameVoteRepository {
-    override suspend fun updateCorrectBattles(league: String, gameday: Int, battle: Int, winningIndex: Int) {
+class PredictionGameVoteRepository(val db: R2dbcDatabase) {
+    suspend fun updateCorrectBattles(league: String, gameday: Int, battle: Int, winningIndex: Int) {
         suspendTransaction(db) {
-            votes.update({ (votes.leaguename eq league) and (votes.week eq gameday) and (votes.battle eq battle) }) {
-                it[votes.correct] = votes.idx eq winningIndex
+            PredictionGameVotesTable.update({
+                (PredictionGameVotesTable.leaguename eq league) and
+                        (PredictionGameVotesTable.week eq gameday) and
+                        (PredictionGameVotesTable.battle eq battle)
+            }) {
+                it[PredictionGameVotesTable.correct] = PredictionGameVotesTable.idx eq winningIndex
             }
         }
     }
 
-    override suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, idx: Int) {
+    suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, idx: Int) {
         suspendTransaction(db) {
-            votes.upsert {
-                it[votes.userid] = user
-                it[votes.leaguename] = league
-                it[votes.week] = gameday
-                it[votes.battle] = battle
-                it[votes.idx] = idx
+            PredictionGameVotesTable.upsert {
+                it[PredictionGameVotesTable.userid] = user
+                it[PredictionGameVotesTable.leaguename] = league
+                it[PredictionGameVotesTable.week] = gameday
+                it[PredictionGameVotesTable.battle] = battle
+                it[PredictionGameVotesTable.idx] = idx
             }
         }
     }
 
-    override suspend fun getCurrentVoteState(league: String, gameday: Int, battle: Int): Map<Int, Long> =
+    suspend fun getCurrentVoteState(league: String, gameday: Int, battle: Int): Map<Int, Long> =
         suspendTransaction(db) {
-            val count = votes.userid.count()
-            votes.select(votes.idx, count)
-                .where { (votes.leaguename eq league) and (votes.week eq gameday) and (votes.battle eq battle) }
-                .groupBy(votes.idx).toMap { it[votes.idx] to it[count] }
+            val count = PredictionGameVotesTable.userid.count()
+            PredictionGameVotesTable.select(PredictionGameVotesTable.idx, count)
+                .where { (PredictionGameVotesTable.leaguename eq league) and (PredictionGameVotesTable.week eq gameday) and (PredictionGameVotesTable.battle eq battle) }
+                .groupBy(PredictionGameVotesTable.idx).toMap { it[PredictionGameVotesTable.idx] to it[count] }
         }
 
-    override suspend fun getFullResultsSummary(league: String) = suspendTransaction(db) {
-        with(votes) {
+    suspend fun getFullResultsSummary(league: String) = suspendTransaction(db) {
+        with(PredictionGameVotesTable) {
             val correctCount = correct.count()
             select(userid, correctCount)
                 .where { (this.leaguename eq leaguename) and (correct eq true) }
@@ -120,8 +100,8 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
         }
     }
 
-    override suspend fun getTopNOfGuild(guild: Long, n: Int) = suspendTransaction(db) {
-        with(votes) {
+    suspend fun getTopNOfGuild(guild: Long, n: Int) = suspendTransaction(db) {
+        with(PredictionGameVotesTable) {
             val correctVotes = getCorrectExpression()
             val totalVotes = getTotalExpression()
             val leaguePredicate = leaguePredicate(guild)
@@ -135,8 +115,8 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
         }
     }
 
-    override suspend fun getStatsWithAboveAndBelow(guild: Long, userId: Long) = suspendTransaction(db) {
-        with(votes) {
+    suspend fun getStatsWithAboveAndBelow(guild: Long, userId: Long) = suspendTransaction(db) {
+        with(PredictionGameVotesTable) {
             val leaguePredicate = leaguePredicate(guild)
             val correctVotesWithoutAlias = getCorrectExpression()
             val correctVotes = correctVotesWithoutAlias.alias("correct_votes")
@@ -176,8 +156,8 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
     }
 
 
-    override suspend fun getUserStatsPerLeague(guild: Long, userId: Long) = suspendTransaction(db) {
-        with(votes) {
+    suspend fun getUserStatsPerLeague(guild: Long, userId: Long) = suspendTransaction(db) {
+        with(PredictionGameVotesTable) {
             val leaguesInOrder = allLeagues(guild)
             val leaguePredicate =
                 leaguename.inList(leaguesInOrder.map { it.leaguename })
@@ -199,9 +179,9 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
         }
     }
 
-    override suspend fun getMissingVotesForGameday(guild: Long, gameday: Int, user: Long) =
+    suspend fun getMissingVotesForGameday(guild: Long, gameday: Int, user: Long) =
         suspendTransaction(db) {
-            with(votes) {
+            with(PredictionGameVotesTable) {
                 val allLeagues = allLeagues(guild)
                 val leaguePredicate = leaguePredicate(allLeagues.map { it.leaguename })
                 val presentData = select(leaguename, battle)
@@ -223,7 +203,7 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
             }
         }
 
-    override suspend fun getOwnVotesForLeagueAndGameday(
+    suspend fun getOwnVotesForLeagueAndGameday(
         guild: Long,
         leagueName: String,
         gameday: Int,
@@ -243,7 +223,7 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
                 )
             )
         return suspendTransaction(db) {
-            CalcResult.Success(with(votes) {
+            CalcResult.Success(with(PredictionGameVotesTable) {
                 select(battle, idx, correct)
                     .where { (leaguename eq league.leaguename) and (this.week eq gameday) and (userid eq userId) }
                     .orderBy(battle to SortOrder.ASC).map { row ->
@@ -257,20 +237,20 @@ class PostgresPredictionGameVotesRepository(val db: R2dbcDatabase, val votes: Pr
     }
 
 
-    private fun PredictionGameVotesDB.getTotalExpression(): Count = Count(correct)
+    private fun PredictionGameVotesTable.getTotalExpression(): Count = Count(correct)
 
-    private fun PredictionGameVotesDB.getCorrectExpression(): Sum<Int> = Sum(
+    private fun PredictionGameVotesTable.getCorrectExpression(): Sum<Int> = Sum(
         Case()
             .When(correct eq true, intLiteral(1))
             .Else(intLiteral(0)),
         IntegerColumnType()
     )
 
-    private suspend fun PredictionGameVotesDB.leaguePredicate(
+    private suspend fun PredictionGameVotesTable.leaguePredicate(
         gid: Long
     ) = leaguePredicate(allLeagueNames(gid))
 
-    private fun PredictionGameVotesDB.leaguePredicate(
+    private fun PredictionGameVotesTable.leaguePredicate(
         names: List<String>
     ) = leaguename.inList(names)
 

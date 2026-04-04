@@ -20,7 +20,11 @@ import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
+import de.tectoast.generic.K18n_Battle
+import de.tectoast.generic.K18n_Gameday
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -41,6 +45,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.utils.DiscordAssets
 import net.dv8tion.jda.api.utils.ImageFormat
 import org.bson.conversions.Bson
@@ -50,6 +55,7 @@ import org.litote.kmongo.contains
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
 import org.litote.kmongo.json
+import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
@@ -366,7 +372,8 @@ fun Route.emolgaAPI() {
         val token = call.request.queryParameters["token"] ?: return@get call.bad()
         val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
         val leaguename = dbTransaction {
-            LiveTeamDB.select(LiveTeamDB.LEAGUE).where { LiveTeamDB.CODE eq uuid }.firstOrNull()?.get(LiveTeamDB.LEAGUE)
+            LiveTeamTable.select(LiveTeamTable.LEAGUE).where { LiveTeamTable.CODE eq uuid }.firstOrNull()
+                ?.get(LiveTeamTable.LEAGUE)
         } ?: return@get call.respond(HttpStatusCode.NotFound)
         val numRaw = call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.bad()
         val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
@@ -396,7 +403,8 @@ fun Route.emolgaAPI() {
         val token = call.request.queryParameters["token"] ?: return@get call.bad()
         val uuid = Uuid.parseHexDashOrNull(token) ?: return@get call.bad()
         val leaguename = dbTransaction {
-            LiveTeamDB.select(LiveTeamDB.LEAGUE).where { LiveTeamDB.CODE eq uuid }.firstOrNull()?.get(LiveTeamDB.LEAGUE)
+            LiveTeamTable.select(LiveTeamTable.LEAGUE).where { LiveTeamTable.CODE eq uuid }.firstOrNull()
+                ?.get(LiveTeamTable.LEAGUE)
         } ?: return@get call.respond(HttpStatusCode.NotFound)
         val idx = call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.bad()
         val mons = call.request.queryParameters["mons"]?.toIntOrNull()
@@ -805,4 +813,61 @@ suspend fun ApplicationCall.requireGuild(): Long? {
     if (getGuildsForUser(userId).contains(gid)) return gid
     respond(HttpStatusCode.Forbidden)
     return null
+}
+
+context(league: League)
+suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
+    val gamedayString = K18n_Gameday.translateToGuildLanguage(league.guild)
+    val embeds = if (input is ResultEntryDescription.Bo3) {
+        // TODO: Clean this up
+        val spoiler = dependency<SpoilerTagsRepository>().contains(league.guild)
+        val fullGameData = input.fullGameData
+        val descriptions =
+            fullGameData.games.map { game -> generateFinalMessage(league, fullGameData.uindices, game.kd) }
+        buildList {
+            val actualBo3 = fullGameData.games.size > 1
+            if (actualBo3) add(
+                Embed(
+                    title = "$gamedayString $gameday",
+                    description = "<@${league[fullGameData.uindices[0]]}> ${
+                        (0..1).map { i -> fullGameData.games.count { replayData -> replayData.winnerIndex == i } }
+                            .joinToString(":").surroundWithIf("||", spoiler)
+                    } <@${league[fullGameData.uindices[1]]}>",
+                    color = Color.YELLOW.rgb
+                )
+            )
+            addAll(descriptions.mapIndexed { index, desc ->
+                Embed(
+                    title = "$gamedayString $gameday".condAppend(
+                        actualBo3,
+                        " - ${K18n_Battle.translateToGuildLanguage(league.guild)} ${index + 1}"
+                    ),
+                    description = desc,
+                    color = embedColor
+                )
+            })
+        }
+    } else Embed(
+        title = "$gamedayString $gameday", description = input.provideDescription(), color = embedColor
+    ).into()
+    send(
+        embeds = embeds
+    ).queue()
+}
+
+sealed interface ResultEntryDescription {
+    fun provideDescription(): String
+    data class Direct(val description: String) : ResultEntryDescription {
+        override fun provideDescription() = description
+    }
+
+    data class MatchPresent(val uids: List<Long>) : ResultEntryDescription {
+        override fun provideDescription() = uids.joinToString(" vs. ") { "<@${it}>" } + " ✅"
+    }
+
+    // TODO: clean up this
+    data class Bo3(val fullGameData: FullGameData) :
+        ResultEntryDescription {
+        override fun provideDescription() = error("Implemented directly")
+    }
 }

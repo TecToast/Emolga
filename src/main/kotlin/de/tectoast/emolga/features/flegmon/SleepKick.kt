@@ -5,11 +5,13 @@ import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
+import org.koin.core.annotation.Single
 
 object SleepKick {
     private val activeVotings = mutableMapOf<Long, SleepKickVote>()
 
-    object Command :
+    @Single(binds = [ListenerProvider::class])
+    class Command(val btn: Button) :
         CommandFeature<Command.Args>(
             ::Args, CommandSpec(
                 "sleepkick",
@@ -40,13 +42,14 @@ object SleepKick {
                 allVoters = vc.members.mapTo(mutableSetOf()) { it.idLong },
                 yesVoters = mutableSetOf(iData.user)
             )
-            iData.reply("Abstimmung für Sleep-Kick gegen ${target.effectiveName} gestartet!", components = Button {
+            iData.reply("Abstimmung für Sleep-Kick gegen ${target.effectiveName} gestartet!", components = btn {
                 this.id = id
             }.into())
         }
     }
 
-    object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("sleepkick_vote")) {
+    @Single(binds = [ListenerProvider::class])
+    class Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("sleepkick_vote")) {
         override val buttonStyle = ButtonStyle.PRIMARY
         override val label = "Für Sleep-Kick stimmen".k18n
 

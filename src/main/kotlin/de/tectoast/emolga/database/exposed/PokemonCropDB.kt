@@ -29,9 +29,8 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
-@Single
 @OptIn(ExperimentalTime::class)
-class PokemonCropDB : Table("pokemon_crop") {
+object PokemonCropTable : Table("pokemon_crop") {
     val guild = long("guild")
     val official = varchar("official", 50)
     val x = integer("x").default(0)
@@ -44,8 +43,7 @@ class PokemonCropDB : Table("pokemon_crop") {
     override val primaryKey = PrimaryKey(guild, official)
 }
 
-@Single
-class CropAuxiliaryDB(teamGraphicsMeta: TeamGraphicsMetaDB) : Table("pokemon_crop_auxiliary") {
+object CropAuxiliaryTable : Table("pokemon_crop_auxiliary") {
     val guild = long("guild")
     val pokemon = varchar("official", 50)
 
@@ -53,62 +51,52 @@ class CropAuxiliaryDB(teamGraphicsMeta: TeamGraphicsMetaDB) : Table("pokemon_cro
 
     init {
         foreignKey(
-            guild to teamGraphicsMeta.GUILD,
+            guild to TeamGraphicsMetaTable.GUILD,
             onDelete = ReferenceOption.CASCADE,
             onUpdate = ReferenceOption.CASCADE
         )
     }
 }
 
-interface PokemonCropRepository {
-    suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData?
-    suspend fun insertPokemonCropData(guild: Long, data: PokemonCropData, user: Long)
-    suspend fun generateOverviewImage(guild: Long)
-    suspend fun fillCropAuxiliary(guild: Long, pokemonList: List<String>)
-    suspend fun getDrawData(guild: Long, officialNames: List<String>): Map<String, DrawData>
-}
-
-@Single(binds = [PokemonCropRepository::class])
+@Single
 @OptIn(ExperimentalTime::class)
-class PostgresPokemonCropRepository(
+class PokemonCropRepository(
     private val db: R2dbcDatabase,
-    private val pokemonCrop: PokemonCropDB,
-    private val cropAuxiliary: CropAuxiliaryDB,
     private val teamGraphicsMetaRepo: TeamGraphicsMetaRepository
-) : PokemonCropRepository {
+) {
     private val mutex = Mutex()
     private val logger = KotlinLogging.logger {}
 
-    override suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData? = mutex.withLock {
+    suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData? = mutex.withLock {
         suspendTransaction(db) {
             val spriteStyle = teamGraphicsMetaRepo.getSpriteStyle(guild) ?: return@suspendTransaction null
-            val result = cropAuxiliary.leftJoin(pokemonCrop, additionalConstraint = {
-                (cropAuxiliary.guild eq pokemonCrop.guild) and (cropAuxiliary.pokemon eq pokemonCrop.official)
+            val result = CropAuxiliaryTable.leftJoin(PokemonCropTable, additionalConstraint = {
+                (CropAuxiliaryTable.guild eq PokemonCropTable.guild) and (CropAuxiliaryTable.pokemon eq PokemonCropTable.official)
             })
                 .select(
-                    cropAuxiliary.pokemon,
-                    pokemonCrop.guild,
-                    pokemonCrop.wipSince,
+                    CropAuxiliaryTable.pokemon,
+                    PokemonCropTable.guild,
+                    PokemonCropTable.wipSince,
                 )
                 .where {
-                    cropAuxiliary.guild eq guild and (pokemonCrop.guild.isNull() or (pokemonCrop.wipSince less Clock.System.now()
+                    CropAuxiliaryTable.guild eq guild and (PokemonCropTable.guild.isNull() or (PokemonCropTable.wipSince less Clock.System.now()
                         .minus(1.minutes)))
                 }
                 .orderBy(Random())
                 .limit(1)
                 .firstOrNull()
                 ?.let { row ->
-                    val official = row[cropAuxiliary.pokemon]
+                    val official = row[CropAuxiliaryTable.pokemon]
                     val sdName = official.toSDName()
                     val pokemon = mdb.pokedex.get(sdName)!!
                     val spriteName = pokemon.calcSpriteName()
                     val path = "/api/emolga/${guild}/teamgraphics/img/$spriteStyle/$spriteName.png"
-                    val done = pokemonCrop.selectAll().where { pokemonCrop.guild eq guild }.count()
-                    val total = cropAuxiliary.selectAll().where { cropAuxiliary.guild eq guild }.count()
+                    val done = PokemonCropTable.selectAll().where { PokemonCropTable.guild eq guild }.count()
+                    val total = CropAuxiliaryTable.selectAll().where { CropAuxiliaryTable.guild eq guild }.count()
                     PokemonToCropData(official, official, path, done, total)
                 }
             if (result != null) {
-                pokemonCrop.upsert {
+                PokemonCropTable.upsert {
                     it[this.guild] = guild
                     it[official] = result.official
                     it[wipSince] = Clock.System.now()
@@ -118,46 +106,48 @@ class PostgresPokemonCropRepository(
         }
     }
 
-    override suspend fun insertPokemonCropData(
+    suspend fun insertPokemonCropData(
         guild: Long,
         data: PokemonCropData,
         user: Long,
     ): Unit = suspendTransaction(db) {
-        pokemonCrop.update(where = {
-            (pokemonCrop.guild eq guild) and (pokemonCrop.official eq data.official)
+        PokemonCropTable.update(where = {
+            (PokemonCropTable.guild eq guild) and (PokemonCropTable.official eq data.official)
         }) {
-            it[pokemonCrop.x] = data.x
-            it[pokemonCrop.y] = data.y
-            it[pokemonCrop.size] = data.size
-            it[pokemonCrop.user] = user
-            it[pokemonCrop.flipped] = data.flipped
-            it[pokemonCrop.wipSince] = null
+            it[PokemonCropTable.x] = data.x
+            it[PokemonCropTable.y] = data.y
+            it[PokemonCropTable.size] = data.size
+            it[PokemonCropTable.user] = user
+            it[PokemonCropTable.flipped] = data.flipped
+            it[PokemonCropTable.wipSince] = null
         }
     }
 
-    override suspend fun generateOverviewImage(guild: Long): Unit = suspendTransaction(db) {
+    suspend fun generateOverviewImage(guild: Long): Unit = suspendTransaction(db) {
         val spriteStyle = teamGraphicsMetaRepo.getSpriteStyle(guild) ?: return@suspendTransaction
         val list =
-            pokemonCrop.selectAll().where { pokemonCrop.guild eq guild and pokemonCrop.wipSince.isNull() }
+            PokemonCropTable.selectAll()
+                .where { PokemonCropTable.guild eq guild and PokemonCropTable.wipSince.isNull() }
                 .toList()
         val listSize = list.size
         val baseImage = BufferedImage(128 * 10, 128 * ((listSize + 9) / 10), BufferedImage.TYPE_INT_ARGB)
         val g2d = baseImage.createGraphics()
         g2d.setCommonRenderingHints()
         val map = list.associate {
-            val official = it[pokemonCrop.official]
+            val official = it[PokemonCropTable.official]
             official to mdb.pokedex.get(official.toSDName())!!
         }
-        for ((index, row) in list.sortedBy { map[it[pokemonCrop.official]]!!.num }.withIndex()) {
-            val official = row[pokemonCrop.official]
+        for ((index, row) in list.sortedBy { map[it[PokemonCropTable.official]]!!.num }.withIndex()) {
+            val official = row[PokemonCropTable.official]
             val spriteName = map[official]!!.calcSpriteName()
             val image = withContext(Dispatchers.IO) {
                 ImageIO.read(File("/teamgraphics/sprites/$spriteStyle/$spriteName.png"))
             }
-            val size = row[pokemonCrop.size].toFloat()
+            val size = row[PokemonCropTable.size].toFloat()
             val shape = Ellipse2D.Float(0f, 0f, size, size)
             g2d.drawImage(
-                image.flipIf(row[pokemonCrop.flipped]).cropShape(row[pokemonCrop.x], row[pokemonCrop.y], shape),
+                image.flipIf(row[PokemonCropTable.flipped])
+                    .cropShape(row[PokemonCropTable.x], row[PokemonCropTable.y], shape),
                 (index % 10) * 128,
                 (index / 10) * 128,
                 128,
@@ -169,24 +159,24 @@ class PostgresPokemonCropRepository(
         ImageIO.write(baseImage, "png", File("/teamgraphics/$guild.png"))
     }
 
-    override suspend fun fillCropAuxiliary(guild: Long, pokemonList: List<String>): Unit = suspendTransaction(db) {
-        cropAuxiliary.batchInsert(pokemonList, shouldReturnGeneratedValues = false, ignore = true) {
-            this[cropAuxiliary.guild] = guild
-            this[cropAuxiliary.pokemon] = it
+    suspend fun fillCropAuxiliary(guild: Long, pokemonList: List<String>): Unit = suspendTransaction(db) {
+        CropAuxiliaryTable.batchInsert(pokemonList, shouldReturnGeneratedValues = false, ignore = true) {
+            this[CropAuxiliaryTable.guild] = guild
+            this[CropAuxiliaryTable.pokemon] = it
         }
     }
 
-    override suspend fun getDrawData(guild: Long, officialNames: List<String>): Map<String, DrawData> =
+    suspend fun getDrawData(guild: Long, officialNames: List<String>): Map<String, DrawData> =
         suspendTransaction(db) {
-            pokemonCrop.selectAll()
-                .where { pokemonCrop.guild eq guild and (pokemonCrop.official.inList(officialNames)) }
+            PokemonCropTable.selectAll()
+                .where { PokemonCropTable.guild eq guild and (PokemonCropTable.official.inList(officialNames)) }
                 .toMap { row ->
-                    row[pokemonCrop.official] to DrawData(
-                        name = row[pokemonCrop.official],
-                        x = row[pokemonCrop.x],
-                        y = row[pokemonCrop.y],
-                        size = row[pokemonCrop.size],
-                        flipped = row[pokemonCrop.flipped]
+                    row[PokemonCropTable.official] to DrawData(
+                        name = row[PokemonCropTable.official],
+                        x = row[PokemonCropTable.x],
+                        y = row[PokemonCropTable.y],
+                        size = row[PokemonCropTable.size],
+                        flipped = row[PokemonCropTable.flipped]
                     )
                 }
         }

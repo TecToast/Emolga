@@ -3,10 +3,7 @@ package de.tectoast.emolga.features.flegmon
 import de.tectoast.emolga.database.exposed.BirthdayRepository
 import de.tectoast.emolga.database.exposed.K18n_BirthdayGratulation
 import de.tectoast.emolga.di.StartupTask
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.k18n
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
@@ -80,7 +77,7 @@ class FlegmonBirthdayService(
     }
 }
 
-@Single
+@Single(binds = [ListenerProvider::class])
 class SetBirthdayCommand(val birthdayRepository: BirthdayRepository) : CommandFeature<SetBirthdayCommand.Args>(
     ::Args,
     CommandSpec("setbirthday", "Setzt einen Geburtstag, damit ich dir gratulieren kann :)".k18n)

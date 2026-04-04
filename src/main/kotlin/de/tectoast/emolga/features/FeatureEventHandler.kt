@@ -3,13 +3,13 @@
 package de.tectoast.emolga.features
 
 import de.tectoast.emolga.K18n_FeatureManager
-import de.tectoast.emolga.database.exposed.CommandManager
-import de.tectoast.emolga.database.exposed.GuildLanguageDB
+import de.tectoast.emolga.database.exposed.CommandManagementRepository
+import de.tectoast.emolga.database.exposed.CommandManagementService
+import de.tectoast.emolga.database.exposed.GuildLanguageRepository
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.features.flo.AddRemove
 import de.tectoast.emolga.utils.*
 import de.tectoast.k18n.generated.K18nLanguage
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
@@ -29,9 +29,11 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-interface FeatureManager {
+interface FeatureEventHandler {
     suspend fun handleEvent(e: GenericEvent)
+}
 
+interface CommandRegistryService {
     suspend fun updateCommandsForGuild(gid: Long)
 
     suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove)
@@ -51,11 +53,140 @@ class ProductionJDAProvider(val emolgaJDA: JDA, val flegmonJDA: JDA) : JDAProvid
 }
 
 @Single
-class JDAFeatureManager(
-    private val loadListeners: Set<ListenerProvider>,
-    private val cmdManager: CommandManager,
-    private val jdaProvider: JDAProvider
-) : FeatureManager, StartupTask {
+class FeatureRegistry(
+    val loadListeners: Set<ListenerProvider>,
+) {
+    val featureList = loadListeners.filterIsInstance<Feature<*, *, *>>()
+    val registeredFeatureList = featureList.filter { it.spec is RegisteredFeatureSpec }
+    val featureNames = registeredFeatureList.map { it.spec.name }
+}
+
+@Single
+class JDACommandRegistryService(
+    val cmdManagementService: CommandManagementService,
+    val cmdManagementRepo: CommandManagementRepository,
+    val jdaProvider: JDAProvider,
+    val featureRegistry: FeatureRegistry,
+) : CommandRegistryService, StartupTask {
+    private val logger = KotlinLogging.logger {}
+
+    override suspend fun onStartup() {
+        val registeredFeatureNames = featureRegistry.registeredFeatureList.map { it.spec.name }.toSet()
+        val updatedGuilds = cmdManagementService.startupCheck(registeredFeatureNames)
+        for (gid in updatedGuilds) {
+            updateCommandsForGuild(gid)
+        }
+    }
+
+    override suspend fun modifyGuildGroup(
+        guildId: Long,
+        group: String,
+        action: AddRemove
+    ) {
+        cmdManagementService.modifyGuildGroup(guildId, group, action)
+        updateCommandsForGuild(guildId)
+    }
+
+    override suspend fun modifyGuildCommand(
+        guildId: Long,
+        command: String,
+        action: AddRemove
+    ) {
+        cmdManagementService.modifyGuildCommand(guildId, command, action)
+        updateCommandsForGuild(guildId)
+    }
+
+    override suspend fun modifyGroupCommand(
+        group: String,
+        command: String,
+        action: AddRemove
+    ) {
+        cmdManagementService.modifyGroupCommand(group, command, action)
+        updateAllGuildsInGroup(group)
+    }
+
+    private suspend fun updateAllGuildsInGroup(group: String) {
+        for (guild in cmdManagementRepo.getGuildsForGroup(group)) {
+            updateCommandsForGuild(guild)
+        }
+    }
+
+    private suspend fun buildSlashCommandData(
+        cmd: CommandFeature<*>,
+        gid: Long
+    ) = Commands.slash(cmd.spec.name, cmd.spec.help.translateTo(K18nLanguage.EN)).apply {
+        defaultPermissions = cmd.slashPermissions
+        setDescriptionLocalizations(cmd.spec.help.toDiscordLocaleMap())
+        setContexts(if (cmd.spec.inDM) InteractionContextType.BOT_DM else InteractionContextType.GUILD)
+        if (cmd.children.isNotEmpty()) {
+            cmd.children.forEach {
+                addSubcommands(
+                    SubcommandData(
+                        it.spec.name,
+                        it.spec.help.translateTo(K18nLanguage.EN)
+                    ).setDescriptionLocalizations(it.spec.help.toDiscordLocaleMap()).addOptions(
+                        generateOptionData(
+                            it, gid
+                        )
+                    )
+                )
+            }
+        } else addOptions(generateOptionData(cmd, gid))
+    }
+
+    override suspend fun updateCommandsForGuild(gid: Long) {
+        val guildFeatures: MutableSet<CommandData> = mutableSetOf()
+        val allFeatureNames = cmdManagementRepo.getFeaturesForGuild(gid)
+        with(guildFeatures) {
+            featureRegistry.featureList.filter { it.spec.name in allFeatureNames }.forEach { cmd ->
+                when (cmd) {
+                    is CommandFeature<*> -> {
+                        add(buildSlashCommandData(cmd, gid))
+                    }
+
+                    is MessageContextFeature -> {
+                        add(Commands.message(cmd.spec.name))
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+        val usedJda = jdaProvider.provideJDA(gid)
+        (if (gid == -1L) usedJda.updateCommands()
+        else usedJda.getGuildById(gid)?.updateCommands())?.addCommands(guildFeatures)?.queue()
+    }
+
+    private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
+        logger.debug { "Generating options for ${feature.spec.name}" }
+        return feature.defaultArgs.mapNotNull { a ->
+            if (a.onlyInCode) return@mapNotNull null
+            val spec = a.spec as? CommandArgSpec
+            val required = spec?.guildChecker?.let {
+                when (it(CommandProviderData(gid))) {
+                    ArgumentPresence.NOT_PRESENT -> return@mapNotNull null
+                    ArgumentPresence.REQUIRED -> true
+                    ArgumentPresence.OPTIONAL -> false
+                }
+            } ?: !a.optional
+            OptionData(
+                a.optionType,
+                a.name.nameToDiscordOption(),
+                a.help.translateToGuildLanguage(gid),
+                required,
+                spec?.autocomplete != null
+            ).apply {
+                if (spec?.choices != null) addChoices(spec.choices)
+            }
+        }
+    }
+}
+
+@Single
+class JDAFeatureEventHandler(
+    featureRegistry: FeatureRegistry,
+    private val guildLanguageRepo: GuildLanguageRepository,
+) : FeatureEventHandler {
     private val listenerScope = createCoroutineScope("FeatureManagerListener")
     private val surveillanceScope = createCoroutineScope("FeatureManagerSurveillance")
 
@@ -63,16 +194,13 @@ class JDAFeatureManager(
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>
     private val listeners: Map<KClass<out GenericEvent>, List<suspend (GenericEvent) -> Unit>>
 
-    val featureList get() = loadListeners.filterIsInstance<Feature<*, *, *>>()
-    val registeredFeatureList get() = featureList.filter { it.spec is RegisteredFeatureSpec }
 
     init {
-        val featuresSet = featureList
-        eventToName = featuresSet.associate {
-            @Suppress("USELESS_CAST") // compiler bug
-            it.eventClass to (it.eventToName as (GenericInteractionCreateEvent) -> String)
+        val featureList = featureRegistry.featureList
+        eventToName = featureList.associate {
+            it.eventClass to it.eventToName
         }
-        features = featuresSet.groupBy { it.eventClass }
+        features = featureList.groupBy { it.eventClass }
             .mapValues {
                 buildMap {
                     it.value.forEach { v ->
@@ -83,51 +211,8 @@ class JDAFeatureManager(
                     }
                 }
             }
-        listeners = loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
+        listeners = featureRegistry.loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
             it.value.map { v -> v.second }
-        }
-    }
-
-    override suspend fun modifyGuildGroup(
-        guildId: Long,
-        group: String,
-        action: AddRemove
-    ) {
-        cmdManager.modifyGuildGroup(guildId, group, action)
-        updateCommandsForGuild(guildId)
-    }
-
-    override suspend fun modifyGuildCommand(
-        guildId: Long,
-        command: String,
-        action: AddRemove
-    ) {
-        cmdManager.modifyGuildCommand(guildId, command, action)
-        updateCommandsForGuild(guildId)
-    }
-
-    override suspend fun modifyGroupCommand(
-        group: String,
-        command: String,
-        action: AddRemove
-    ) {
-        cmdManager.modifyGroupCommand(group, command, action)
-        updateAllGuildsInGroup(group)
-    }
-
-    private suspend fun updateAllGuildsInGroup(group: String) {
-        for (guild in cmdManager.getGuildsForGroup(group)) {
-            updateCommandsForGuild(guild)
-            delay(2000)
-        }
-    }
-
-    override suspend fun onStartup() {
-        val registeredFeatureNames = registeredFeatureList.map { it.spec.name }.toSet()
-        val updatedGuilds = cmdManager.startupCheck(registeredFeatureNames)
-        for (gid in updatedGuilds) {
-            updateCommandsForGuild(gid)
-            delay(2000) // avoid rate limits
         }
     }
 
@@ -153,11 +238,11 @@ class JDAFeatureManager(
         feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
         e: GenericInteractionCreateEvent,
     ) {
-        val language = GuildLanguageDB.getLanguage(e.guild?.idLong)
+        val language = guildLanguageRepo.getLanguage(e.guild?.idLong)
         val data = RealInteractionData(e, language)
         surveillanceScope.launch {
             val executionStart = TimeSource.Monotonic.markNow()
-            withTimeoutOrNull(10000) {
+            withTimeoutOrNull(10.seconds) {
                 data.acknowledged.await()
             }
             val duration = executionStart.elapsedNow()
@@ -221,85 +306,8 @@ class JDAFeatureManager(
         else -> this.toString()
     }
 
-    private suspend fun buildSlashCommandData(
-        cmd: CommandFeature<*>,
-        gid: Long
-    ) = Commands.slash(cmd.spec.name, cmd.spec.help.translateTo(K18nLanguage.EN)).apply {
-        defaultPermissions = cmd.slashPermissions
-        setDescriptionLocalizations(cmd.spec.help.toDiscordLocaleMap())
-        setContexts(if (cmd.spec.inDM) InteractionContextType.BOT_DM else InteractionContextType.GUILD)
-        if (cmd.children.isNotEmpty()) {
-            cmd.children.forEach {
-                addSubcommands(
-                    SubcommandData(
-                        it.spec.name,
-                        it.spec.help.translateTo(K18nLanguage.EN)
-                    ).setDescriptionLocalizations(it.spec.help.toDiscordLocaleMap()).addOptions(
-                        generateOptionData(
-                            it, gid
-                        )
-                    )
-                )
-            }
-        } else addOptions(generateOptionData(cmd, gid))
-    }
-
-    override suspend fun updateCommandsForGuild(gid: Long) {
-        val guildFeatures: MutableSet<CommandData> = mutableSetOf()
-        val allFeatureNames = cmdManager.getFeaturesForGuild(gid)
-        with(guildFeatures) {
-            loadListeners.filterIsInstance<Feature<*, *, *>> { it.spec.name in allFeatureNames }.forEach { cmd ->
-                when (cmd) {
-                    is CommandFeature<*> -> {
-                        add(buildSlashCommandData(cmd, gid))
-                    }
-
-                    is MessageContextFeature -> {
-                        add(Commands.message(cmd.spec.name))
-                    }
-
-                    else -> {}
-                }
-            }
-        }
-        val usedJda = jdaProvider.provideJDA(gid)
-        (if (gid == -1L) usedJda.updateCommands()
-        else usedJda.getGuildById(gid)?.updateCommands())?.addCommands(guildFeatures)?.queue()
-    }
-
-    private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
-        logger.debug { "Generating options for ${feature.spec.name}" }
-        return feature.defaultArgs.mapNotNull { a ->
-            if (a.onlyInCode) return@mapNotNull null
-            val spec = a.spec as? CommandArgSpec
-            val required = spec?.guildChecker?.let {
-                when (it(CommandProviderData(gid))) {
-                    ArgumentPresence.NOT_PRESENT -> return@mapNotNull null
-                    ArgumentPresence.REQUIRED -> true
-                    ArgumentPresence.OPTIONAL -> false
-                }
-            } ?: !a.optional
-            OptionData(
-                a.optionType,
-                a.name.nameToDiscordOption(),
-                a.help.translateToGuildLanguage(gid),
-                required,
-                spec?.autocomplete != null
-            ).apply {
-                if (spec?.choices != null) addChoices(spec.choices)
-            }
-        }
-    }
-
     companion object {
         private val logger = KotlinLogging.logger {}
-
-        fun findAllFeaturesRecursively(cl: KClass<*>): List<ListenerProvider> {
-            val o = cl.objectInstance ?: return emptyList()
-            return if (o is ListenerProvider) listOf(o) else {
-                cl.nestedClasses.flatMap { findAllFeaturesRecursively(it) }
-            }
-        }
     }
 }
 

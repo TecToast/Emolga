@@ -1,10 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
 import org.jetbrains.exposed.v1.core.Table
-import org.koin.core.annotation.Single
 
-@Single
-class PredictionGameVotesDB : Table("predictiongamevotes") {
+object PredictionGameVotesTable : Table("predictiongamevotes") {
     val leaguename = varchar("leaguename", 31)
     val userid = long("userid")
     val week = integer("gameday")

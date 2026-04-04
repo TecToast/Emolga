@@ -2,12 +2,12 @@
 
 package de.tectoast.emolga.utils.repeat
 
+import de.tectoast.emolga.database.exposed.ReplayDataStoreRepository
 import de.tectoast.emolga.features.wrc.WRCManager
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LadderTournament
 import de.tectoast.emolga.utils.json.mdb
-import de.tectoast.emolga.utils.parseToInstant
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,7 +62,11 @@ class RepeatTask(
                 val finalCurrAmount = currAmount
                 taskTimestamps[Instant.fromEpochMilliseconds(curTime)] = finalCurrAmount
                 val delay = curTime - nowM
-                if (printTimestamps) logger.info("{} -> {}", currAmount, defaultTimeFormat.format(Instant.fromEpochMilliseconds(curTime).toJavaInstant()))
+                if (printTimestamps) logger.info(
+                    "{} -> {}",
+                    currAmount,
+                    defaultTimeFormat.format(Instant.fromEpochMilliseconds(curTime))
+                )
                 scope.launch {
                     delay(delay)
                     RepeatTaskData(Instant.fromEpochMilliseconds(curTime)).consumer(finalCurrAmount)

@@ -40,7 +40,7 @@ interface SDNamesNotificationService {
     suspend fun sendApprovalNotification(name: String, username: String, id: Long, currentOwner: Long)
 }
 
-@Single(binds = [SDNamesRepository::class])
+@Single
 class PostgresSDNamesRepository(
     val db: R2dbcDatabase,
     val sdNames: SDNamesDB,
@@ -101,7 +101,7 @@ class PostgresSDNamesRepository(
     }
 }
 
-@Single(binds = [SDNamesNotificationService::class])
+@Single
 class JDASDNamesNotificationService(
     val jda: JDA
 ) : SDNamesNotificationService {

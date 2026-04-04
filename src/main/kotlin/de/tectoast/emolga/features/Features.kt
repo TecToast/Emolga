@@ -4,9 +4,9 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.GuildLanguageDB
+import de.tectoast.emolga.database.exposed.GuildLanguageRepository
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.TypesDB
+import de.tectoast.emolga.database.exposed.TypesRepository
 import de.tectoast.emolga.features.league.draft.generic.K18n_PokemonNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
@@ -48,6 +48,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.modals.Modal
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -139,7 +140,7 @@ open class NotAllowed(val reason: K18nMessage) : AllowedResult() {
 /**
  * Marker for classes which are part of the feature system (at the moment Feature & ListenerProvider)
  */
-abstract class ListenerProvider {
+abstract class ListenerProvider : KoinComponent {
     val registeredListeners: MutableSet<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>> = mutableSetOf()
 
     /**
@@ -459,6 +460,10 @@ data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments : KoinComponent {
     private val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
+
+    val typesRepository by inject<TypesRepository>()
+    val languageRepository by inject<GuildLanguageRepository>()
+
     inline fun string(
         name: String = "",
         help: K18nMessage = EmptyMessage,
@@ -534,7 +539,7 @@ open class Arguments : KoinComponent {
         if (enumValues.size <= 25) slashCommand(enumValues.map { Choice(it.name, it.name) })
         else slashCommand { s, event ->
             val nameMatching = enumValues.toSet().filterStartsWithIgnoreCase(s) { it.name }
-            nameMatching.convertListToAutoCompleteReply(GuildLanguageDB.getLanguage(event.guild?.idLong))
+            nameMatching.convertListToAutoCompleteReply(languageRepository.getLanguage(event.guild?.idLong))
         }
         builder()
     }
@@ -554,7 +559,7 @@ open class Arguments : KoinComponent {
         else slashCommand { s, event ->
             (if (useContainsAutoComplete) collection.filterContainsIgnoreCase(s)
             else collection.filterStartsWithIgnoreCase(s)).convertListToAutoCompleteReply(
-                GuildLanguageDB.getLanguage(
+                languageRepository.getLanguage(
                     event.guild?.idLong
                 )
             )
@@ -570,7 +575,7 @@ open class Arguments : KoinComponent {
     ) = createArg(name, help) {
         slashCommand { s, event ->
             collSupplier(event).filterStartsWithIgnoreCase(s)
-                .convertListToAutoCompleteReply(GuildLanguageDB.getLanguage(event.guild?.idLong))
+                .convertListToAutoCompleteReply(languageRepository.getLanguage(event.guild?.idLong))
         }
         builder()
     }
@@ -612,20 +617,20 @@ open class Arguments : KoinComponent {
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
         validate {
-            TypesDB.getType(it, language)
+            typesRepository.getType(it, language)
         }
         slashCommand { s, event ->
-            TypesDB.getOptions(s)
+            typesRepository.getOptions(s)
         }
         builder()
     }
 
     fun pokemontype(name: String = "", help: K18nMessage = EmptyMessage) = createArg(name, help, OptionType.STRING) {
         validate { str ->
-            TypesDB.getTypeInBothLanguages(str)
+            typesRepository.getTypeInBothLanguages(str)
         }
         slashCommand { s, event ->
-            TypesDB.getOptions(s)
+            typesRepository.getOptions(s)
         }
     }
 

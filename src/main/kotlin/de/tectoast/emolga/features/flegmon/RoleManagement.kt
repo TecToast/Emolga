@@ -6,11 +6,13 @@ import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import org.koin.core.annotation.Single
 
 object RoleManagement {
     private const val ACCEPTED_RULES_ROLE = 605635673885507614
 
-    object RuleAcceptButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ruleaccept")) {
+    @Single(binds = [ListenerProvider::class])
+    class RuleAcceptButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ruleaccept")) {
         override val label = "Regeln akzeptieren".k18n
 
         override val buttonStyle = ButtonStyle.PRIMARY
@@ -32,7 +34,8 @@ object RoleManagement {
         }
     }
 
-    object RoleGetMenu : SelectMenuFeature<RoleGetMenu.Args>(::Args, SelectMenuSpec("roleget")) {
+    @Single(binds = [ListenerProvider::class])
+    class RoleGetMenu : SelectMenuFeature<RoleGetMenu.Args>(::Args, SelectMenuSpec("roleget")) {
         override val options = roles.map {
             SelectOption(it.name, it.compId, it.description, emoji = it.emoji)
         }

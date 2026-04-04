@@ -24,38 +24,20 @@ import kotlin.time.Instant
 
 private val logger = KotlinLogging.logger {}
 
-interface StatisticsRepository {
-    fun getEvents(url: String): AnalysisEvents?
-    suspend fun getCurrentAmountOfReplays(): Long
-    suspend fun addDirectlyFromURL(url: String)
-    fun addToStatisticsSync(ctx: BattleContext)
-    suspend fun addToStatistics(ctx: BattleContext)
-}
-
 @Single
-class PostgresStatisticsRepository(
-    private val startTable: StartTable,
-    private val moveTable: MoveTable,
-    private val damageTable: DamageTable,
-    private val healTable: HealTable,
-    private val switchTable: SwitchTable,
-    private val statusTable: StatusTable,
-    private val winTable: WinTable,
-    private val timeTable: TimeTable,
-    private val turnTable: TurnTable,
-) : StatisticsRepository {
+class StatisticsRepository {
 
     private val lastEventsCache = SizeLimitedMap<String, AnalysisEvents>(10)
     private val dbScope = createCoroutineScope("StatisticsRepository")
 
 
-    override fun getEvents(url: String): AnalysisEvents? = lastEventsCache[url]
+    fun getEvents(url: String): AnalysisEvents? = lastEventsCache[url]
 
-    override suspend fun getCurrentAmountOfReplays(): Long = dbTransaction {
-        startTable.selectAll().count()
+    suspend fun getCurrentAmountOfReplays(): Long = dbTransaction {
+        StartTable.selectAll().count()
     }
 
-    override suspend fun addDirectlyFromURL(url: String) {
+    suspend fun addDirectlyFromURL(url: String) {
         val (game, ctx, _) = Analysis.analyse(url)
         game.forEach { pl ->
             pl.pokemon.forEach {
@@ -65,14 +47,14 @@ class PostgresStatisticsRepository(
         addToStatisticsSync(ctx)
     }
 
-    override fun addToStatisticsSync(ctx: BattleContext) {
+    fun addToStatisticsSync(ctx: BattleContext) {
         lastEventsCache[ctx.url] = ctx.events
         dbScope.launch {
             addToStatistics(ctx)
         }
     }
 
-    override suspend fun addToStatistics(ctx: BattleContext) {
+    suspend fun addToStatistics(ctx: BattleContext) {
         dbTransaction {
             val events = ctx.events
             val replayId = ctx.url.substringAfterLast("/")
@@ -86,78 +68,78 @@ class PostgresStatisticsRepository(
                         return@dbTransaction
                     }
                 }
-            startTable.insertIgnore {
-                it[TIMESTAMP] = Instant.fromEpochMilliseconds(start)
-                it[REPLAYID] = replayId
+            StartTable.insertIgnore {
+                it[timestamp] = Instant.fromEpochMilliseconds(start)
+                it[this.replayId] = replayId
             }
-            moveTable.batchInsert(events.move, ignore = true, shouldReturnGeneratedValues = false) {
-                this[moveTable.REPLAYID] = replayId
-                this[moveTable.ROW] = it.row
-                this[moveTable.SOURCE] = it.source.draftname.otherOfficial!!
-                this[moveTable.SOURCEPLAYER] = it.source.player
-                this[moveTable.TARGET] = it.target?.let { m -> m.draftname.otherOfficial!! }
-                this[moveTable.TARGETPLAYER] = it.target?.player
-                this[moveTable.MOVE] = it.move
+            MoveTable.batchInsert(events.move, ignore = true, shouldReturnGeneratedValues = false) {
+                this[MoveTable.replayId] = replayId
+                this[MoveTable.row] = it.row
+                this[MoveTable.sourceMon] = it.source.draftname.otherOfficial!!
+                this[MoveTable.sourcePlayer] = it.source.player
+                this[MoveTable.targetMon] = it.target?.let { m -> m.draftname.otherOfficial!! }
+                this[MoveTable.targetPlayer] = it.target?.player
+                this[MoveTable.move] = it.move
             }
-            damageTable.batchInsert(events.damage, ignore = true, shouldReturnGeneratedValues = false) {
-                this[damageTable.REPLAYID] = replayId
-                this[damageTable.ROW] = it.row
-                this[damageTable.SOURCE] = it.source.draftname.otherOfficial!!
-                this[damageTable.SOURCEPLAYER] = it.source.player
-                this[damageTable.TARGET] = it.target.draftname.otherOfficial!!
-                this[damageTable.TARGETPLAYER] = it.target.player
-                this[damageTable.BY] = it.by
-                this[damageTable.PERCENT] = it.percent.toByte()
-                this[damageTable.FAINT] = it.faint
+            DamageTable.batchInsert(events.damage, ignore = true, shouldReturnGeneratedValues = false) {
+                this[DamageTable.replayId] = replayId
+                this[DamageTable.row] = it.row
+                this[DamageTable.sourceMon] = it.source.draftname.otherOfficial!!
+                this[DamageTable.sourcePlayer] = it.source.player
+                this[DamageTable.targetMon] = it.target.draftname.otherOfficial!!
+                this[DamageTable.targetPlayer] = it.target.player
+                this[DamageTable.by] = it.by
+                this[DamageTable.percent] = it.percent.toByte()
+                this[DamageTable.faint] = it.faint
             }
-            healTable.batchInsert(events.heal, ignore = true, shouldReturnGeneratedValues = false) {
-                this[healTable.REPLAYID] = replayId
-                this[healTable.ROW] = it.row
-                this[healTable.SOURCE] = it.source.draftname.otherOfficial!!
-                this[healTable.SOURCEPLAYER] = it.source.player
-                this[healTable.TARGET] = it.target.draftname.otherOfficial!!
-                this[healTable.TARGETPLAYER] = it.target.player
-                this[healTable.BY] = it.by
-                this[healTable.PERCENT] = it.percent.toByte()
+            HealTable.batchInsert(events.heal, ignore = true, shouldReturnGeneratedValues = false) {
+                this[HealTable.replayId] = replayId
+                this[HealTable.row] = it.row
+                this[HealTable.sourceMon] = it.source.draftname.otherOfficial!!
+                this[HealTable.sourcePlayer] = it.source.player
+                this[HealTable.targetMon] = it.target.draftname.otherOfficial!!
+                this[HealTable.targetPlayer] = it.target.player
+                this[HealTable.by] = it.by
+                this[HealTable.percent] = it.percent.toByte()
             }
-            switchTable.batchInsert(events.switch, ignore = true, shouldReturnGeneratedValues = false) {
-                this[switchTable.REPLAYID] = replayId
-                this[switchTable.ROW] = it.row
-                this[switchTable.TYPE] = it.type
-                this[switchTable.POKEMON] = it.pokemon.draftname.otherOfficial!!
-                this[switchTable.PLAYER] = it.pokemon.player
-                this[switchTable.FROM] = it.from
+            SwitchTable.batchInsert(events.switch, ignore = true, shouldReturnGeneratedValues = false) {
+                this[SwitchTable.replayId] = replayId
+                this[SwitchTable.row] = it.row
+                this[SwitchTable.type] = it.type
+                this[SwitchTable.pokemon] = it.pokemon.draftname.otherOfficial!!
+                this[SwitchTable.player] = it.pokemon.player
+                this[SwitchTable.from] = it.from
             }
-            statusTable.batchInsert(events.status, ignore = true, shouldReturnGeneratedValues = false) {
-                this[statusTable.REPLAYID] = replayId
-                this[statusTable.ROW] = it.row
-                this[statusTable.SOURCE] = it.source.draftname.otherOfficial!!
-                this[statusTable.SOURCEPLAYER] = it.source.player
-                this[statusTable.TARGET] = it.target.draftname.otherOfficial!!
-                this[statusTable.TARGETPLAYER] = it.target.player
-                this[statusTable.STATUS] = it.status
+            StatusTable.batchInsert(events.status, ignore = true, shouldReturnGeneratedValues = false) {
+                this[StatusTable.replayId] = replayId
+                this[StatusTable.row] = it.row
+                this[StatusTable.sourceMon] = it.source.draftname.otherOfficial!!
+                this[StatusTable.sourcePlayer] = it.source.player
+                this[StatusTable.targetMon] = it.target.draftname.otherOfficial!!
+                this[StatusTable.targetPlayer] = it.target.player
+                this[StatusTable.status] = it.status
             }
-            winTable.batchInsert(events.winLoss.flatMap { data ->
+            WinTable.batchInsert(events.winLoss.flatMap { data ->
                 val isWinner = data.win
                 data.mons.mapNotNull { mon ->
                     if (mon.draftname.otherOfficial == null) return@mapNotNull null
                     mon to isWinner
                 }
             }, ignore = true, shouldReturnGeneratedValues = false) {
-                this[winTable.REPLAYID] = replayId
-                this[winTable.POKEMON] = it.first.draftname.otherOfficial!!
-                this[winTable.PLAYER] = it.first.player
-                this[winTable.WON] = it.second
+                this[WinTable.replayId] = replayId
+                this[WinTable.pokemon] = it.first.draftname.otherOfficial!!
+                this[WinTable.player] = it.first.player
+                this[WinTable.won] = it.second
             }
-            timeTable.batchInsert(events.time, ignore = true, shouldReturnGeneratedValues = false) {
-                this[timeTable.REPLAYID] = replayId
-                this[timeTable.ROW] = it.row
-                this[timeTable.TIMESTAMP] = Instant.fromEpochMilliseconds(it.timestamp)
+            TimeTable.batchInsert(events.time, ignore = true, shouldReturnGeneratedValues = false) {
+                this[TimeTable.replayId] = replayId
+                this[TimeTable.row] = it.row
+                this[TimeTable.timestamp] = Instant.fromEpochMilliseconds(it.timestamp)
             }
-            turnTable.batchInsert(events.turn, ignore = true, shouldReturnGeneratedValues = false) {
-                this[turnTable.REPLAYID] = replayId
-                this[turnTable.ROW] = it.row
-                this[turnTable.TURN] = it.turn
+            TurnTable.batchInsert(events.turn, ignore = true, shouldReturnGeneratedValues = false) {
+                this[TurnTable.replayId] = replayId
+                this[TurnTable.row] = it.row
+                this[TurnTable.turn] = it.turn
             }
         }
     }

@@ -10,42 +10,34 @@ import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 
-interface PredictionGameMessageRepository {
-    suspend fun getMessageIds(leagueName: String, gameday: Int, battle: Int? = null): List<Long>
-    suspend fun setMessageId(leagueName: String, gameday: Int, battle: Int, messageId: Long)
-    suspend fun deleteMessagesFromLeague(leagueName: String)
-
-}
-
-
-class PostgresPredictionGameRepository(
+class PredictionGameMessageRepository(
     val db: R2dbcDatabase,
-    val messages: PredictionGameMessagesDB,
-) : PredictionGameMessageRepository {
+) {
 
-    override suspend fun getMessageIds(leagueName: String, gameday: Int, battle: Int?): List<Long> =
+    suspend fun getMessageIds(leagueName: String, gameday: Int, battle: Int? = null): List<Long> =
         suspendTransaction(db) {
-            messages.select(messages.messageid).where {
-                val op = (messages.leaguename eq leagueName) and (messages.week eq gameday)
+            PredictionGameMessagesTable.select(PredictionGameMessagesTable.messageid).where {
+                val op =
+                    (PredictionGameMessagesTable.leaguename eq leagueName) and (PredictionGameMessagesTable.week eq gameday)
                 if (battle == null) op
-                else op and (messages.battle eq battle)
-            }.orderBy(messages.battle).map { it[messages.messageid] }.toList()
+                else op and (PredictionGameMessagesTable.battle eq battle)
+            }.orderBy(PredictionGameMessagesTable.battle).map { it[PredictionGameMessagesTable.messageid] }.toList()
         }
 
-    override suspend fun setMessageId(leagueName: String, gameday: Int, battle: Int, messageId: Long) {
+    suspend fun setMessageId(leagueName: String, gameday: Int, battle: Int, messageId: Long) {
         suspendTransaction(db) {
-            messages.upsert {
-                it[messages.leaguename] = leagueName
-                it[messages.week] = gameday
-                it[messages.battle] = battle
-                it[messages.messageid] = messageId
+            PredictionGameMessagesTable.upsert {
+                it[PredictionGameMessagesTable.leaguename] = leagueName
+                it[PredictionGameMessagesTable.week] = gameday
+                it[PredictionGameMessagesTable.battle] = battle
+                it[PredictionGameMessagesTable.messageid] = messageId
             }
         }
     }
 
-    override suspend fun deleteMessagesFromLeague(leagueName: String) {
+    suspend fun deleteMessagesFromLeague(leagueName: String) {
         suspendTransaction(db) {
-            messages.deleteWhere { messages.leaguename eq leagueName }
+            PredictionGameMessagesTable.deleteWhere { PredictionGameMessagesTable.leaguename eq leagueName }
         }
     }
 }

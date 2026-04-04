@@ -1,9 +1,6 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.RemoteServerControlFeature
@@ -14,8 +11,10 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import org.koin.core.annotation.Single
 
-object ControlButtonSetupCommand :
+@Single(binds = [ListenerProvider::class])
+class ControlButtonSetupCommand :
     CommandFeature<ControlButtonSetupCommand.Args>(::Args, CommandSpec("controlbuttonsetup", "lol".k18n)) {
     class Args : Arguments() {
         var type by enumBasic<ControlButtonType>("type", "type".k18n)

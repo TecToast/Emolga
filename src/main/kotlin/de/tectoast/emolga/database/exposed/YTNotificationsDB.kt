@@ -1,34 +1,47 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.database.dbTransaction
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Single
 
-object YTNotificationsDB : Table("ytnotifications") {
-    val DCCHANNEL = long("dcchannel")
-    val YTCHANNEL = varchar("ytchannel", 31)
-    val DM = bool("dm").default(false)
+object YTNotificationsTable : Table("ytnotifications") {
+    val discordChannel = long("dcchannel")
+    val ytChannel = varchar("ytchannel", 31)
+    val dm = bool("dm").default(false)
 
-    override val primaryKey = PrimaryKey(DCCHANNEL, YTCHANNEL)
+    override val primaryKey = PrimaryKey(discordChannel, ytChannel)
 
-    suspend fun addData(id: Long, dm: Boolean, data: Iterable<String>) = dbTransaction {
-        batchInsert(data, ignore = true, shouldReturnGeneratedValues = false) {
-            this[YTCHANNEL] = it
-            this[DCCHANNEL] = id
-            this[DM] = dm
+}
+
+@Single
+class YTNotificationsRepository(val db: R2dbcDatabase) {
+
+    suspend fun addData(id: Long, dm: Boolean, data: Iterable<String>) {
+        suspendTransaction(db) {
+            YTNotificationsTable.batchInsert(data, ignore = true, shouldReturnGeneratedValues = false) {
+                this[YTNotificationsTable.ytChannel] = it
+                this[YTNotificationsTable.discordChannel] = id
+                this[YTNotificationsTable.dm] = dm
+            }
         }
     }
 
-    suspend fun getAllYTChannels() = dbTransaction {
-        select(YTCHANNEL).withDistinct(true).map { it[YTCHANNEL] }.toCollection(mutableSetOf())
+    suspend fun getAllYTChannels() = suspendTransaction(db) {
+        YTNotificationsTable.select(YTNotificationsTable.ytChannel).withDistinct(true)
+            .map { it[YTNotificationsTable.ytChannel] }
+            .toCollection(mutableSetOf())
     }
 
-    suspend fun getDCChannels(ytChannel: String) = dbTransaction {
-        select(DCCHANNEL, DM).where { YTCHANNEL eq ytChannel }.map { it[DCCHANNEL] to it[DM] }.toList()
+    suspend fun getDCChannels(ytChannel: String) = suspendTransaction(db) {
+        YTNotificationsTable.select(YTNotificationsTable.discordChannel, YTNotificationsTable.dm)
+            .where { YTNotificationsTable.ytChannel eq ytChannel }
+            .map { it[YTNotificationsTable.discordChannel] to it[YTNotificationsTable.dm] }.toList()
     }
 }

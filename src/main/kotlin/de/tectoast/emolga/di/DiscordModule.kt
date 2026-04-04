@@ -4,6 +4,7 @@ import de.tectoast.emolga.utils.dependency
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import org.koin.core.annotation.Module
@@ -14,6 +15,7 @@ import org.koin.core.annotation.Single
 class DiscordModule {
     @Single
     fun emolgaJDA(): JDA {
+        Message.suppressContentIntentWarning()
         return default(dependency("discordToken")) {
             intents -= GatewayIntent.MESSAGE_CONTENT
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)

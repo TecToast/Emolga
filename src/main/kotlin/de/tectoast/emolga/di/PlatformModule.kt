@@ -1,5 +1,10 @@
 package de.tectoast.emolga.di
 
+import de.tectoast.emolga.utils.webJSON
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.annotation.Module
@@ -13,4 +18,11 @@ class PlatformModule {
 
     @Single
     fun defaultClock(): Clock = Clock.System
+
+    @Single
+    fun httpClient() = HttpClient(CIO) {
+        install(ContentNegotiation) {
+            json(webJSON)
+        }
+    }
 }

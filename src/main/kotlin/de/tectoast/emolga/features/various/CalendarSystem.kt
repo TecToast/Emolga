@@ -5,10 +5,7 @@ package de.tectoast.emolga.features.various
 import de.tectoast.emolga.database.exposed.CalendarRepository
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.TimeUtils
-import de.tectoast.emolga.utils.createCoroutineScope
-import de.tectoast.emolga.utils.k18n
+import de.tectoast.emolga.utils.*
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.cancel
@@ -17,13 +14,15 @@ import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import org.koin.core.annotation.Single
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 interface CalendarNotificationSender {
     suspend fun sendReminder(message: String)
-    suspend fun updateCalendarDisplay()
+    suspend fun updateCalendarDisplay(content: String)
 }
 
 @Single
@@ -38,9 +37,9 @@ class JDACalendarNotificationSender(
             .addComponents(remindButton.withoutIData().into()).queue()
     }
 
-    override suspend fun updateCalendarDisplay() {
+    override suspend fun updateCalendarDisplay(content: String) {
         val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID) ?: return
-        calendarTc.editMessageById(Constants.CALENDAR_MSGID, calendar.buildCalendar()).queue()
+        calendarTc.editMessageById(Constants.CALENDAR_MSGID, content).queue()
     }
 }
 
@@ -53,6 +52,7 @@ class CalendarService(
 ) : StartupTask {
     private val logger = KotlinLogging.logger {}
     private val scope = createCoroutineScope("CalendarService", dispatcher)
+    private val calendarFormat = DateTimeFormatter.ofPattern("dd.MM. HH:mm").withZone(ZoneId.systemDefault())
 
     override suspend fun onStartup() {
         val entries = calendarRepository.getAllEntries()
@@ -70,11 +70,22 @@ class CalendarService(
                 }
                 notificationSender.sendReminder(message)
                 calendarRepository.removeEntry(id)
-                notificationSender.updateCalendarDisplay()
+                updateCalendarDisplay()
             } catch (ex: Exception) {
                 logger.error(ex) { "Failed to send calendar entry" }
             }
         }
+    }
+
+    private suspend fun buildCalendar(): String {
+        val allEntries = calendarRepository.getAllEntries()
+        if (allEntries.isEmpty()) return "_leer_"
+        return allEntries.joinToString("\n") { "**${calendarFormat.format(it.expires)}:** ${it.message}" }
+    }
+
+    suspend fun updateCalendarDisplay() {
+        val content = buildCalendar()
+        notificationSender.updateCalendarDisplay(content)
     }
 
 
@@ -102,7 +113,7 @@ class RemindCommand(val service: CalendarService, val notificationSender: Calend
         val message = e.text
         service.scheduleNewCalendarEntry(message, Instant.fromEpochMilliseconds(expires))
         iData.reply("Reminder gesetzt!", ephemeral = true)
-        notificationSender.updateCalendarDisplay()
+        service.updateCalendarDisplay()
     }
 }
 

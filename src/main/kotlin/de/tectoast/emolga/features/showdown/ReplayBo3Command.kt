@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.database.exposed.AnalysisDB
+import de.tectoast.emolga.database.exposed.AnalysisTable
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -20,7 +20,7 @@ object ReplayBo3Command :
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.deferReply()
-        val channel = AnalysisDB.getResultChannel(iData.tc)
+        val channel = AnalysisTable.getResultChannel(iData.tc)
             ?: return iData.reply(K18n_ReplayGeneric.NoReplayChannel)
         val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
             ?: return iData.reply(K18n_ReplayGeneric.NoAccessToResultChannel(channel))

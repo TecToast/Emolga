@@ -31,7 +31,7 @@ interface SpoilerTagsRepository {
     suspend fun delete(guildid: Long): Boolean
 }
 
-@Single(binds = [SpoilerTagsRepository::class])
+@Single
 class PostgresSpoilerTagsRepository(val db: R2dbcDatabase, val spoilerTags: SpoilerTagsDB) : SpoilerTagsRepository {
 
     override suspend fun contains(guildid: Long) = suspendTransaction(db) {

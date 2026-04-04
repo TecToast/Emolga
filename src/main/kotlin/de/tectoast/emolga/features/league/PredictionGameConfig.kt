@@ -11,6 +11,9 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.mdb
 import dev.minn.jda.ktx.messages.Embed
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -23,7 +26,6 @@ import java.awt.Color
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import kotlin.time.toJavaInstant
 
 object PredictionGameManager {
 
@@ -138,7 +140,7 @@ object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("InstantToString", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
-        encoder.encodeString(defaultTimeFormat.format(value.toJavaInstant()))
+        encoder.encodeString(defaultTimeFormat.format(value.toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime()))
     }
 
     override fun deserialize(decoder: Decoder): Instant {

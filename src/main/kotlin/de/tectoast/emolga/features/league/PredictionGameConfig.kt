@@ -8,11 +8,8 @@ import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.DurationSerializer
-import de.tectoast.emolga.utils.defaultTimeFormat
-import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.mdb
-import de.tectoast.emolga.utils.universalLogger
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -26,6 +23,7 @@ import java.awt.Color
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 object PredictionGameManager {
 
@@ -140,12 +138,12 @@ object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("InstantToString", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
-        encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))
+        encoder.encodeString(defaultTimeFormat.format(value.toJavaInstant()))
     }
 
     override fun deserialize(decoder: Decoder): Instant {
         val decodedString = decoder.decodeString()
-        return runCatching { Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decodedString).time) }.onFailure {
+        return runCatching { defaultTimeFormat.parseToInstant(decodedString) }.onFailure {
             universalLogger.error("Failed to parse Instant from string: $decodedString", it)
         }.getOrThrow()
     }

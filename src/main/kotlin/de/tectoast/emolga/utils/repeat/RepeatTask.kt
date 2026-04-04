@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.LadderTournament
 import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.utils.parseToInstant
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -15,11 +16,8 @@ import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
 import org.litote.kmongo.gt
 import java.util.*
-import kotlin.time.Clock
-import kotlin.time.Duration
+import kotlin.time.*
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 class RepeatTask(
     val leaguename: String,
@@ -44,7 +42,7 @@ class RepeatTask(
     ) : this(
         leaguename,
         type,
-        Instant.fromEpochMilliseconds(defaultTimeFormat.parse(lastExecution).time),
+        defaultTimeFormat.parseToInstant(lastExecution),
         amount,
         difference,
         printDelays,
@@ -65,7 +63,7 @@ class RepeatTask(
                 val finalCurrAmount = currAmount
                 taskTimestamps[Instant.fromEpochMilliseconds(curTime)] = finalCurrAmount
                 val delay = curTime - nowM
-                if (printTimestamps) logger.info("{} -> {}", currAmount, defaultTimeFormat.format(curTime))
+                if (printTimestamps) logger.info("{} -> {}", currAmount, defaultTimeFormat.format(Instant.fromEpochMilliseconds(curTime).toJavaInstant()))
                 scope.launch {
                     delay(delay)
                     RepeatTaskData(Instant.fromEpochMilliseconds(curTime)).consumer(finalCurrAmount)

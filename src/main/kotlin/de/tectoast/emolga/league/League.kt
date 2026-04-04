@@ -45,14 +45,16 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.eq
 import org.litote.kmongo.ne
 import java.awt.Color
-import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.time.measureTime
+import kotlin.time.toJavaInstant
 
 enum class DraftState {
     OFF, ON, PSEUDOEND
@@ -883,10 +885,10 @@ sealed class League {
 
     fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
         val delay = cooldown - System.currentTimeMillis()
-        if (delay >= 24 * 3600 * 1000) append(dayTimeFormat.format(cooldown)).append(" ")
+        if (delay >= 24 * 3600 * 1000) append(dayTimeFormat.format(Instant.fromEpochMilliseconds(cooldown).toJavaInstant())).append(" ")
         append(
             (if (config.timer?.stallSeconds == 0 && delay > 15 * 60 * 1000) leagueTimeFormat else leagueTimeFormatSecs).format(
-                cooldown
+                Instant.fromEpochMilliseconds(cooldown).toJavaInstant()
             )
         )
     }
@@ -1063,9 +1065,9 @@ sealed class League {
         val logger = KotlinLogging.logger {}
         val allTimers = mutableMapOf<String, Job>()
         val allStallSecondTimers = mutableMapOf<String, Job>()
-        val dayTimeFormat = SimpleDateFormat("dd.MM.")
-        val leagueTimeFormat = SimpleDateFormat("HH:mm")
-        val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
+        val dayTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
+        val leagueTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        val leagueTimeFormatSecs: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
         val allMutexes = ConcurrentHashMap<String, Mutex>()
         val queueInteractionData = TestInteractionData(tc = 1099651412742389820)
         val timerScope = createCoroutineScope("LeagueTimer")

@@ -13,15 +13,16 @@ import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insertAndGetId
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.selectAll
-import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 object CalendarDB : IntIdTable("calendar") {
     val MESSAGE = text("message")
     val EXPIRES = timestamp("expires").defaultExpression(CurrentTimestamp)
 
-    private val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
+    private val calendarFormat = DateTimeFormatter.ofPattern("dd.MM. HH:mm")
 
     /**
      * Schedules a calendar entry
@@ -49,7 +50,7 @@ object CalendarDB : IntIdTable("calendar") {
      */
     suspend fun buildCalendar() = dbTransaction {
         selectAll().orderBy(EXPIRES)
-            .joinToString("\n") { "**${calendarFormat.format(it[EXPIRES].toEpochMilliseconds())}:** ${it[MESSAGE]}" }
+            .joinToString("\n") { "**${calendarFormat.format(it[EXPIRES].toJavaInstant())}:** ${it[MESSAGE]}" }
             .ifEmpty { "_leer_" }
     }
 

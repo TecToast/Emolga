@@ -31,8 +31,11 @@ import org.jetbrains.exposed.v1.core.Column
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.File
-import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.pow
+import kotlin.time.Instant
 
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
 val embedColor = java.awt.Color.CYAN.rgb
@@ -129,7 +132,7 @@ val otherJSON = Json {
 }
 
 
-val defaultTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm")
+val defaultTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
 fun String.file() = File(this)
 
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
@@ -286,4 +289,8 @@ suspend fun String.mapToChannelIdPair(): Pair<String, String?> {
         }
     if (result == null) error("No channel found for $base")
     return result
+}
+fun DateTimeFormatter.parseToInstant(str: String): Instant {
+    val localDateTime = LocalDateTime.parse(str, this)
+    return Instant.fromEpochSeconds(localDateTime.atZone(ZoneId.systemDefault()).toEpochSecond())
 }

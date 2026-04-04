@@ -1,14 +1,13 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.ButtonFeature
-import de.tectoast.emolga.features.ButtonSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.database.exposed.FlorixControlRepository
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.flo.FlorixButton.Action.*
-import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.json.mdb
+import org.koin.core.annotation.Single
 
-object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("florix")) {
+@Single(binds = [ListenerProvider::class])
+class FlorixButton(val repository: FlorixControlRepository) :
+    ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("florix")) {
     class Args : Arguments() {
         var pc by string()
         var action by enumBasic<Action>()
@@ -20,7 +19,7 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val data = mdb.remoteServerControl.get(e.pc) ?: return iData.reply("Ungültiger PC! (${e.pc})")
+        val data = repository.getByName(e.pc) ?: return iData.reply("Ungültiger PC! (${e.pc})")
         val on = data.isOn()
         iData.ephemeralDefault()
         when (e.action) {

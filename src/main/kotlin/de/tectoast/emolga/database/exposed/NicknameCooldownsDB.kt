@@ -15,35 +15,28 @@ import org.koin.core.annotation.Single
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-interface NicknameCooldownsRepository {
-    suspend fun getCooldown(guild: Long, user: Long): Instant?
-    suspend fun setCooldown(guild: Long, user: Long, until: Instant)
-}
-
 @OptIn(ExperimentalTime::class)
-@Single(binds = [NicknameCooldownsRepository::class])
-class PostgresNicknameCooldownsRepository(val db: R2dbcDatabase, val nicknameCooldowns: NicknameCooldownsDB) :
-    NicknameCooldownsRepository {
-    override suspend fun getCooldown(guild: Long, user: Long) = suspendTransaction(db) {
-        nicknameCooldowns.select(nicknameCooldowns.timestamp).where {
-            (nicknameCooldowns.guild eq guild) and (nicknameCooldowns.user eq user) and (nicknameCooldowns.timestamp greaterEq CurrentTimestamp)
-        }.firstOrNull()?.get(nicknameCooldowns.timestamp)
+@Single
+class NicknameCooldownsRepository(val db: R2dbcDatabase) {
+    suspend fun getCooldown(guild: Long, user: Long) = suspendTransaction(db) {
+        NicknameCooldownsTable.select(NicknameCooldownsTable.timestamp).where {
+            (NicknameCooldownsTable.guild eq guild) and (NicknameCooldownsTable.user eq user) and (NicknameCooldownsTable.timestamp greaterEq CurrentTimestamp)
+        }.firstOrNull()?.get(NicknameCooldownsTable.timestamp)
     }
 
-    override suspend fun setCooldown(guild: Long, user: Long, until: Instant) {
+    suspend fun setCooldown(guild: Long, user: Long, until: Instant) {
         suspendTransaction(db) {
-            nicknameCooldowns.upsert {
-                it[nicknameCooldowns.guild] = guild
-                it[nicknameCooldowns.user] = user
-                it[nicknameCooldowns.timestamp] = until
+            NicknameCooldownsTable.upsert {
+                it[NicknameCooldownsTable.guild] = guild
+                it[NicknameCooldownsTable.user] = user
+                it[NicknameCooldownsTable.timestamp] = until
             }
         }
     }
 }
 
 @OptIn(ExperimentalTime::class)
-@Single
-class NicknameCooldownsDB : Table("nickname_cooldowns") {
+object NicknameCooldownsTable : Table("nickname_cooldowns") {
     val guild = long("guild")
     val user = long("user")
     val timestamp = timestamp("timestamp")

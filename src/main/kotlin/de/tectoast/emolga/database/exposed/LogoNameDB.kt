@@ -8,31 +8,25 @@ import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 
-interface LogoNameRepository {
-    suspend fun insertFileName(fileName: String, teamName: String? = null)
-    suspend fun fileNameExists(checksum: String): Boolean
-}
-
-@Single(binds = [LogoNameRepository::class])
-class PostgresLogoNameRepository(val db: R2dbcDatabase, val logoName: LogoNameDB) : LogoNameRepository {
-    override suspend fun insertFileName(fileName: String, teamName: String?) {
+@Single
+class LogoNameRepository(val db: R2dbcDatabase) {
+    suspend fun insertFileName(fileName: String, teamName: String? = null) {
         suspendTransaction(db) {
-            logoName.upsert {
-                it[logoName.FILENAME] = fileName
-                it[logoName.TEAMNAME] = teamName
+            LogoNameTable.upsert {
+                it[LogoNameTable.filename] = fileName
+                it[LogoNameTable.teamname] = teamName
             }
         }
     }
 
-    override suspend fun fileNameExists(checksum: String) = suspendTransaction(db) {
-        logoName.selectAll().where { logoName.FILENAME eq checksum }.count() > 0
+    suspend fun fileNameExists(checksum: String) = suspendTransaction(db) {
+        LogoNameTable.selectAll().where { LogoNameTable.filename eq checksum }.count() > 0
     }
 }
 
-@Single
-class LogoNameDB : Table("logoname") {
-    val FILENAME = varchar("filename", 32)
-    val TEAMNAME = varchar("teamname", 64).nullable()
+object LogoNameTable : Table("logoname") {
+    val filename = varchar("filename", 32)
+    val teamname = varchar("teamname", 64).nullable()
 
-    override val primaryKey = PrimaryKey(FILENAME)
+    override val primaryKey = PrimaryKey(filename)
 }

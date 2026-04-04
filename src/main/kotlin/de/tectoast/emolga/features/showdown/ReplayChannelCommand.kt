@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.database.exposed.AnalysisDB
+import de.tectoast.emolga.database.exposed.AnalysisTable
 import de.tectoast.emolga.features.*
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
@@ -20,15 +20,15 @@ object ReplayChannelCommand :
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val resultChannel = e.channel?.idLong ?: iData.tc
-            val result = AnalysisDB.insertChannel(iData.tc, resultChannel, iData.gid)
+            val result = AnalysisTable.insertChannel(iData.tc, resultChannel, iData.gid)
             iData.reply(
                 when (result) {
-                    AnalysisDB.AnalysisResult.CREATED -> {
+                    AnalysisTable.AnalysisResult.CREATED -> {
                         if (iData.tc == resultChannel) K18n_ReplayChannel.CreatedSameChannel
                         else K18n_ReplayChannel.CreatedOtherChannel(iData.tc, resultChannel)
                     }
 
-                    is AnalysisDB.AnalysisResult.Existed -> {
+                    is AnalysisTable.AnalysisResult.Existed -> {
                         if (result.channel == resultChannel) K18n_ReplayChannel.ExistedSameChannel(result.channel)
                         else K18n_ReplayChannel.ExistedOtherChannel(result.channel)
                     }
@@ -40,7 +40,7 @@ object ReplayChannelCommand :
     object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", K18n_ReplayChannel.RemoveHelp)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            if (AnalysisDB.deleteChannel(iData.tc)) {
+            if (AnalysisTable.deleteChannel(iData.tc)) {
                 iData.reply(K18n_ReplayChannel.RemoveSuccess)
             } else {
                 iData.reply(K18n_ReplayChannel.RemoveNotExist)

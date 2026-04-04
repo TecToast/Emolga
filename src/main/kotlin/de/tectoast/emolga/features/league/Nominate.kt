@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -14,12 +14,14 @@ import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import org.koin.core.annotation.Single
 
 object Nominate {
     private val WHITESPACES_SPLITTER = Regex("\\s+")
 
-
-    object NominateButton : ButtonFeature<NominateButton.Args>(::Args, ButtonSpec("nominate")) {
+    @Single(binds = [ListenerProvider::class])
+    class NominateButton(val stateStore: StateStoreDispatcher) :
+        ButtonFeature<NominateButton.Args>(::Args, ButtonSpec("nominate")) {
 
         private val tiercomparator: Comparator<DraftPokemon> =
             compareBy({ it.tier.indexedBy(listOf("S+", "S", "A", "B", "C", "D")) }, { it.name })
@@ -56,7 +58,7 @@ object Nominate {
                             )
                         }
                     val sortedList = list.sortedWith(tiercomparator)
-                    NominateState(uid, nomUser, list, sortedList).process {
+                    stateStore.process<_, NominateStateHandler>(NominateState(nomUser, list, sortedList), uid) {
                         e.channel.sendMessage(
                             MessageCreate(
                                 embeds = Embed(
@@ -97,7 +99,7 @@ object Nominate {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            StateStore.process<NominateState> {
+            stateStore.process<_, NominateStateHandler>(iData.user) {
                 when (e.mode) {
                     Mode.NOMINATE -> {
                         nominate(e.data)

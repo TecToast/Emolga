@@ -8,28 +8,23 @@ import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 
-interface GuildUsingReplayRepository {
-    fun add(guild: Long, name: String)
-}
-
 @Single
-class PostgresGuildUsingReplayRepository(val db: R2dbcDatabase, val guildUsingReplay: GuildUsingReplayDB) :
-    GuildUsingReplayRepository {
-    private val scope = createCoroutineScope("GuildUsingReplayDB")
-    override fun add(guild: Long, name: String) {
+class GuildUsingReplayRepository(val db: R2dbcDatabase) {
+    private val scope = createCoroutineScope("GuildUsingReplayTable")
+
+    fun add(guild: Long, name: String) {
         scope.launch {
             suspendTransaction(db) {
-                guildUsingReplay.upsert {
-                    it[guildUsingReplay.guildid] = guild
-                    it[guildUsingReplay.name] = name
+                GuildUsingReplayTable.upsert {
+                    it[GuildUsingReplayTable.guildid] = guild
+                    it[GuildUsingReplayTable.name] = name
                 }
             }
         }
     }
 }
 
-@Single
-class GuildUsingReplayDB : Table("guildusingreplay") {
+object GuildUsingReplayTable : Table("guildusingreplay") {
     val guildid = long("guildid")
     val name = varchar("name", 100)
 

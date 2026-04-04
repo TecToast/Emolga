@@ -29,41 +29,37 @@ data class ResultCodeEntry(
     val p2: Int
 )
 
-@OptIn(ExperimentalUuidApi::class)
-interface ResultCodesRepository {
-    suspend fun getEntryByCode(resultid: String): ResultCodeEntry?
-    suspend fun getResultDataForUser(resultid: String): ResultCodeResponse?
-    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid
-    suspend fun delete(code: Uuid)
-    suspend fun deleteFromLeague(league: String)
-}
+@Single
+class ResultService(
+    val repository: ResultCodesRepository
+)
 
 @OptIn(ExperimentalUuidApi::class)
-@Single(binds = [ResultCodesRepository::class])
-class PostgresResultCodesRepository(val db: R2dbcDatabase, val resultCodes: ResultCodesDB, val jda: JDA) :
-    ResultCodesRepository {
-    override suspend fun getEntryByCode(resultid: String): ResultCodeEntry? = suspendTransaction(db) {
+@Single
+class ResultCodesRepository(val db: R2dbcDatabase, val jda: JDA) {
+    suspend fun getEntryByCode(resultid: String): ResultCodeEntry? = suspendTransaction(db) {
         val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@suspendTransaction null
-        resultCodes.selectAll().where { resultCodes.CODE eq uuid }.singleOrNull()?.let {
+        ResultCodesTable.selectAll().where { ResultCodesTable.CODE eq uuid }.singleOrNull()?.let {
             ResultCodeEntry(
-                code = it[resultCodes.CODE],
-                leagueName = it[resultCodes.LEAGUENAME],
-                gameday = it[resultCodes.GAMEDAY],
-                p1 = it[resultCodes.P1],
-                p2 = it[resultCodes.P2]
+                code = it[ResultCodesTable.CODE],
+                leagueName = it[ResultCodesTable.LEAGUENAME],
+                gameday = it[ResultCodesTable.GAMEDAY],
+                p1 = it[ResultCodesTable.P1],
+                p2 = it[ResultCodesTable.P2]
             )
         }
     }
 
-    override suspend fun getResultDataForUser(resultid: String) = suspendTransaction(db) {
+    suspend fun getResultDataForUser(resultid: String) = suspendTransaction(db) {
         val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@suspendTransaction null
         val entry =
-            resultCodes.selectAll().where { resultCodes.CODE eq uuid }.singleOrNull() ?: return@suspendTransaction null
-        val league = mdb.league(entry[resultCodes.LEAGUENAME])
+            ResultCodesTable.selectAll().where { ResultCodesTable.CODE eq uuid }.singleOrNull()
+                ?: return@suspendTransaction null
+        val league = mdb.league(entry[ResultCodesTable.LEAGUENAME])
         val gid = league.guild
         val guild = jda.getGuildById(gid) ?: return@suspendTransaction null
-        val idxes = listOf(entry[resultCodes.P1], entry[resultCodes.P2])
-        val memberData = guild.retrieveMembersByIds(idxes.mapNotNull { league[it] }).await().associateBy { it.idLong }
+        val idxes = listOf(entry[ResultCodesTable.P1], entry[ResultCodesTable.P2])
+        val memberData = guild.retrieveMembersByIds(idxes.map { league[it] }).await().associateBy { it.idLong }
         val tlEnglish = league.tierlist.isEnglish
         val allMonsTranslations =
             NameConventionsDB.getAllData(
@@ -73,7 +69,7 @@ class PostgresResultCodesRepository(val db: R2dbcDatabase, val resultCodes: Resu
             guildName = guild.name,
             logoUrl = guild.iconUrl,
             bo3 = league.config.triggers.bo3,
-            gameday = entry[resultCodes.GAMEDAY],
+            gameday = entry[ResultCodesTable.GAMEDAY],
             data = idxes.map { idx ->
                 val picks = league.picks(idx)
                 val uid = league[idx] ?: 0L
@@ -95,36 +91,35 @@ class PostgresResultCodesRepository(val db: R2dbcDatabase, val resultCodes: Resu
             })
     }
 
-    override suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
+    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
         val code: Uuid = Uuid.generateV7()
         suspendTransaction(db) {
-            resultCodes.insert {
-                it[resultCodes.CODE] = code
-                it[resultCodes.LEAGUENAME] = leaguename
-                it[resultCodes.GAMEDAY] = gameday
-                it[resultCodes.P1] = p1
-                it[resultCodes.P2] = p2
+            ResultCodesTable.insert {
+                it[ResultCodesTable.CODE] = code
+                it[ResultCodesTable.LEAGUENAME] = leaguename
+                it[ResultCodesTable.GAMEDAY] = gameday
+                it[ResultCodesTable.P1] = p1
+                it[ResultCodesTable.P2] = p2
             }
         }
         return code
     }
 
-    override suspend fun delete(code: Uuid) {
+    suspend fun delete(code: Uuid) {
         suspendTransaction(db) {
-            resultCodes.deleteWhere { resultCodes.CODE eq code }
+            ResultCodesTable.deleteWhere { ResultCodesTable.CODE eq code }
         }
     }
 
-    override suspend fun deleteFromLeague(league: String) {
+    suspend fun deleteFromLeague(league: String) {
         suspendTransaction(db) {
-            resultCodes.deleteWhere { resultCodes.LEAGUENAME eq league }
+            ResultCodesTable.deleteWhere { ResultCodesTable.LEAGUENAME eq league }
         }
     }
 }
 
 @OptIn(ExperimentalUuidApi::class)
-@Single
-class ResultCodesDB : Table("resultcodes") {
+object ResultCodesTable : Table("resultcodes") {
     val CODE = uuid("code")
     val LEAGUENAME = varchar("leaguename", 32)
     val GAMEDAY = integer("gameday")

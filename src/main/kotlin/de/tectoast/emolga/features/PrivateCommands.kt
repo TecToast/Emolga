@@ -722,7 +722,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun executeLadderTournament(args: PrivateData) {
         iData.done()
-        LadderTournament.executeForGuild(args().toLong())
+        LadderTournamentConfig.executeForGuild(args().toLong())
     }
 
     context(iData: InteractionData)

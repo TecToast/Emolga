@@ -7,28 +7,23 @@ import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.insert
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
-import org.koin.core.annotation.Single
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
-interface LiveTeamRepository {
-    suspend fun getByCode(code: Uuid): String?
-    suspend fun generateForLeague(league: String): Uuid
-}
 
 @OptIn(ExperimentalUuidApi::class)
-class PostgresLiveTeamRepository(val db: R2dbcDatabase, val liveTeam: LiveTeamDB) : LiveTeamRepository {
-    override suspend fun getByCode(code: Uuid): String? = suspendTransaction(db) {
-        liveTeam.select(liveTeam.league).where { liveTeam.code eq code }.firstOrNull()?.get(liveTeam.league)
+class LiveTeamRepository(val db: R2dbcDatabase) {
+    suspend fun getByCode(code: Uuid): String? = suspendTransaction(db) {
+        LiveTeamTable.select(LiveTeamTable.league).where { LiveTeamTable.code eq code }.firstOrNull()
+            ?.get(LiveTeamTable.league)
     }
 
-    override suspend fun generateForLeague(league: String): Uuid {
+    suspend fun generateForLeague(league: String): Uuid {
         val code = Uuid.random()
         suspendTransaction(db) {
-            liveTeam.insert {
-                it[liveTeam.code] = code
-                it[liveTeam.league] = league
+            LiveTeamTable.insert {
+                it[LiveTeamTable.code] = code
+                it[LiveTeamTable.league] = league
             }
         }
         return code
@@ -36,8 +31,7 @@ class PostgresLiveTeamRepository(val db: R2dbcDatabase, val liveTeam: LiveTeamDB
 }
 
 @OptIn(ExperimentalUuidApi::class)
-@Single
-class LiveTeamDB : Table("liveteam") {
+object LiveTeamTable : Table("liveteam") {
     val code = uuid("code")
     val league = varchar("league", 100)
 

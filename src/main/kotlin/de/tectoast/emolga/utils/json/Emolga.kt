@@ -9,10 +9,13 @@ import com.mongodb.client.result.UpdateResult
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.GuildLanguageDB
+import de.tectoast.emolga.database.exposed.IntervalTaskData
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.joinToString
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
 import de.tectoast.emolga.features.league.K18n_Signup
+import de.tectoast.emolga.features.league.LadderTournament
 import de.tectoast.emolga.features.league.LogoCommand.allowedFileFormats
 import de.tectoast.emolga.features.league.SignupManager
 import de.tectoast.emolga.features.various.ShinyEvent
@@ -21,11 +24,8 @@ import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
-import de.tectoast.emolga.utils.repeat.ScheduledTask
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import de.tectoast.emolga.utils.teamgraphics.ImageUtils
@@ -65,17 +65,11 @@ import org.litote.kmongo.reactivestreams.KMongo
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Socket
 import java.security.MessageDigest
 import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.max
-import kotlin.math.roundToInt
-import kotlin.random.Random
-import kotlin.reflect.KProperty1
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.measureTimedValue
@@ -124,25 +118,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 
-    val config by lazy { db.getCollection<GeneralConfig>("config") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val league by lazy { db.getCollection<League>("league") }
-    val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
-    val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
-    val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
-    val shinyEventConfig by lazy { db.getCollection<ShinyEventConfig>("shinyeventconfig") }
-    val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
-    val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
-    val matchresults by lazy { db.getCollection<LeagueEvent>("matchresults") }
-    val statestore by lazy { db.getCollection<StateStore>("statestore") }
-    val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
-    val scheduledtask by lazy { db.getCollection<ScheduledTask>("scheduledtask") }
-    val remoteServerControl by lazy { db.getCollection<RemoteServerControl>("remoteservercontrol") }
-    val ladderTournament by lazy { db.getCollection<LadderTournament>("laddertournament") }
-    val defaultNameConventions = OneTimeCache {
-        nameconventions.find(NameConventions::guild eq 0).first()!!.data
-    }
+
 
     suspend fun league(name: String) = getLeague(name)!!
     suspend fun getLeague(name: String) = league.findOne(League::leaguename eq name)
@@ -256,13 +235,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         return LeagueResult(league, uids.map { league.table.indexOf(it) })
     }
 }
-
-@Serializable
-data class IntervalTaskData(
-    val name: IntervalTaskKey,
-    val nextExecution: Instant,
-    val notAfter: Instant = Instant.DISTANT_FUTURE,
-)
 
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
@@ -1088,214 +1060,8 @@ sealed class LeagueEvent {
     }
 }
 
-enum class RemoteServerControlFeature {
-    START, STATUS, STOP, POWEROFF
-}
 
-@Serializable
-sealed class RemoteServerControl {
-    val name = "Name"
 
-    @Transient
-    open val features: Set<RemoteServerControlFeature> = setOf()
-
-    open suspend fun startServer() {}
-    open suspend fun isOn(): Boolean = false
-    open suspend fun stopServer() {}
-    open suspend fun powerOff() {}
-
-    @Serializable
-    @SerialName("Http")
-    data class Http(val url: String, val writePin: Int, val readPin: Int) : RemoteServerControl() {
-        @Transient
-        override val features = setOf(
-            RemoteServerControlFeature.START,
-            RemoteServerControlFeature.STOP,
-            RemoteServerControlFeature.STATUS,
-            RemoteServerControlFeature.POWEROFF
-        )
-
-        override suspend fun startServer() = push(TURN_ON_TIME)
-
-        override suspend fun stopServer() = push(TURN_OFF_TIME)
-
-        override suspend fun powerOff() = push(POWER_OFF)
-
-        private suspend fun push(delay: Int) {
-            withContext(Dispatchers.IO) {
-                httpClient.post("$url/push/$writePin") {
-                    setBody("$delay")
-                }
-            }
-        }
-
-        override suspend fun isOn() = withContext(Dispatchers.IO) {
-            httpClient.get("$url/status/$readPin").bodyAsText().contains("level=0")
-        }
-
-        companion object {
-            private const val TURN_ON_TIME = 500
-            private const val TURN_OFF_TIME = 500
-            private const val POWER_OFF = 5000
-        }
-    }
-
-    @Serializable
-    @SerialName("HomeAssistant")
-    data class HomeAssistant(
-        val url: String, val webhookIdOn: String, val webhookIdOff: String, val entityId: String, val token: String
-    ) : RemoteServerControl() {
-        @Transient
-        override val features = setOf(
-            RemoteServerControlFeature.START, RemoteServerControlFeature.POWEROFF, RemoteServerControlFeature.STATUS
-        )
-
-        override suspend fun startServer(): Unit = withContext(Dispatchers.IO) {
-            println(httpClient.post("http://$url/api/webhook/$webhookIdOn").bodyAsText())
-        }
-
-        override suspend fun powerOff(): Unit = withContext(Dispatchers.IO) {
-            println(httpClient.post("http://$url/api/webhook/$webhookIdOff").bodyAsText())
-        }
-
-        override suspend fun isOn(): Boolean {
-            return when (val res = httpClient.get("http://$url/api/states/$entityId") {
-                bearerAuth(token)
-            }.body<HAResponseData>().state) {
-                "on" -> true
-                "off" -> false
-                else -> error("Unknown HA response $res")
-            }
-        }
-
-        @Serializable
-        data class HAResponseData(val state: String)
-    }
-
-    @Serializable
-    @SerialName("Ethernet")
-    data class Ethernet(val mac: String, val host: String, val serviceHost: String) : RemoteServerControl() {
-        @Transient
-        override val features = setOf(RemoteServerControlFeature.START, RemoteServerControlFeature.STATUS)
-
-        override suspend fun startServer(): Unit = withContext(Dispatchers.IO) {
-            println(httpClient.post("http://$serviceHost/wol/$mac").bodyAsText())
-        }
-
-        override suspend fun isOn(): Boolean = withContext(Dispatchers.IO) {
-            try {
-                Socket().use { socket ->
-                    val inetSocketAddress = InetSocketAddress(host, 22)
-                    socket.connect(inetSocketAddress, 500)
-                    true
-                }
-            } catch (e: IOException) {
-                false
-            }
-        }
-    }
-}
-
-@Serializable
-data class LadderTournament(
-    val guild: Long,
-    val adminChannel: Long,
-    val signupChannel: Long,
-    val formats: Map<String, String>,
-    val sid: String,
-    val cols: List<LadderTournamentCol>,
-    val sortCols: List<LadderTournamentCol>,
-    val lastExecution: Long,
-    val durationInHours: Int,
-    val amount: Int,
-    val sdNamePrefix: String,
-    val users: MutableMap<Long, LadderTournamentUserData> = mutableMapOf(),
-) {
-    suspend fun execute() {
-        val usersPerFormat =
-            users.filter { it.value.verified }.flatMap { (uid, data) -> data.formats.map { it to uid } }
-                .groupBy { it.first }
-                .mapValues { it.value.map { v -> v.second } }
-        val userData = fetchDataForUsers()
-        val b = RequestBuilder(sid)
-        for ((format, targetRange) in formats) {
-            val formatId = format.toSDName()
-            val usersInFormat = usersPerFormat[format] ?: continue
-            val tableData = usersInFormat.map { userData[it]!! }.sortedWith { a, b ->
-                val dataA = a.ratings[formatId] ?: return@sortedWith 1
-                val dataB = b.ratings[formatId] ?: return@sortedWith -1
-                for (sortCol in sortCols) {
-                    val numA = sortCol[dataA].toDouble().roundToInt()
-                    val numB = sortCol[dataB].toDouble().roundToInt()
-                    if (numA != numB) return@sortedWith numB - numA
-                }
-                0
-            }.map {
-                val rankData = it.ratings[formatId]
-                buildList {
-                    add(it.username.removePrefix(sdNamePrefix))
-                    cols.forEach { col ->
-                        add(col[rankData].toDouble().roundToInt().toString())
-                    }
-                }
-            }
-            b.addAll(targetRange, tableData)
-        }
-        b.execute()
-    }
-
-    private suspend fun fetchDataForUsers(): Map<Long, SDUserResponse> {
-        return users.filter { it.value.verified }.mapValues {
-            delay(Random.nextLong(5000, 10000))
-            repeat(5) { _ ->
-                val response = httpClient.get("https://pokemonshowdown.com/users/${it.value.sdName.toUsername()}.json")
-                if (response.status.isSuccess()) {
-                    return@mapValues response.body<SDUserResponse>()
-                }
-                delay(Random.nextLong(5000, 15000))
-            }
-            error("Failed to fetch data for user ${it.value.sdName}")
-        }
-    }
-
-    suspend fun save() = mdb.ladderTournament.updateOne(LadderTournament::guild eq guild, this)
-
-    companion object {
-        suspend fun executeForGuild(gid: Long) {
-            mdb.ladderTournament.findOne(LadderTournament::guild eq gid)?.execute()
-        }
-
-    }
-}
-
-@Serializable
-enum class LadderTournamentCol(val property: KProperty1<SDRankData, Number>) {
-    WINS(SDRankData::wins),
-    LOSSES(SDRankData::losses),
-    TIES(SDRankData::ties),
-    GXE(SDRankData::gxe),
-    ELO(SDRankData::elo);
-
-    operator fun get(data: SDRankData?) = data?.let { property.get(it) } ?: 0
-}
-
-@Serializable
-data class LadderTournamentUserData(val sdName: String, val formats: List<String>, var verified: Boolean = true)
-
-@Serializable
-data class SDUserResponse(
-    val username: String,
-    val ratings: Map<String, SDRankData>
-)
-
-@Serializable
-data class SDRankData(
-    @SerialName("w") val wins: Int = 0,
-    @SerialName("l") val losses: Int = 0,
-    @SerialName("t") val ties: Int = 0,
-    val gxe: Double,
-    val elo: Double
-)
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =

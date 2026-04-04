@@ -10,29 +10,24 @@ import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.koin.core.annotation.Single
 
-interface TeamGraphicsMetaRepository {
-    suspend fun getShape(guild: Long): TeamgraphicsShape?
-    suspend fun getSpriteStyle(guild: Long): TeamgraphicsSpriteStyle?
-}
-
-@Single(binds = [TeamGraphicsMetaRepository::class])
-class PostgresTeamGraphicsMetaRepository(
-    private val db: R2dbcDatabase,
-    private val teamGraphicsMeta: TeamGraphicsMetaDB
-) : TeamGraphicsMetaRepository {
-    override suspend fun getShape(guild: Long): TeamgraphicsShape? = suspendTransaction(db) {
-        teamGraphicsMeta.select(teamGraphicsMeta.SHAPE).where { teamGraphicsMeta.GUILD eq guild }.firstOrNull()
-            ?.get(teamGraphicsMeta.SHAPE)
-    }
-
-    override suspend fun getSpriteStyle(guild: Long): TeamgraphicsSpriteStyle? = suspendTransaction(db) {
-        teamGraphicsMeta.select(teamGraphicsMeta.SPRITESTYLE).where { teamGraphicsMeta.GUILD eq guild }.firstOrNull()
-            ?.get(teamGraphicsMeta.SPRITESTYLE)
-    }
-}
-
 @Single
-class TeamGraphicsMetaDB : Table("teamgraphicsmeta") {
+class TeamGraphicsMetaRepository(
+    private val db: R2dbcDatabase,
+) {
+    suspend fun getShape(guild: Long): TeamgraphicsShape? = suspendTransaction(db) {
+        TeamGraphicsMetaTable.select(TeamGraphicsMetaTable.SHAPE).where { TeamGraphicsMetaTable.GUILD eq guild }
+            .firstOrNull()
+            ?.get(TeamGraphicsMetaTable.SHAPE)
+    }
+
+    suspend fun getSpriteStyle(guild: Long): TeamgraphicsSpriteStyle? = suspendTransaction(db) {
+        TeamGraphicsMetaTable.select(TeamGraphicsMetaTable.SPRITESTYLE).where { TeamGraphicsMetaTable.GUILD eq guild }
+            .firstOrNull()
+            ?.get(TeamGraphicsMetaTable.SPRITESTYLE)
+    }
+}
+
+object TeamGraphicsMetaTable : Table("teamgraphicsmeta") {
     val GUILD = long("guild")
     val SHAPE = enumerationByName<TeamgraphicsShape>("shape", 16)
     val SPRITESTYLE = enumerationByName<TeamgraphicsSpriteStyle>("spritestyle", 16)

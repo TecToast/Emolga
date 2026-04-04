@@ -28,6 +28,8 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.DiscordLocale
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.json.jsonb
 import org.koin.core.qualifier.named
 import org.koin.mp.KoinPlatform
 import org.slf4j.Marker
@@ -38,6 +40,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.pow
 import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
 val embedColor = java.awt.Color.CYAN.rgb
@@ -117,11 +120,7 @@ val webJSON = Json {
     }
 }
 
-val httpClient = HttpClient(CIO) {
-    install(ContentNegotiation) {
-        json(webJSON)
-    }
-}
+
 
 val defaultScope = createCoroutineScope("Default")
 val myJSON = Json {
@@ -132,6 +131,12 @@ val otherJSON = Json {
     isLenient = true
     ignoreUnknownKeys = true
 }
+
+val exposedJson = Json {
+    encodeDefaults = false
+}
+
+inline fun <reified T : Any> Table.jsonb(name: String) = jsonb<T>(name, exposedJson)
 
 
 val defaultTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
@@ -297,6 +302,8 @@ fun DateTimeFormatter.parseToInstant(str: String): Instant {
     val localDateTime = LocalDateTime.parse(str, this)
     return Instant.fromEpochSeconds(localDateTime.atZone(ZoneId.systemDefault()).toEpochSecond())
 }
+
+fun DateTimeFormatter.format(instant: Instant): String = format(instant.toJavaInstant())
 
 // TODO: remove workaround as soon as everything is migrated
 inline fun <reified T : Any> dependency(named: String? = null) = KoinPlatform.getKoin().get<T>(named?.let { named(it) })

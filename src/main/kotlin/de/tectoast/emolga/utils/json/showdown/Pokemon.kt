@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Pokemon(
-    val id: String = "ERROR",
     val name: String = "ERROR",
     val num: Int = -1,
     val types: List<String> = listOf(),

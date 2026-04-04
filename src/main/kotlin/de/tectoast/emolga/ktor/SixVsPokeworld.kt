@@ -1,5 +1,6 @@
 package de.tectoast.emolga.ktor
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.SixVsPokeworldAuthDB
 import de.tectoast.emolga.utils.json.SixVsPokeworldConfig
 import de.tectoast.emolga.utils.json.mdb
@@ -10,6 +11,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.litote.kmongo.upsert
 import java.io.File
 import java.security.MessageDigest
@@ -19,7 +22,9 @@ val sixVsPokeworldGuard = createRouteScopedPlugin("SixVsPokeworldAuthGuard") {
         val value = call.request.header("UserID") ?: return@onCall call.respondText(
             "No UserID provided", status = HttpStatusCode.Unauthorized
         )
-        if (!SixVsPokeworldAuthDB.isAuthorized(value.toLong())) {
+        if (!dbTransaction {
+                SixVsPokeworldAuthDB.selectAll().where { SixVsPokeworldAuthDB.user eq value.toLong() }.count() > 0
+            }) {
             call.respond(HttpStatusCode.Unauthorized)
             return@onCall
         }

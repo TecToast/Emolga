@@ -9,54 +9,45 @@ import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 
-interface TeamGraphicRepository {
-    suspend fun setChannelId(league: String, channelId: Long)
-    suspend fun getChannelId(league: String): Long?
-    suspend fun setMessageId(league: String, idx: Int, messageId: Long)
-    suspend fun getMessageId(league: String, idx: Int): Long?
-    suspend fun getLeagueAndIdxByMessageId(messageId: Long): Pair<String, Int>?
-}
-
 @Single
-class PostgresTeamGraphicRepository(
+class TeamGraphicRepository(
     private val db: R2dbcDatabase,
-    private val channelDB: TeamGraphicChannelDB,
-    private val messageDB: TeamGraphicMessageDB
-) : TeamGraphicRepository {
+) {
 
-    override suspend fun setChannelId(league: String, channelId: Long) {
+    suspend fun setChannelId(league: String, channelId: Long) {
         suspendTransaction(db) {
-            channelDB.upsert {
-                it[channelDB.LEAGUE] = league
-                it[channelDB.CHANNEL] = channelId
+            TeamGraphicChannelTable.upsert {
+                it[TeamGraphicChannelTable.league] = league
+                it[TeamGraphicChannelTable.channel] = channelId
             }
         }
     }
 
-    override suspend fun getChannelId(league: String) = suspendTransaction(db) {
-        channelDB.select(channelDB.CHANNEL).where { channelDB.LEAGUE eq league }
-            .firstOrNull()?.get(channelDB.CHANNEL)
+    suspend fun getChannelId(league: String) = suspendTransaction(db) {
+        TeamGraphicChannelTable.select(TeamGraphicChannelTable.channel)
+            .where { TeamGraphicChannelTable.league eq league }
+            .firstOrNull()?.get(TeamGraphicChannelTable.channel)
     }
 
-    override suspend fun setMessageId(league: String, idx: Int, messageId: Long) {
+    suspend fun setMessageId(league: String, idx: Int, messageId: Long) {
         suspendTransaction(db) {
-            messageDB.upsert {
-                it[messageDB.LEAGUE] = league
-                it[messageDB.IDX] = idx
-                it[messageDB.MESSAGEID] = messageId
+            TeamGraphicMessageTable.upsert {
+                it[TeamGraphicMessageTable.league] = league
+                it[TeamGraphicMessageTable.idx] = idx
+                it[TeamGraphicMessageTable.messageId] = messageId
             }
         }
     }
 
-    override suspend fun getMessageId(league: String, idx: Int): Long? = suspendTransaction(db) {
-        messageDB.select(messageDB.MESSAGEID)
-            .where { (messageDB.LEAGUE eq league) and (messageDB.IDX eq idx) }
-            .firstOrNull()?.get(messageDB.MESSAGEID)
+    suspend fun getMessageId(league: String, idx: Int): Long? = suspendTransaction(db) {
+        TeamGraphicMessageTable.select(TeamGraphicMessageTable.messageId)
+            .where { (TeamGraphicMessageTable.league eq league) and (TeamGraphicMessageTable.idx eq idx) }
+            .firstOrNull()?.get(TeamGraphicMessageTable.messageId)
     }
 
-    override suspend fun getLeagueAndIdxByMessageId(messageId: Long): Pair<String, Int>? = suspendTransaction(db) {
-        messageDB.select(messageDB.LEAGUE, messageDB.IDX)
-            .where { messageDB.MESSAGEID eq messageId }
-            .firstOrNull()?.let { it[messageDB.LEAGUE] to it[messageDB.IDX] }
+    suspend fun getLeagueAndIdxByMessageId(messageId: Long): Pair<String, Int>? = suspendTransaction(db) {
+        TeamGraphicMessageTable.select(TeamGraphicMessageTable.league, TeamGraphicMessageTable.idx)
+            .where { TeamGraphicMessageTable.messageId eq messageId }
+            .firstOrNull()?.let { it[TeamGraphicMessageTable.league] to it[TeamGraphicMessageTable.idx] }
     }
 }

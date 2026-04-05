@@ -86,7 +86,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                         )
                     }
                 }
-                val get = Google.batchGet("1iPnZKaAUW9xn5cgL-ME45a1P_FZksB_VJOJi90_Vw_8", ranges, false)
+                val get = Google.batchGet("1iPnZKaAUW9xn5cgL-ME45a1P_FZksB_VJOJi90_Vw_8", ranges, false)!!
                 buildMap {
                     for (subList in get) {
                         val type = subList[0][1].toString()
@@ -107,7 +107,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 val get = Google.batchGet(
                     "1N0RjZY-G-3l15vJLbSN_5QOtN9_OwskOYB-5rYsuyg0",
                     (0..<5).map { it.CoordXMod("Tierliste", 5, 7, 3, 0, 6).spreadTo(x = 2, y = 140) }, false
-                )
+                )!!
                 buildMap {
                     for (row in get.flatten()) {
                         put(
@@ -129,7 +129,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 val get = Google.batchGet(
                     "1Dt6j9UZy89_TWJ96g9hWxWUpz89Hn5Mxok6UUgv51rM",
                     (0..<20).map { Coord("TIERS (MAIN)", it.y(3, 19), 10).spreadTo(x = 2, y = 440) }, false
-                )
+                )!!
                 buildMap {
                     for (row in get.flatten()) {
                         put(
@@ -177,7 +177,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                         },
                         false,
                         "COLUMNS"
-                    )
+                    )!!
                         .mapNotNull { col ->
                             col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) }
                                 .takeUnless { it.isEmpty() }

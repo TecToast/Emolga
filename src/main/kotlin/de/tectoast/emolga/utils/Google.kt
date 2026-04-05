@@ -78,10 +78,10 @@ object Google {
      */
     suspend fun batchGet(
         sid: String, ranges: List<String>, formula: Boolean, majorDimension: String = "ROWS"
-    ): List<List<List<Any?>>> = withContext(googleContext) {
+    ): List<List<List<Any?>>>? = withContext(googleContext) {
         sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
             .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
-            .execute().valueRanges.map { it.getValues() }
+            .execute()?.valueRanges?.map { it.getValues() }
     }
 
     /**

@@ -51,7 +51,7 @@ class ADL : League() {
                 val monIndex = picksOfUser.getIndexOfMon(it)
                 val sourceY = idx.y(15, 3 + monIndex)
                 "Kills (type in)!I$sourceY:Q$sourceY"
-            }, false)
+            }, false).orEmpty()
             entry.drops.forEachIndexed { index, drop ->
                 @Suppress("SENSELESS_COMPARISON")
                 if (batchGet[index] == null) return@forEachIndexed

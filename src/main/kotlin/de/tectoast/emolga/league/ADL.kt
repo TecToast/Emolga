@@ -35,7 +35,7 @@ class ADL : League() {
         val gamedayData = transaction.running[gameday] ?: return
         val indices = onlyIndices ?: gamedayData.keys
         val b = builder()
-        for (idx in indices) {
+        for (idx in indices.toList()) {
             val entry = gamedayData[idx] ?: continue
             val amountData = amounts.getOrPut(idx) { TransactionAmounts() }
             val dropInsertIndex = amountData.mons - entry.drops.size

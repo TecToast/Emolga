@@ -21,6 +21,12 @@ class DL2 : League() {
         +StatProcessor {
             Coord("Killstats", gdi.y(3, 16), memIdx.y(21, 4 + monIndex())) to DataTypeForMon.DEATHS
         }
+        resultCreator = {
+            val baseCoord = if (gdi == 6) Coord("Standings & Schedule", "Z", 20) else gdi.CoordXMod(
+                "Standings & Schedule", 3, 'X' - 'N', 16, 7, 6
+            )
+            b.addRow(baseCoord.plusY(index), listOf(numberOne, numberTwo))
+        }
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

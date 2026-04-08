@@ -111,7 +111,13 @@ data class SixVsPokeworldConfig(
     )
 
     @Serializable
-    data class ExerciseData(val title: String, val text: String, val fileKey: String = "", val fileKeyEn: String = "", val reward: String)
+    data class ExerciseData(
+        val title: String,
+        val text: String,
+        val fileKey: String = "",
+        val fileKeyEn: String = "",
+        val reward: String
+    )
 }
 
 
@@ -720,15 +726,12 @@ data class LigaStartData(
     }
 
     suspend fun setNewMaxUsers(newMaxUsers: Int) {
-        val wasClosed = full
         config.maxUsers = newMaxUsers
-        if (wasClosed) {
-            jda.getTextChannelById(config.announceChannel)!!.editMessageComponentsById(
-                announceMessageId, SignupManager.Button.withoutIData(language()) {
-                    this.identifier = config.identifier
-                }.into()
-            ).queue()
-        }
+        jda.getTextChannelById(config.announceChannel)!!.editMessageComponentsById(
+            announceMessageId, SignupManager.Button.withoutIData(language()) {
+                this.identifier = config.identifier
+            }.into()
+        ).queue()
         updateSignupMessage()
         save()
     }

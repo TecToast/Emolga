@@ -5,6 +5,9 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.various.CalendarSystem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
@@ -50,7 +53,7 @@ object CalendarDB : IntIdTable("calendar") {
      */
     suspend fun buildCalendar() = dbTransaction {
         selectAll().orderBy(EXPIRES)
-            .joinToString("\n") { "**${calendarFormat.format(it[EXPIRES].toJavaInstant())}:** ${it[MESSAGE]}" }
+            .joinToString("\n") { "**${calendarFormat.format(it[EXPIRES].toLocalDateTime(TimeZone.currentSystemDefault()).toJavaLocalDateTime())}:** ${it[MESSAGE]}" }
             .ifEmpty { "_leer_" }
     }
 

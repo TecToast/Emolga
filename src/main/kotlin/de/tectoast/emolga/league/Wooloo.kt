@@ -21,7 +21,7 @@ class Wooloo : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(newSystemSorter("Tabelle!C6:J13", TableSortOption.fromCols(listOf(7, 6, 4)))) {
             b.addSingle(
-                if (gdi == 6) Coord("Spielplan", "E", 22) else gdi.CoordXMod("Spielplan", 2, 4, 3, 6, 4),
+                (if (gdi == 6) Coord("Spielplan", "E", 22) else gdi.CoordXMod("Spielplan", 2, 4, 3, 6, 4)).plusY(index),
                 defaultGameplanString
             )
         }

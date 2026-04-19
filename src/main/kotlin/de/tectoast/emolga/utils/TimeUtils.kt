@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -68,14 +67,16 @@ object TimeUtils {
         return map
     }
 
-    fun secondsToTimePretty(timesec: Long, language: K18nLanguage) =
+    fun secondsToTimePretty(timesec: Long) = b {
         secondsToTimeBase(timesec).entries.joinToString { (k, v) ->
             "**$v** ${
                 pluralise(
                     v.toLong(), shortToPretty[k]!!
-                ).translateTo(language)
+                )()
             }"
-        }.ifEmpty { "**0** ${K18n_TimeUtils.SecondPlural.translateTo(language)}" }
+        }.ifEmpty { "**0** ${K18n_TimeUtils.SecondPlural()}" }
+    }
+
 
     fun secondsToTimeShort(timesec: Long): String {
         val base = secondsToTimeBase(timesec)

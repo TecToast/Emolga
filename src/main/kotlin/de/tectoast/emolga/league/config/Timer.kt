@@ -14,4 +14,6 @@ data class TimerRelated(
     var lastRegularDelay: Long = -1,
     @EncodeDefault val usedStallSeconds: MutableMap<Int, Int> = mutableMapOf(),
     var lastStallSecondUsedMid: Long? = null
-)
+) {
+    fun stallSecondsActive() = cooldown != regularCooldown
+}

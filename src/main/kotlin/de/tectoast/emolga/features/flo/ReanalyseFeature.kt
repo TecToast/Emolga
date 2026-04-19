@@ -32,14 +32,14 @@ object ReanalyseFeature : MessageContextFeature(MessageContextSpec("Reanalyse (D
                 NameConventionsDB.getDiscordTranslation(
                     split[0],
                     iData.gid,
-                )!!.official to KD(split[1].toInt(), split.getOrNull(2)?.count { c -> c == 'X' } ?: 0)
+                )!!.showdownId to KD(split[1].toInt(), split.getOrNull(2)?.count { c -> c == 'X' } ?: 0)
             }
         }
         League.executeOnFreshLock(league.leaguename) {
             val (gamedayData, u1IsSecond) = getGamedayData(idxs[0], idxs[1])
             val fullGameData = FullGameData(
                 uindices = idxs.reversedIf(u1IsSecond),
-                gameday = gamedayData.gameday,
+                week = gamedayData.gameday,
                 battleIndex = gamedayData.battleIndex,
                 games = listOf(
                     ReplayData(

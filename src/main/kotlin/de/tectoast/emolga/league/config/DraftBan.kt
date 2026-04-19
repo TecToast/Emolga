@@ -1,7 +1,7 @@
 package de.tectoast.emolga.league.config
 
-import de.tectoast.emolga.league.BanRoundConfig
-import de.tectoast.emolga.league.BanSkipBehavior
+import de.tectoast.emolga.database.league.BanRoundConfig
+import de.tectoast.emolga.database.league.BanSkipBehavior
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -19,4 +19,6 @@ data class DraftBanConfig(
 data class DraftBanData(
     @EncodeDefault
     val bannedMons: MutableMap<Int, MutableSet<DraftPokemon>> = mutableMapOf()
-)
+) {
+
+}

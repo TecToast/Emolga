@@ -83,10 +83,10 @@ object QueuePicks {
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.triggers.allowPickDuringSwitch) {
                         return@l iData.reply(K18n_QueuePicks.OnlyWithSwitchAllowed)
                     }
-                    if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
+                    if (oldmon != null && picks[idx]?.any { it.name == oldmon.showdownId } != true) {
                         return@l iData.reply(K18n_QueuePicks.PokemonNotInTeam(oldmon.tlName))
                     }
-                    if (isPicked(e.mon.official)) {
+                    if (isPicked(e.mon.showdownId)) {
                         return@l iData.reply(K18n_QueuePicks.PokemonAlreadyPicked(e.mon.tlName))
                     }
                     val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }

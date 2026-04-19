@@ -226,7 +226,7 @@ object Analysis {
                 }
                 val kd = gameInGameplanOrder.map {
                     it.pokemon.associate { p ->
-                        p.draftname.official to KD(
+                        p.draftname.showdownId to KD(
                             p.kills, if (p.isDead) 1 else 0
                         )
                     }
@@ -242,7 +242,7 @@ object Analysis {
                 docEntry?.analyse(
                     FullGameData(
                         uindices = uindicesInOrder!!,
-                        gameday = gamedayData.gameday,
+                        week = gamedayData.gameday,
                         battleIndex = gamedayData.battleIndex,
                         games = games
                     ),

@@ -281,7 +281,7 @@ fun Route.emolgaAPI() {
                             p.map {
                                 NameConventionsDB.getDiscordTranslation(
                                     it.key, guild
-                                )!!.official.also { official ->
+                                )!!.showdownId.also { official ->
                                     officialNameCache[it.key] = official
                                 } to it.value
                             }.toMap()
@@ -316,9 +316,9 @@ fun Route.emolgaAPI() {
         val allLeagues = mdb.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
         val totalCount = AtomicInteger(0)
         val entries = dependency<ReplayDataStoreRepository>().getAll(league.leaguename)
-        val maxGameday: Int = entries.maxOfOrNull { it.gameday } ?: 1
+        val maxGameday: Int = entries.maxOfOrNull { it.week } ?: 1
         val gameday = call.queryParameters["gameday"]?.toIntOrNull() ?: maxGameday
-        val data = entries.asSequence().filter { it.gameday <= gameday }
+        val data = entries.asSequence().filter { it.week <= gameday }
             .onEach { totalCount.incrementAndGet() }
             .flatMap { it.games.flatMap { g -> g.kd.flatMap { kd -> kd.keys } } }.groupingBy { it }
             .eachCount().entries.map { (mon, count) ->
@@ -463,18 +463,18 @@ fun Route.emolgaAPI() {
                 val transactionData = persistentData.transaction
                 val dropsOfficial = data.drops.map { drop ->
                     val result =
-                        NameConventionsDB.getDiscordTranslation(drop, guild)?.official ?: return@post call.bad()
+                        NameConventionsDB.getDiscordTranslation(drop, guild)?.showdownId ?: return@post call.bad()
                     if (!currentPicks.any { it.name == result && !it.quit }) return@post call.bad()
                     result
                 }
                 val picksOfficial = data.picks.map { pick ->
                     val result =
-                        NameConventionsDB.getDiscordTranslation(pick, guild)?.official ?: return@post call.bad()
+                        NameConventionsDB.getDiscordTranslation(pick, guild)?.showdownId ?: return@post call.bad()
                     if (isPicked(result)) return@post call.bad()
                     result
                 }
                 val teraUsersOfficial = data.teraUsers.map {
-                    NameConventionsDB.getDiscordTranslation(it, guild)?.official ?: return@post call.bad()
+                    NameConventionsDB.getDiscordTranslation(it, guild)?.showdownId ?: return@post call.bad()
                 }
                 val amounts = transactionData.amounts.getOrPut(idx) { TransactionAmounts() }
                 val gameday = RepeatTask.getTask(leaguename, RepeatTaskType.TransactionDocInsert)?.findGamedayOfWeek()

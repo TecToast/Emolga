@@ -159,7 +159,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByCommand() = leagueByGuild(iData.gid, iData.user)
 
     suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
-        return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!
+        return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.showdownId.toSDName())!!
     }
 
 
@@ -190,16 +190,16 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                             NameConventionsDB.ENGLISH, NameConventionsDB.GERMAN
                         )
                     val otherFormesGerman = otherFormesEngl.map { (k, v) ->
-                        k.official to v.map { allSDTranslations[it] ?: it }
+                        k.showdownId to v.map { allSDTranslations[it] ?: it }
                     }.toMap()
                     allOtherFormesGerman[index] = otherFormesGerman
                     val filters = possibleOtherForm.map {
                         or(
-                            PickedMonsData::mons contains it.official,
-                            otherFormesGerman[it.official].orEmpty().let { mega -> PickedMonsData::mons `in` mega })
+                            PickedMonsData::mons contains it.showdownId,
+                            otherFormesGerman[it.showdownId].orEmpty().let { mega -> PickedMonsData::mons `in` mega })
                     }.toTypedArray()
                     val query = and(
-                        *(if (noOtherForm.isNotEmpty()) arrayOf((PickedMonsData::mons all noOtherForm.map { it.official })) else emptyArray()),
+                        *(if (noOtherForm.isNotEmpty()) arrayOf((PickedMonsData::mons all noOtherForm.map { it.showdownId })) else emptyArray()),
                         *filters
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
@@ -221,9 +221,9 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 val pickedMons = resultList[i].mons
                 val formes = allOtherFormesGerman[i]
                 for (sdMon in game[i].pokemon) {
-                    if (sdMon.draftname.official !in pickedMons) {
+                    if (sdMon.draftname.showdownId !in pickedMons) {
                         sdMon.draftname = NameConventionsDB.getSDTranslation(
-                            formes[sdMon.draftname.official]!!.first { it in pickedMons },
+                            formes[sdMon.draftname.showdownId]!!.first { it in pickedMons },
                             gid
                         )!!
                     }

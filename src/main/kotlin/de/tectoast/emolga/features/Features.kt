@@ -508,7 +508,7 @@ open class Arguments : KoinComponent {
             (if (league == null || tierlist == null) strings
             else strings.map {
                 val officialName = tierlist.tlToOfficialCache.getOrPut(it) {
-                    NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
+                    NameConventionsDB.getDiscordTranslation(it, league.guild)!!.showdownId
                 }
                 if (league.isPicked(officialName)) "$it (NICHT VERFÜGBAR)" else it
             }).sortedWith(compareBy({ !it.startsWith(s) }, { it }))

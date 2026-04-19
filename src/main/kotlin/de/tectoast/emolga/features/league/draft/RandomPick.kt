@@ -80,7 +80,7 @@ object RandomPick {
         if (jokerAmount > 0) {
             val pokemon = if (iData.language == K18nLanguage.EN) draftname.tlName else "${draftname.tlName}/${
                 NameConventionsDB.getSDTranslation(
-                    draftname.official, guild, english = true
+                    draftname.showdownId, guild, english = true
                 )!!.tlName
             }"
             replyGeneral(
@@ -98,11 +98,11 @@ object RandomPick {
             )
             draftData.randomPick.currentMon =
                 RandomLeaguePick(
-                    draftname.official,
+                    draftname.showdownId,
                     draftname.tlName,
                     tier,
                     mapOf("type" to type),
-                    history = history + draftname.official
+                    history = history + draftname.showdownId
                 )
             save()
             return true

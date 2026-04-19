@@ -24,7 +24,7 @@ object StatProcessorService {
         statProcessors: Collection<StatProcessor>,
         matchResultHandler: suspend (LeagueEvent.MatchResult) -> Unit
     ): Set<Job> {
-        val gameday = fullGameData.gameday
+        val gameday = fullGameData.week
         val battleIndex = fullGameData.battleIndex
         val uindices = fullGameData.uindices
         val matchResultJobs = mutableSetOf<Job>()

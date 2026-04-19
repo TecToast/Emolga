@@ -677,7 +677,7 @@ object PrivateCommands {
         iData.done()
         val gid = args().toLong()
         val pokemonList = Tierlist[gid]!!.retrieveAll().map {
-            NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
+            NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.showdownId
         }
         dependency<PokemonCropRepository>().fillCropAuxiliary(gid, pokemonList)
     }

@@ -5,6 +5,7 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.PredictionGameRepository
+import de.tectoast.emolga.ktor.ResultEntryDescription
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -105,7 +106,7 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config
         val store = config.replayDataStore
-        val gameday = fullGameData.gameday
+        val gameday = fullGameData.week
         val battleindex = fullGameData.battleIndex
         league.config.predictionGame?.let { _ ->
             league.executePredictionGameLockButtonsIndividual(
@@ -162,7 +163,7 @@ class DocEntry private constructor(val league: League) {
         fullGameData: FullGameData, withSort: Boolean = true, realExecute: Boolean = true, overrideSid: String? = null
     ) {
         if (fullGameData.games.isEmpty()) return
-        val gameday = fullGameData.gameday
+        val gameday = fullGameData.week
         val battleindex = fullGameData.battleIndex
         if (fullGameData.games.any { game -> game.kd.size != 2 }) {
             logger.warn("Skipping analysis for league ${league.leaguename} gameday $gameday battle $battleindex due to invalid game data. (Not 1v1 games)")
@@ -357,7 +358,7 @@ data class NameConventionsProviderCache(
 
     override suspend fun getOfficialEnglishName(official: String): String {
         return officialEnCache.getOrPut(official) {
-            NameConventionsDB.getSDTranslation(official, gid, english = true)?.official
+            NameConventionsDB.getSDTranslation(official, gid, english = true)?.showdownId
                 ?: error("No English name found for $official in guild $gid") // TODO: better error handling
         }
     }
@@ -504,7 +505,7 @@ enum class DataTypeForMon : MonDataProvider {
 
 data class FullGameData(
     val uindices: List<Int>,
-    val gameday: Int,
+    val week: Int,
     val battleIndex: Int,
     val games: List<ReplayData>,
 ) {
@@ -526,12 +527,12 @@ data class FullGameData(
             if (game.url.startsWith("https")) {
                 val tosend = MessageCreate(
                     content = game.url,
-                    embeds = league.appendedEmbed(null, uindices, gameday).build().into()
+                    embeds = league.appendedEmbed(null, uindices, week).build().into()
                 )
                 replay.sendMessage(tosend).queue()
             }
             with(league) {
-                result.sendResultEntryMessage(gameday, ResultEntryDescription.Bo3(fullGameData))
+                result.sendResultEntryMessage(week, ResultEntryDescription.Bo3(fullGameData))
             }
         }
     }

@@ -1,5 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.league.DraftInput
+import de.tectoast.emolga.database.league.PickInput
+import de.tectoast.emolga.database.league.SwitchInput
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.features.league.K18n_Nominate
@@ -13,10 +16,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.draft.DraftInput
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.draft.PickInput
-import de.tectoast.emolga.utils.draft.SwitchInput
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.*
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
@@ -431,12 +431,21 @@ class QueuePicksStateHandler : StateStoreHandler<QueuePicksState> {
 }
 
 @Serializable
-data class QueuedAction(val g: DraftName, val y: DraftName? = null) {
+data class QueuedAction(val g: QueuedMon, val y: String? = null) {
     fun buildDraftInput(): DraftInput {
-        return if (y != null) SwitchInput(y, g) else PickInput(g, null, false)
-    }
-
-    override fun toString(): String {
-        return g.tlName.notNullPrepend(y) { "${it.tlName} -> " }
+        // TODO
+        return if (y != null) SwitchInput(y, DraftName(g.id, g.id)) else PickInput(
+            DraftName(g.id, g.id), g.tier.takeIf { g.tierSpecified }, g.free, g.tera
+        )
     }
 }
+
+@Serializable
+data class QueuedMon(
+    val id: String,
+    val tier: String,
+    val free: Boolean = false,
+    val tera: Boolean = false,
+    @SerialName("ts")
+    val tierSpecified: Boolean = false
+)

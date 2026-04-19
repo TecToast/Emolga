@@ -29,7 +29,7 @@ data class RandomPickRoundConfig(
                 mdb.pokedex.get(
                     NameConventionsDB.getSDTranslation(
                         it.name, guild, english = true
-                    )!!.official.toSDName()
+                    )!!.showdownId.toSDName()
                 )!!.types
             }
         }.groupingBy { it }.eachCount()

@@ -259,7 +259,7 @@ object NameConventionsDB : Table("nameconventions") {
                         if (english) tlName else it[SPECIFIEDENGLISH],
                         it[ENGLISH]
                     )
-                }.toMap { it.official to it }
+                }.toMap { it.showdownId to it }
         }
     }
 
@@ -298,6 +298,7 @@ object NameConventionsDB : Table("nameconventions") {
     }
 }
 
+// TODO get rid of DraftName
 /**
  * A DraftName consists of a tierlist name (tlName) and the official name (in the format that is used
  * by Pokemon Showdown).
@@ -305,21 +306,21 @@ object NameConventionsDB : Table("nameconventions") {
 @Serializable
 data class DraftName(
     val tlName: String,
-    val official: String,
+    val showdownId: String,
     @Transient val guildspecific: Boolean = false,
     @Transient val otherTl: String? = null,
     @Transient val otherOfficial: String? = null
 ) {
     var data: Pokemon? = null
-    val displayName get() = if (official == "UNKNOWN") tlName else if (guildspecific) tlName else official
+    val displayName get() = if (showdownId == "UNKNOWN") tlName else if (guildspecific) tlName else showdownId
     fun tlForLanguage(language: Language) = if (language == Language.GERMAN) tlName else otherTl ?: tlName
     override fun equals(other: Any?): Boolean {
         if (other !is DraftName) return false
-        return official == other.official
+        return showdownId == other.showdownId
     }
 
     override fun hashCode(): Int {
-        return official.hashCode()
+        return showdownId.hashCode()
     }
 }
 

@@ -53,11 +53,11 @@ class NDS(val rr: Boolean) : League() {
     override fun SwitchData.saveSwitch() {
         if (rr) {
             // super implementation, currently not possible to call directly
-            picks.first { it.name == oldmon.official }.quit = true
+            picks.first { it.name == oldmon.showdownId }.quit = true
             picks += DraftPokemon(pokemonofficial, tier)
             return
         }
-        picks.first { it.name == oldmon.official }.apply {
+        picks.first { it.name == oldmon.showdownId }.apply {
             this.name = pokemonofficial
             this.tier = this@saveSwitch.tier
         }

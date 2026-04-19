@@ -1,5 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.exposed.LeagueEventTable.gameday
+import de.tectoast.emolga.database.exposed.LeagueEventTable.uindices
+import de.tectoast.emolga.database.league.LeagueScheduleTable
 import de.tectoast.emolga.utils.FullGameData
 import de.tectoast.emolga.utils.ReplayData
 import de.tectoast.emolga.utils.jsonb
@@ -14,30 +17,16 @@ import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 
-object FullGameDataTable : Table("fullgamedata") {
-    val id = integer("id").autoIncrement()
-    val league = text("league")
-    val gameday = integer("week")
-    val battleindex = integer("battleindex")
-    val uindices = array<Int>("uindices")
-
-    override val primaryKey = PrimaryKey(id)
-
-    init {
-        index(true, league, gameday, battleindex)
-    }
-}
-
 object ReplayDataTable : Table("replaydata") {
     val id = integer("id").autoIncrement()
-    val fullGameData = integer("fullgamedata").references(FullGameDataTable.id)
+    val scheduleId = integer("schedule_id").references(LeagueScheduleTable.id)
     val matchNum = integer("matchnum")
     val data = jsonb<ReplayData>("data")
 
     override val primaryKey = PrimaryKey(id)
 
     init {
-        index(true, fullGameData, matchNum)
+        index(true, scheduleId, matchNum)
     }
 }
 
@@ -50,13 +39,13 @@ class ReplayDataStoreRepository(val db: R2dbcDatabase) {
                 FullGameDataTable.battleindex
             ) {
                 it[league] = leagueName
-                it[gameday] = data.gameday
+                it[gameday] = data.week
                 it[battleindex] = data.battleIndex
                 it[uindices] = data.uindices
             }[FullGameDataTable.id]
             for ((matchNum, replayData) in data.games.withIndex()) {
-                ReplayDataTable.upsert(ReplayDataTable.fullGameData, ReplayDataTable.matchNum) {
-                    it[ReplayDataTable.fullGameData] = id
+                ReplayDataTable.upsert(ReplayDataTable.scheduleId, ReplayDataTable.matchNum) {
+                    it[ReplayDataTable.scheduleId] = id
                     it[ReplayDataTable.matchNum] = matchNum
                     it[ReplayDataTable.data] = replayData
                 }
@@ -86,7 +75,7 @@ class ReplayDataStoreRepository(val db: R2dbcDatabase) {
 
             FullGameData(
                 uindices = firstRow[FullGameDataTable.uindices],
-                gameday = firstRow[FullGameDataTable.gameday],
+                week = firstRow[FullGameDataTable.gameday],
                 battleIndex = firstRow[FullGameDataTable.battleindex],
                 games = games
             )
@@ -119,7 +108,7 @@ class ReplayDataStoreRepository(val db: R2dbcDatabase) {
         val generalData = FullGameDataTable.selectAll().where(predicate).firstOrNull() ?: return@suspendTransaction null
         val id = generalData[FullGameDataTable.id]
         val replayData = ReplayDataTable.selectAll().where {
-            (ReplayDataTable.fullGameData eq id)
+            (ReplayDataTable.scheduleId eq id)
         }.orderBy(ReplayDataTable.matchNum).map { it[ReplayDataTable.data] }.toList()
         FullGameData(
             generalData[FullGameDataTable.uindices],

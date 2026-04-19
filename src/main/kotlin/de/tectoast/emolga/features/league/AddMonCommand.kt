@@ -66,7 +66,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             val tl = getTierlistFor(idx)
             currentOverride = idx
             tierlistOverride = tl
-            val official = e.pokemon.official
+            val official = e.pokemon.showdownId
             val picks = picks.getOrPut(idx) { mutableListOf() }
             if (picks.any { it.name == official }) return@l iData.reply(K18n_AddMon.PokemonAlreadyInTeam)
             if (picks.size >= teamsize) {

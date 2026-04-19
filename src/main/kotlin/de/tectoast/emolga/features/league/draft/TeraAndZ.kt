@@ -71,7 +71,7 @@ object TeraAndZ {
             val str = StringBuilder()
             config.z?.let { zconf ->
                 e.z?.let {
-                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
+                    val selected = picks.firstOrNull { p -> p.name == it.showdownId } ?: return iData.reply(
                         K18n_TeraAndZ.PokemonNotInTeam(it.tlName),
                         ephemeral = true
                     )
@@ -92,7 +92,7 @@ object TeraAndZ {
             }
             config.tera?.let { tconf ->
                 e.tera?.let {
-                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
+                    val selected = picks.firstOrNull { p -> p.name == it.showdownId } ?: return iData.reply(
                         K18n_TeraAndZ.PokemonNotInTeam(it.tlName),
                         ephemeral = true
                     )

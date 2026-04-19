@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.interactions.DiscordLocale
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.json.jsonb
 import org.koin.core.qualifier.named
@@ -304,6 +305,33 @@ fun DateTimeFormatter.parseToInstant(str: String): Instant {
 }
 
 fun DateTimeFormatter.format(instant: Instant): String = format(instant.toJavaInstant())
+fun tierAmountToString(tier: String, amount: Int) =
+    "${amount}x **".condAppend(tier.toIntOrNull() != null, "Tier ") + "${tier}**"
+
+fun MutableMap<String, Int>.addFromMutable(other: Map<String, Int>) {
+    for ((key, value) in other) {
+        this.add(key, value)
+    }
+}
+
+fun Map<String, Int>.addFrom(other: Map<String, Int>): Map<String, Int> {
+    val result = this.toMutableMap()
+    result.addFromMutable(other)
+    return result
+}
+
+fun Map<String, Int>.subtractFrom(other: Map<String, Int>): Map<String, Int> {
+    val result = this.toMutableMap()
+    for ((key, value) in other) {
+        result.add(key, -value)
+    }
+    return result
+}
+
+context(t: Table)
+fun <T : Any, S : T, C : Column<S>> C.referencesCascade(ref: Column<T>): C = with(t) {
+    references(ref, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.CASCADE)
+}
 
 // TODO: remove workaround as soon as everything is migrated
 inline fun <reified T : Any> dependency(named: String? = null) = KoinPlatform.getKoin().get<T>(named?.let { named(it) })

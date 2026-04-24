@@ -18,7 +18,10 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
+import jdk.jfr.internal.OldObjectSample.emit
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -331,6 +334,15 @@ fun Map<String, Int>.subtractFrom(other: Map<String, Int>): Map<String, Int> {
 context(t: Table)
 fun <T : Any, S : T, C : Column<S>> C.referencesCascade(ref: Column<T>): C = with(t) {
     references(ref, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.CASCADE)
+}
+
+suspend fun <T, K, R> Flow<T>.groupByMapping(keySelector: suspend (T) -> K, mapper: suspend (T) -> R): Map<K, List<R>> {
+    val map = mutableMapOf<K, MutableList<R>>()
+    collect { item ->
+        val key = keySelector(item)
+        map.getOrPut(key) { mutableListOf() }.add(mapper(item))
+    }
+    return map
 }
 
 // TODO: remove workaround as soon as everything is migrated

@@ -33,8 +33,8 @@ class DraftAnnounceService(
         if (banSnippet != null) {
             snippets += banSnippet
         } else {
-            val normalSnippet = with(ValidationRelevantData(picks, idx, ctx.league.teamSize)) {
-                priceConfigDispatcher.buildAnnounceData(meta.priceManager, picks)
+            val normalSnippet = with(ValidationRelevantData(picks, idx, ctx.config.teamSize)) {
+                priceConfigDispatcher.buildAnnounceData(meta.priceConfig, picks)
             }
             if (normalSnippet != null) {
                 snippets += normalSnippet
@@ -44,7 +44,7 @@ class DraftAnnounceService(
             snippets.joinToString(prefix = " (", postfix = ")") { it() }
         }
         if(!withTimerAnnounce) return if(snippets.isEmpty()) EmptyMessage else basePart
-        val timerPart = timerService.getCurrentTimerMessage(ctx, idx)
+        val timerPart = timerService.getCurrentTimerMessage(ctx.config.timer, ctx.league.draftData.timer, idx)
         return b {
             "${basePart()} — ${timerPart()}"
         }

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.exposed.TierlistMetaTable.priceManager
+import de.tectoast.emolga.database.league.LeagueConfigRepository
 import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
 import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.Language
@@ -10,7 +11,9 @@ import de.tectoast.emolga.utils.json.error
 import de.tectoast.emolga.utils.json.success
 import de.tectoast.emolga.utils.jsonb
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.singleOrNull
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -25,11 +28,9 @@ data class TierlistMeta(
     val guild: Long,
     val identifier: String,
     val language: Language,
-    val priceManager: TierlistPriceConfig
+    val priceConfig: TierlistPriceConfig
 ) {
     // TODO: Support multiple prices
-
-    inline fun <reified T : TierlistPriceConfig> has() = priceManager is T
 }
 
 data class TierlistEntry(
@@ -69,9 +70,22 @@ class TierlistRepository(private val db: R2dbcDatabase) {
                     guild = it[TierlistMetaTable.guild],
                     identifier = it[TierlistMetaTable.identifier],
                     language = it[TierlistMetaTable.language],
-                    priceManager = it[priceManager]
+                    priceConfig = it[priceManager]
                 )
             }
+    }
+
+    suspend fun getAllMetasForGuild(guildId: Long): List<TierlistMeta> = suspendTransaction(db) {
+        TierlistMetaTable.selectAll()
+            .where { TierlistMetaTable.guild eq guildId }
+            .map {
+                TierlistMeta(
+                    guild = it[TierlistMetaTable.guild],
+                    identifier = it[TierlistMetaTable.identifier],
+                    language = it[TierlistMetaTable.language],
+                    priceConfig = it[priceManager]
+                )
+            }.toList()
     }
 
     suspend fun upsertMeta(meta: TierlistMeta) = suspendTransaction(db) {
@@ -79,7 +93,7 @@ class TierlistRepository(private val db: R2dbcDatabase) {
             it[guild] = meta.guild
             it[identifier] = meta.identifier
             it[language] = meta.language
-            it[priceManager] = meta.priceManager
+            it[priceManager] = meta.priceConfig
         }
     }
 
@@ -105,12 +119,19 @@ class TierlistRepository(private val db: R2dbcDatabase) {
 
 }
 
-class TierlistService(private val repo: TierlistRepository, private val priceConfigDispatcher: TierlistPriceConfigDispatcher) {
-    suspend fun getTierData(meta: TierlistMeta, showdownId: String, requestedTier: String?): CalcResult<TierData> {
-        val real = repo.getTier(meta.guild, meta.identifier, showdownId) ?: return K18n_DraftUtils.PokemonNotInTierlist.error()
-        if(requestedTier != null && meta.has<TierBasedPriceConfig>()) {
-            val existingTiers = priceConfigDispatcher.getTiers(meta.priceManager)
-            val specifiedTier = existingTiers.firstOrNull { it.equals(requestedTier, ignoreCase = true) } ?: return K18n_TierNotFound(requestedTier).error()
+class TierlistService(
+    private val repo: TierlistRepository,
+    private val priceConfigDispatcher: TierlistPriceConfigDispatcher
+) {
+    suspend fun getTierData(meta: TierlistMeta, showdownId: String, requestedTier: String?, identifier: String = meta.identifier): CalcResult<TierData> {
+        val real =
+            repo.getTier(meta.guild, identifier, showdownId) ?: return K18n_DraftUtils.PokemonNotInTierlist.error()
+        if (requestedTier != null && meta.priceConfig is TierBasedPriceConfig) {
+            val existingTiers = priceConfigDispatcher.getTiers(meta.priceConfig)
+            val specifiedTier =
+                existingTiers.firstOrNull { it.equals(requestedTier, ignoreCase = true) } ?: return K18n_TierNotFound(
+                    requestedTier
+                ).error()
             return TierData(specified = specifiedTier, official = real, isTierSpecified = true).success()
         }
         return TierData(specified = real, official = real, isTierSpecified = false).success()

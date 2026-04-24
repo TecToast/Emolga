@@ -117,7 +117,6 @@ interface TierlistPriceManagerOperations<C : TierlistPriceConfig> {
         config: C, action: DraftAction, context: DraftActionContext? = null
     ): ErrorOrNull
 
-    context(data: ValidationRelevantData)
     suspend fun buildAnnounceData(config: C, picks: List<DraftPokemon>): K18nMessage?
     fun getTiers(config: C): List<String>
 
@@ -147,7 +146,6 @@ class TierlistPriceConfigDispatcher(handlers: List<TierlistPriceManagerHandler<T
         context: DraftActionContext?
     ) = registry.getHandler(config).handleDraftActionWithGeneralChecks(config, action, context)
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig,
         picks: List<DraftPokemon>
@@ -162,6 +160,38 @@ class TierlistPriceConfigDispatcher(handlers: List<TierlistPriceManagerHandler<T
         currentState: List<QueuedAction>
     ) = registry.getHandler(config).checkLegalityOfQueue(config, idx, currentState)
 }
+
+@Single
+@Suppress("UNCHECKED_CAST")
+class TierBasedPriceConfigDispatcher(
+    handlers: List<TierBasedPriceManagerHandler<TierBasedPriceConfig>>,
+    tierlistDispatcher: TierlistPriceConfigDispatcher
+) : TierBasedPriceManagerOperations<TierBasedPriceConfig>,
+    TierlistPriceManagerOperations<TierBasedPriceConfig> by (tierlistDispatcher as TierlistPriceManagerOperations<TierBasedPriceConfig>) {
+
+    private val registry = HandlerRegistry(handlers)
+
+    override fun getSingleMap(config: TierBasedPriceConfig) = registry.getHandler(config).getSingleMap(config)
+
+    override fun getCurrentAvailableTiers(config: TierBasedPriceConfig, picks: List<DraftPokemon>) = registry.getHandler(config).getCurrentAvailableTiers(config, picks)
+
+    override fun getTierInsertIndex(
+        config: TierBasedPriceConfig,
+        picks: List<DraftPokemon>
+    ) = registry.getHandler(config).getTierInsertIndex(config, picks)
+
+    override fun getPicksInDocOrder(
+        config: TierBasedPriceConfig,
+        picks: List<DraftPokemon>
+    ) = registry.getHandler(config).getPicksInDocOrder(config, picks)
+
+    override fun getPicksWithInsertOrder(
+        config: TierBasedPriceConfig,
+        picks: List<DraftPokemon>
+    ) = registry.getHandler(config).getPicksWithInsertOrder(config, picks)
+}
+
+
 
 abstract class TierlistPriceManagerHandler<C : TierlistPriceConfig> : BaseHandler<C>,
     TierlistPriceManagerOperations<C> {
@@ -210,8 +240,7 @@ interface TierBasedPriceManagerOperations<C : TierBasedPriceConfig> : TierlistPr
 
     fun getSingleMap(config: C): Map<String, Int>
 
-    context(data: ValidationRelevantData)
-    fun getCurrentAvailableTiers(config: C): List<String>
+    fun getCurrentAvailableTiers(config: C, picks: List<DraftPokemon>): List<String>
 
     fun getTierInsertIndex(config: C, picks: List<DraftPokemon>): Int
 
@@ -277,9 +306,8 @@ interface PointBasedPriceConfigOperations<C : PointBasedPriceConfig> : TierlistP
             ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
     }
 
-    context(data: ValidationRelevantData)
-    fun getPointsOfUser(config: C): Int {
-        return config.globalPoints - data.picks.sumOf {
+    fun getPointsOfUser(config: C, picks: List<DraftPokemon>): Int {
+        return config.globalPoints - picks.sumOf {
             if (it.quit || it.noCost) 0
             else getPointsForMon(config, it)
         }
@@ -297,14 +325,14 @@ abstract class OnlyPointBasedPriceConfigHandler<C : OnlyPointBasedPriceConfig> :
     OnlyPointBasedPriceConfigOperations<C> {
     context(data: ValidationRelevantData)
     override fun handleDraftAction(config: C, action: DraftAction, context: DraftActionContext?): ErrorOrNull {
-        val currentPoints = getPointsOfUser(config)
+        val cpicks = data.picks
+        val currentPoints = getPointsOfUser(config, cpicks)
         val cost = getPointsForTier(config, action.officialTier) ?: return K18n_TierNotFound(action.officialTier)
         val pointsBack = action.switch?.let { switched -> getPointsForTier(config, switched.tier)!! } ?: 0
         val newPoints = currentPoints - cost + pointsBack
         if (newPoints < 0) {
             return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0")
         }
-        val cpicks = data.picks
         if (action.switch == null) {
             val minimumRequired = minimumNeededPointsForTeamCompletion(config, cpicks.count { !it.noCost } + 1)
             if (newPoints < minimumRequired) {
@@ -330,12 +358,11 @@ abstract class OnlyPointBasedPriceConfigHandler<C : OnlyPointBasedPriceConfig> :
     private fun minimumNeededPointsForTeamCompletion(config: C, picksSizeAfter: Int): Int =
         (data.teamSize - picksSizeAfter) * getMinimumPrice(config)
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: C,
         picks: List<DraftPokemon>
     ): K18nMessage? {
-        val points = getPointsOfUser(config)
+        val points = getPointsOfUser(config, picks)
         return K18n_League.PossiblePoints(points)
     }
 
@@ -354,7 +381,7 @@ abstract class OnlyPointBasedPriceConfigHandler<C : OnlyPointBasedPriceConfig> :
             yPoints += data.y?.let { getPointsForTier(league.tierlist.getTierOf(it.tlName)!!)!! } ?: 0
             */
         }
-        if (getPointsOfUser(config) - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
+        if (getPointsOfUser(config, data.picks) - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
                 config,
                 (data.picks.size) + currentState.size
             )
@@ -380,7 +407,7 @@ abstract class CombinedOptionsPriceConfigHandler<C : CombinedOptionsPriceConfig>
         context: DraftActionContext?
     ): ErrorOrNull {
         val specifiedTier = action.specifiedTier
-        val allTiers = getAllPossibleTiers(config)
+        val allTiers = getAllPossibleTiers(config, data.picks)
         if (allTiers.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
             if (config.combinedOptions.all { p -> p[specifiedTier] == 0 }) {
                 return K18n_Tierlist.MustUpdraft(specifiedTier)
@@ -391,18 +418,15 @@ abstract class CombinedOptionsPriceConfigHandler<C : CombinedOptionsPriceConfig>
         return null
     }
 
-    context(data: ValidationRelevantData)
-    override fun getCurrentAvailableTiers(config: C): List<String> {
-        val cpicks = data.picks
+    override fun getCurrentAvailableTiers(config: C, picks: List<DraftPokemon>): List<String> {
         return config.combinedOptions.flatMap { opt ->
-            val deducted = opt.deductPicks(cpicks)
+            val deducted = opt.deductPicks(picks)
             if (deducted.any { it.value < 0 }) emptyList() else deducted.entries.filter { it.value > 0 }.map { it.key }
         }
     }
 
-    context(data: ValidationRelevantData)
-    fun getAllPossibleTiers(config: C): List<Map<String, Int>> =
-        config.combinedOptions.map { it.deductPicks(data.picks) }
+    fun getAllPossibleTiers(config: C, picks: List<DraftPokemon>): List<Map<String, Int>> =
+        config.combinedOptions.map { it.deductPicks(picks) }
 
     override fun getTiers(config: C): List<String> {
         return config.tierOrder
@@ -415,7 +439,7 @@ abstract class CombinedOptionsPriceConfigHandler<C : CombinedOptionsPriceConfig>
         idx: Int,
         currentState: List<QueuedAction>
     ): ErrorOrNull {
-        val res = getAllPossibleTiers(config)
+        val res = getAllPossibleTiers(config, data.picks)
         val finalMaps = res.map { map ->
             val tempMap = map.toMutableMap()
             currentState.forEach {
@@ -479,7 +503,6 @@ class SimpleTierBasedHandler(tierValidationHelper: TierValidationHelper) :
     private fun getPossibleTiers(config: TierlistPriceConfig.SimpleTierBased, picks: List<DraftPokemon>) =
         config.tiers.deductPicks(picks)
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig.SimpleTierBased,
         picks: List<DraftPokemon>
@@ -516,9 +539,8 @@ class SimpleTierBasedHandler(tierValidationHelper: TierValidationHelper) :
 
     override fun getSingleMap(config: TierlistPriceConfig.SimpleTierBased) = config.tiers
 
-    context(data: ValidationRelevantData)
-    override fun getCurrentAvailableTiers(config: TierlistPriceConfig.SimpleTierBased) =
-        getPossibleTiers(config, data.picks).filter { it.value > 0 }.keys.toList()
+    override fun getCurrentAvailableTiers(config: TierlistPriceConfig.SimpleTierBased, picks: List<DraftPokemon>) =
+        getPossibleTiers(config, picks).filter { it.value > 0 }.keys.toList()
 
     override fun getTierInsertIndex(
         config: TierlistPriceConfig.SimpleTierBased,
@@ -573,12 +595,11 @@ class OptionsTierBasedHandler(tierValidationHelper: TierValidationHelper) :
     CombinedOptionsPriceConfigHandler<TierlistPriceConfig.OptionsTierBased>(tierValidationHelper) {
     override val targetClass = TierlistPriceConfig.OptionsTierBased::class
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig.OptionsTierBased,
         picks: List<DraftPokemon>
     ): K18nMessage? {
-        val res = getAllPossibleTiers(config)
+        val res = getAllPossibleTiers(config, picks)
         val allTiers = res.flatMapTo(mutableSetOf()) { it.keys }.sortedBy {
             config.tierOrder.indexOf(it)
         }
@@ -631,13 +652,11 @@ class ChoiceTierBasedHandler(tierValidationHelper: TierValidationHelper) :
     CombinedOptionsPriceConfigHandler<TierlistPriceConfig.ChoiceTierBased>(tierValidationHelper) {
     override val targetClass = TierlistPriceConfig.ChoiceTierBased::class
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig.ChoiceTierBased,
         picks: List<DraftPokemon>
     ): K18nMessage? {
-        val cpicks = data.picks
-        val fromGeneric = config.genericTiers.deductPicks(cpicks)
+        val fromGeneric = config.genericTiers.deductPicks(picks)
         val singularOptions = getSingularChoiceList(config)
         for (tier in fromGeneric.flatMap { genericEntry ->
             if (genericEntry.value >= 0) emptyList()
@@ -738,7 +757,7 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
         context: DraftActionContext?
     ): ErrorOrNull {
         val officialCost =
-            getPointsForTier(config, action.officialTier) ?: return K18n_TierNotFound(action.officialTier)
+            getPointsForTier(config, action.officialTier) ?: return K18n_TierNotFound(action.specifiedTier)
         val cost = if (action.tier.isTierSpecified) {
             val possibleTiers = config.tiers[action.specifiedTier]!!.tiers
             if (officialCost > possibleTiers.max()) return K18n_Tierlist.CantUpdraft(
@@ -747,7 +766,7 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
             possibleTiers.min().coerceAtLeast(officialCost)
         } else officialCost
         val specifiedTier = cost.toString().pointsToActualTier(config)
-        val options = getPossibleTiers(config)
+        val options = getPossibleTiers(config, data.picks)
         if (options[specifiedTier]!! <= 0) {
             if (config.tiers[specifiedTier]?.amount == 0) {
                 return K18n_Tierlist.MustUpdraft(specifiedTier)
@@ -755,7 +774,7 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
             if (action.switch != null) return null
             return K18n_Tierlist.CantPickTier(specifiedTier)
         }
-        val currentPoints = getPointsOfUser(config)
+        val currentPoints = getPointsOfUser(config, data.picks)
         if (officialCost - (officialCost % 2) - (cost - (cost % 2)) > 2) {
             return K18n_Tierlist.GapError(action.official, 1)
         }
@@ -771,17 +790,16 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
         return null
     }
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig.TierAndPoint,
         picks: List<DraftPokemon>
     ): K18nMessage? {
-        return getPossibleTiers(config).entries.filterNot { it.value == 0 }
+        return getPossibleTiers(config, picks).entries.filterNot { it.value == 0 }
             .joinToString { tierAmountToString(it.key, it.value) }.let {
                 if (it.isEmpty()) null else K18n_League.PossibleTiers(it)
             }?.let { tierMsg ->
                 b {
-                    "${tierMsg()}, ${K18n_League.PossiblePoints(getPointsOfUser(config))()}"
+                    "${tierMsg()}, ${K18n_League.PossiblePoints(getPointsOfUser(config, picks))()}"
                 }
             }
     }
@@ -794,7 +812,7 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
         idx: Int,
         currentState: List<QueuedAction>
     ): ErrorOrNull {
-        val map = getPossibleTiers(config).toMutableMap()
+        val map = getPossibleTiers(config, data.picks).toMutableMap()
         // TODO
         currentState.forEach {
             /*map.add(tl.getTierOf(it.g.tlName)!!.pointsToActualTier(), -1)
@@ -817,9 +835,8 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
 
     override fun getSingleMap(config: TierlistPriceConfig.TierAndPoint) = config.tiers.mapValues { it.value.amount }
 
-    context(data: ValidationRelevantData)
-    override fun getCurrentAvailableTiers(config: TierlistPriceConfig.TierAndPoint) =
-        getPossibleTiers(config).filter { it.value > 0 }.keys.toList()
+    override fun getCurrentAvailableTiers(config: TierlistPriceConfig.TierAndPoint, picks: List<DraftPokemon>) =
+        getPossibleTiers(config, picks).filter { it.value > 0 }.keys.toList()
 
     override fun getTierInsertIndex(
         config: TierlistPriceConfig.TierAndPoint,
@@ -855,8 +872,7 @@ class TierAndPointHandler(tierValidationHelper: TierValidationHelper) :
         return picks.sortedWith(getTierOrderingComparatorWithoutName(config))
     }
 
-    context(data: ValidationRelevantData)
-    private fun getPossibleTiers(config: TierlistPriceConfig.TierAndPoint) = deductPicks(config, data.picks)
+    private fun getPossibleTiers(config: TierlistPriceConfig.TierAndPoint, picks: List<DraftPokemon>) = deductPicks(config, picks)
 
     fun canFinishTeamAfterPick(
         config: TierlistPriceConfig.TierAndPoint,
@@ -915,7 +931,6 @@ class EmptyPriceManagerHandler : TierlistPriceManagerHandler<TierlistPriceConfig
         context: DraftActionContext?
     ) = null
 
-    context(data: ValidationRelevantData)
     override suspend fun buildAnnounceData(
         config: TierlistPriceConfig.Empty,
         picks: List<DraftPokemon>

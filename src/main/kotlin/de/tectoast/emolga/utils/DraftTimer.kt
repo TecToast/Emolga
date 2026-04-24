@@ -23,16 +23,9 @@ sealed class DraftTimer {
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
 
     var oneTimerForAllPicks = false
-    fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
-        now = now,
-        timerStart = timerStart,
-        howOftenSkipped = league.draftData.punishableSkippedTurns[league.current]?.size ?: 0,
-        usedStallSeconds = league.draftData.timer.usedStallSeconds[league.current] ?: 0
-    )
 
     fun calc(
         now: Long = System.currentTimeMillis(),
-        timerStart: Long? = null,
         howOftenSkipped: Int = 0,
         usedStallSeconds: Int = 0
     ): DelayData? {

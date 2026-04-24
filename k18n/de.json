@@ -102,8 +102,8 @@
                 "ManageFinishEnabled": "Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **aktiviert**.",
                 "ManageSaveAndDisable": "Speichern und deaktivieren",
                 "ManageSaveAndEnable": "Speichern und aktivieren",
-                "SnipeWarningEnabled": "`{pokemon}` aus deiner Queue wurde von {sniper} gepickt.\nDas System läuft jedoch für dich weiter.",
-                "SnipeWarningDisabled": "`{pokemon}` aus deiner Queue wurde von {sniper} gepickt.\nDas System wurde für dich deaktiviert, damit du umplanen kannst.",
+                "SnipeWarningEnabled": "Folgende Pokémon wurden aus deiner Queue gesniped:\n```{data}```\nDas System läuft jedoch für dich weiter.",
+                "SnipeWarningDisabled": "Folgende Pokémon wurden aus deiner Queue gesniped:\n```{data}```\nDas System wurde für dich deaktiviert, damit du umplanen kannst.",
                 "PickNotification": "Du  hast `{pokemon}` gepickt.\nRunden, bis wieder manuell gepickt werden muss: **{roundsLeft:Int}**",
                 "LegalTooManyInTier": "Mit dieser Queue hättest du zu viele Pokemon in einem oder mehreren Tiers!",
                 "LegalTooManyInSingleTier": "Mit dieser Queue hättest du zu viele Pokemon im {tier}-Tier!",
@@ -453,7 +453,10 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` wurde bereits gepickt oder gebannt!",
               "BanRegular": "{pokemonName} ({tier}) gebannt!",
               "BanQueue": "{user:Mention} hat {pokemonName} ({tier}) gebannt! [Queue]",
-              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!"
+              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!",
+              "PickedForRound": "nachgeholt aus Runde {round:Int}",
+              "MadeUpInRound": "nachgeholt in Runde {round:Int}"
+
             }
           },
           "json": {
@@ -537,7 +540,8 @@
         "Or": "oder",
         "German": "Deutsch",
         "English": "Englisch",
-        "SelectLanguage": "Sprache auswählen"
+        "SelectLanguage": "Sprache auswählen",
+        "Round": "Runde"
       }
     }
   }

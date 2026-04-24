@@ -1,28 +1,25 @@
 package de.tectoast.emolga.database.league
 
 import de.tectoast.emolga.league.DraftState
-import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.LeagueConfigOverride
 import de.tectoast.emolga.league.config.ResettableLeagueData
 import de.tectoast.emolga.utils.jsonb
-import de.tectoast.emolga.utils.referencesCascade
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.neq
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.json.extract
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.r2dbc.update
 
 object LeagueCoreTable : Table("league_core") {
     val leagueName = varchar("name", 255)
     val num = integer("num").default(0)
     val guild = long("guild")
-    val teamSize = integer("team_size")
     val prettyName = varchar("pretty_name", 255).nullable()
     val sheetId = varchar("sheet_id", 255).default("")
     val afterTimerSkipMode = jsonb<AfterTimerSkipMode>("after_timer_skip_mode").default(AfterTimerSkipMode.AfterDraftUnordered)
@@ -44,20 +41,31 @@ object LeagueCoreTable : Table("league_core") {
 }
 
 class LeagueCoreRepository(val db: R2dbcDatabase) {
+    suspend fun getDraftRelevantData(channelId: Long) = getDraftRelevantData { LeagueCoreTable.draftChannel eq channelId }
+    suspend fun getDraftRelevantData(leagueName: String) = getDraftRelevantData { LeagueCoreTable.leagueName eq leagueName }
 
-    suspend fun getDraftRelevantData(channelId: Long) = suspendTransaction(db) {
+    suspend fun getDraftStateLocking(leagueName: String) = suspendTransaction(db) {
+        LeagueCoreTable.select(LeagueCoreTable.draftData).forUpdate().where { LeagueCoreTable.leagueName eq leagueName }.first()[LeagueCoreTable.draftData]
+    }
+
+    suspend fun getLeagueNamesByGuild(guildId: Long) = suspendTransaction(db) {
+        LeagueCoreTable.select(LeagueCoreTable.leagueName).where { LeagueCoreTable.guild eq guildId }.map { it[LeagueCoreTable.leagueName] }.toList()
+    }
+
+    private suspend fun getDraftRelevantData(check: () -> Op<Boolean>) = suspendTransaction(db) {
         with(LeagueCoreTable) {
             val draftState = draftData.extract<DraftState>(".draftState")
-            select(leagueName, guild, teamSize, sheetId, afterTimerSkipMode, duringTimerSkipMode, draftOrder, isSwitchDraft, draftData)
-                .forUpdate(ForUpdateOption.ForUpdate)
-                .where { (draftChannel eq channelId) and (draftState neq DraftState.OFF) }
+            select(leagueName, prettyName, guild, sheetId, draftChannel, afterTimerSkipMode, duringTimerSkipMode, draftOrder, isSwitchDraft, draftData)
+                .forUpdate()
+                .where { check() and (draftState neq DraftState.OFF) }
                 .firstOrNull()
                 ?.let {
                     DraftRelevantLeagueData(
                         leagueName = it[leagueName],
+                        displayName = it[prettyName] ?: it[leagueName],
                         guild = it[guild],
-                        teamSize = it[teamSize],
                         sheetId = it[sheetId],
+                        draftChannel = it[draftChannel]!!,
                         afterTimerSkipMode = it[afterTimerSkipMode],
                         duringTimerSkipMode = it[duringTimerSkipMode],
                         draftOrder = it[draftOrder],
@@ -67,13 +75,20 @@ class LeagueCoreRepository(val db: R2dbcDatabase) {
                 }
         }
     }
+
+    suspend fun updateDraftData(leagueName: String, draftData: ResettableLeagueData) = suspendTransaction(db) {
+        LeagueCoreTable.update({ LeagueCoreTable.leagueName eq leagueName }) {
+            it[LeagueCoreTable.draftData] = draftData
+        }
+    }
 }
 
 data class DraftRelevantLeagueData(
     val leagueName: String,
+    val displayName: String,
     val guild: Long,
-    val teamSize: Int,
     val sheetId: String,
+    val draftChannel: Long,
     val afterTimerSkipMode: AfterTimerSkipMode,
     val duringTimerSkipMode: DuringTimerSkipMode?,
     val draftOrder: Map<Int, List<Int>>,
@@ -97,42 +112,4 @@ data class DraftRelevantLeagueData(
     }
 }
 
-object LeagueScheduleTable : Table("league_schedule") {
-    val id = integer("id").autoIncrement()
-    val leagueName = varchar("league_name", 255).referencesCascade(LeagueCoreTable.leagueName)
-    val week = integer("week")
-    val battleIndex = integer("battle_index")
 
-    val p1 = integer("p1")
-    val p2 = integer("p2")
-
-    override val primaryKey = PrimaryKey(id)
-
-    init {
-        index(true, leagueName, week, battleIndex)
-        index(false, leagueName, p1, p2)
-    }
-}
-
-
-
-object GuildDefaultConfigTable : Table("guild_default_config") {
-    val guildId = long("guild_id")
-    val config = jsonb<LeagueConfigOverride>("config").nullable()
-
-    override val primaryKey = PrimaryKey(guildId)
-}
-
-class LeagueConfigRepository(val db: R2dbcDatabase) {
-    suspend fun getConfig(leagueName: String) = suspendTransaction(db) {
-        val row = LeagueCoreTable.select(LeagueCoreTable.guild, LeagueCoreTable.configOverride).where {
-            LeagueCoreTable.leagueName eq leagueName
-        }.first()
-        val guildId = row[LeagueCoreTable.guild]
-        val leagueConfig = row[LeagueCoreTable.configOverride]
-        val guildConfig = GuildDefaultConfigTable.select(GuildDefaultConfigTable.config).where {
-            GuildDefaultConfigTable.guildId eq guildId
-        }.firstOrNull()?.get(GuildDefaultConfigTable.config)
-        LeagueConfig() + guildConfig + leagueConfig
-    }
-}

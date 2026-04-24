@@ -1,12 +1,15 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.utils.jsonb
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
@@ -28,6 +31,11 @@ class QueuedPicksRepository(val db: R2dbcDatabase) {
             .toMap { it[QueuedPicks.idx] to it[QueuedPicks.data] }
     }
 
+    suspend fun getSingle(leagueName: String, idx: Int): QueuePicksUserData = suspendTransaction(db) {
+        QueuedPicks.select(QueuedPicks.data).where { (QueuedPicks.leagueName eq leagueName) and (QueuedPicks.idx eq idx) }
+            .firstOrNull()?.get(QueuedPicks.data) ?: QueuePicksUserData()
+    }
+
     suspend fun updateForLeague(leagueName: String, data: Map<Int, QueuePicksUserData>) = suspendTransaction(db) {
         data.forEach { (idx, userData) ->
             QueuedPicks.upsert {
@@ -35,6 +43,14 @@ class QueuedPicksRepository(val db: R2dbcDatabase) {
                 it[QueuedPicks.idx] = idx
                 it[QueuedPicks.data] = userData
             }
+        }
+    }
+
+    suspend fun updateSingle(leagueName: String, idx: Int, data: QueuePicksUserData) = suspendTransaction(db) {
+        QueuedPicks.upsert {
+            it[QueuedPicks.leagueName] = leagueName
+            it[QueuedPicks.idx] = idx
+            it[QueuedPicks.data] = data
         }
     }
 

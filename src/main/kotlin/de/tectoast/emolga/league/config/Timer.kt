@@ -10,9 +10,9 @@ import kotlinx.serialization.Serializable
 data class TimerRelated(
     var cooldown: Long = -1,
     var regularCooldown: Long = -1,
-    @EncodeDefault var lastPick: Long = -1,
+    var lastPick: Long = -1,
     var lastRegularDelay: Long = -1,
-    @EncodeDefault val usedStallSeconds: MutableMap<Int, Int> = mutableMapOf(),
+    val usedStallSeconds: MutableMap<Int, Int> = mutableMapOf(),
     var lastStallSecondUsedMid: Long? = null
 ) {
     fun stallSecondsActive() = cooldown != regularCooldown

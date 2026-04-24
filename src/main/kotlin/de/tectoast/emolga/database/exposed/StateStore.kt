@@ -14,9 +14,9 @@ import de.tectoast.emolga.features.league.draft.QueuePicksComponents
 import de.tectoast.emolga.features.league.draft.isIllegal
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
-import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.*
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
@@ -97,21 +97,18 @@ class StateStoreDispatcher(handlers: List<StateStoreHandler<out StateStore>>, va
         }
     }
 
-    context(iData: InteractionData)
     suspend inline fun <reified T : StateStore, H : StateStoreHandler<T>> processIgnoreMissing(
         user: Long,
         block: context(T) H.() -> Unit
     ) =
-        (repository.get(iData.user, T::class.simpleName!!) as? T)?.let { process(it, user, block) }
+        (repository.get(user, T::class.simpleName!!) as? T)?.let { process(it, user, block) }
 
-    context(iData: InteractionData)
     suspend inline fun <reified T : StateStore, H : StateStoreHandler<T>> process(
         user: Long,
         block: context(T) H.() -> Unit
-    ) {
-        processIgnoreMissing(user, block) ?: iData.reply(
-            K18n_StateStore.InteractionNotValid, ephemeral = true
-        )
+    ): ErrorOrNull {
+        processIgnoreMissing(user, block) ?: return K18n_StateStore.InteractionNotValid
+        return null
     }
 
     suspend fun StateStore.afterOperation(user: Long) {
@@ -249,7 +246,7 @@ class NominateState(
 @OptIn(ExperimentalSerializationApi::class)
 class QueuePicksState : StateStore {
 
-    var leaguename = ""
+    val leaguename: String
     var currentlyEnabled = false
     val currentState: MutableList<QueuedAction>
     val addedMeanwhile: MutableList<QueuedAction> = mutableListOf()

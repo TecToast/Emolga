@@ -22,7 +22,8 @@ data class LeagueConfig(
     val hideGames: HideGamesConfig? = null,
     val teamgraphics: TeamGraphicsLeagueConfig? = null,
     val transaction: TransactionConfig? = null,
-    val sheetTemplateId: String? = null
+    val sheetTemplateId: String? = null,
+    val teamSize: Int = 11,
 ) {
     val tlIdentifier get() = customTierlist?.identifier ?: ""
 
@@ -43,7 +44,9 @@ data class LeagueConfig(
             triggers = triggers + other.triggers,
             hideGames = other.hideGames ?: hideGames,
             teamgraphics = other.teamgraphics ?: teamgraphics,
-            transaction = other.transaction ?: transaction
+            transaction = other.transaction ?: transaction,
+            sheetTemplateId = other.sheetTemplateId ?: sheetTemplateId,
+            teamSize = other.teamSize ?: teamSize
         )
     }
 }
@@ -65,6 +68,8 @@ data class LeagueConfigOverride(
     val hideGames: HideGamesConfig? = null,
     val teamgraphics: TeamGraphicsLeagueConfig? = null,
     val transaction: TransactionConfig? = null,
+    val sheetTemplateId: String? = null,
+    val teamSize: Int? = null,
 )
 
 
@@ -78,7 +83,8 @@ data class ResettableLeagueData(
     val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
     var round: Int = 1,
     var indexInRound: Int = 0,
-    var draftState: DraftState = DraftState.OFF
+    var draftState: DraftState = DraftState.OFF,
+    var draftSessionNum: Int = 0,
 )
 
 @Serializable

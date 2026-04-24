@@ -4,6 +4,8 @@ import de.tectoast.emolga.database.exposed.BaseHandler
 import de.tectoast.emolga.database.exposed.HandlerRegistry
 import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.K18n_League
+import de.tectoast.emolga.utils.b
+import de.tectoast.emolga.utils.invoke
 import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.serialization.Serializable
 
@@ -86,15 +88,15 @@ class NextPickTimerSkipModeHandler : TimerSkipModeHandler<DuringTimerSkipMode.Ne
     ): TimerSkipData {
         return (if (data.isNormalPick()) {
             val league = ctx.league
-            if (league.pseudoEnd && league.hasMovedTurns()) {
-                league.movedTurns().removeFirstOrNull()
-                if (league.pseudoEnd && !league.hasMovedTurns()) TimerSkipResult.NEXT else TimerSkipResult.SAME
+            if (league.pseudoEnd && league.hasMovedTurns(ctx.activeIdx)) {
+                league.movedTurns(ctx.activeIdx).removeFirstOrNull()
+                if (league.pseudoEnd && !league.hasMovedTurns(ctx.activeIdx)) TimerSkipResult.NEXT else TimerSkipResult.SAME
             } else TimerSkipResult.NEXT
         } else TimerSkipResult.NEXT).defaultData()
     }
 
     override suspend fun getPickRound(c: DuringTimerSkipMode.NextPick, ctx: DraftRunContext) =
-        ctx.league.movedTurns().firstOrNull() ?: ctx.league.round
+        ctx.league.movedTurns(ctx.activeIdx).firstOrNull() ?: ctx.league.round
 }
 
 class AlwaysTimerSkipModeHandler : TimerSkipModeHandler<DuringTimerSkipMode.Always> {
@@ -104,14 +106,14 @@ class AlwaysTimerSkipModeHandler : TimerSkipModeHandler<DuringTimerSkipMode.Alwa
         c: DuringTimerSkipMode.Always, ctx: DraftRunContext, data: NextPlayerData
     ): TimerSkipData {
         if (data is NextPlayerData.InBetween) {
-            ctx.league.movedTurns().removeFirstOrNull()
+            ctx.league.movedTurns(ctx.activeIdx).removeFirstOrNull()
             return TimerSkipResult.SAME.defaultData()
         }
         return TimerSkipResult.NEXT.defaultData()
     }
 
     override suspend fun getPickRound(c: DuringTimerSkipMode.Always, ctx: DraftRunContext) =
-        ctx.league.movedTurns().firstOrNull() ?: ctx.league.round
+        ctx.league.movedTurns(ctx.activeIdx).firstOrNull() ?: ctx.league.round
 }
 
 class AfterDraftUnorderedTimerSkipModeHandler : TimerSkipModeHandler<AfterTimerSkipMode.AfterDraftUnordered> {
@@ -126,12 +128,17 @@ class AfterDraftUnorderedTimerSkipModeHandler : TimerSkipModeHandler<AfterTimerS
             var message: (suspend (DisplayHelper) -> K18nMessage)? = null
             if (!league.pseudoEnd) {
                 message = { helper ->
-                    K18n_League.AfterDraftUnordered(draftData.moved.entries.filter { it.value.isNotEmpty() }
-                        .map { (user, turns) ->
-                            "${helper.getPingForUser(user)}: ${turns.size}${
-                                helper.buildAnnounceData(user)
-                            }"
-                        }.joinToString("\n"))
+                    val entriesWithMessages =
+                        draftData.moved.entries.filter { it.value.isNotEmpty() }.map { (user, turns) ->
+                                val ping = helper.getPingForUser(user)
+                                val announceMessage = helper.buildAnnounceData(user, withTimerAnnounce = false)
+                                Triple(turns.size, ping, announceMessage)
+                            }
+                    b {
+                        K18n_League.AfterDraftUnordered(entriesWithMessages.joinToString("\n") { (turnCount, ping, message) ->
+                            "$ping: $turnCount${message()}"
+                        })()
+                    }
                 }
                 draftData.draftState = DraftState.PSEUDOEND
             }
@@ -142,7 +149,7 @@ class AfterDraftUnorderedTimerSkipModeHandler : TimerSkipModeHandler<AfterTimerS
 
     override suspend fun getPickRound(c: AfterTimerSkipMode.AfterDraftUnordered, ctx: DraftRunContext) =
         if (ctx.league.pseudoEnd) {
-            ctx.league.movedTurns().removeFirst()
+            ctx.league.movedTurns(ctx.activeIdx).removeFirst()
         } else ctx.league.round
 
     override fun disableTimer(c: AfterTimerSkipMode.AfterDraftUnordered, ctx: DraftRunContext): Boolean {

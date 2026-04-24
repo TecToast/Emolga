@@ -102,8 +102,8 @@
                 "ManageFinishEnabled": "Your new queue pick order has been saved!\nThe system is currently **enabled** for you.",
                 "ManageSaveAndDisable": "Save and disable",
                 "ManageSaveAndEnable": "Save and enable",
-                "SnipeWarningEnabled": "`{pokemon}` from your queue was picked by {sniper}.\nHowever, the system continues to run for you.",
-                "SnipeWarningDisabled": "`{pokemon}` from your queue was picked by {sniper}.\nThe system was disabled for you so you can replan.",
+                "SnipeWarningEnabled": "The following Pokémon were sniped:\n```{data}```\nHowever, the system continues to run for you.",
+                "SnipeWarningDisabled": "The following Pokémon were sniped:\n```{data}```\nThe system was disabled for you so you can replan.",
                 "PickNotification": "You picked `{pokemon}`.\nRounds until you need to pick manually again: **{roundsLeft:Int}**",
                 "LegalTooManyInTier": "With this queue you would have too many Pokemon in one or more tiers!",
                 "LegalTooManyInSingleTier": "With this queue you would have too many Pokemon in the {tier} tier!",
@@ -452,7 +452,9 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` has already been picked or banned!",
               "BanRegular": "{pokemonName} ({tier}) banned!",
               "BanQueue": "{user:Mention} banned {pokemonName} ({tier})! [Queue]",
-              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!"
+              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!",
+              "PickedForRound": "made up from round {round:Int}",
+              "MadeUpInRound": "made up in round {round:Int}"
             }
           },
           "json": {
@@ -536,7 +538,8 @@
         "Or": "or",
         "German": "German",
         "English": "English",
-        "SelectLanguage": "Select language"
+        "SelectLanguage": "Select language",
+        "Round": "Round"
       }
     }
   }

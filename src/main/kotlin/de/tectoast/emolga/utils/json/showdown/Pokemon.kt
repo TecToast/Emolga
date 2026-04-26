@@ -46,10 +46,14 @@ data class Pokemon(
 
     fun getGen5SpriteFormula(): String {
         return buildString {
-            append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
-            append(calcSpriteName())
-            append(".png\"; 1)")
+            append("=IMAGE(\"")
+            append(getGen5SpriteUrl())
+            append("\"; 1)")
         }
+    }
+
+    fun getGen5SpriteUrl(): String {
+        return "https://play.pokemonshowdown.com/sprites/gen5/${calcSpriteName()}.png"
     }
 
     fun calcSpriteName(): String {

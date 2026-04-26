@@ -29,7 +29,9 @@ import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sse.*
 import io.ktor.util.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.*
@@ -65,6 +67,17 @@ internal val pickedDataCache = SizeLimitedMap<Long, List<PokemonPickedData>>()
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
 
+@Serializable
+data class DSBMessage(val userId: String, val text: String, val url: String? = null, val timestamp: String)
+
+@Serializable
+data class DSBUser(val id: String, val name: String, val avatar: String)
+
+@Serializable
+data class DSBData(val users: List<DSBUser>, val categories: List<String>)
+
+val dsbFlow = MutableSharedFlow<DSBMessage>(extraBufferCapacity = 10)
+
 @OptIn(InternalSerializationApi::class, ExperimentalUuidApi::class)
 fun Route.emolgaAPI() {
     route("/") {
@@ -74,6 +87,31 @@ fun Route.emolgaAPI() {
         }
         route("/sixvspokeworld") {
             sixVsPokeworld()
+        }
+        route("/dsb") {
+            get("/data") {
+                val dsb = mdb.dsbConfig.findOne(DSBConfig::host eq call.userId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound
+                )
+                val users = dsb.users.map {
+                    val u = jda.retrieveUserById(it).await()
+                    DSBUser(u.id, u.effectiveName, u.effectiveAvatarUrl.replace(".gif", ".png"))
+                }
+                call.respond(DSBData(users, dsb.categories))
+            }
+            sse("/sse") {
+                heartbeat()
+                val dsb = mdb.dsbConfig.findOne(DSBConfig::host eq call.userId) ?: return@sse call.respond(
+                    HttpStatusCode.NotFound
+                )
+                logger.info("SSE connected")
+                val users = dsb.users.toSet()
+                dsbFlow.collect { msg ->
+                    if (msg.userId.toLongOrNull() !in users) return@collect
+                    logger.info("Sending message to sse: $msg")
+                    send(webJSON.encodeToString(msg))
+                }
+            }
         }
         Ktor.injectedRouteHandlers.forEach { (path, handler) ->
             get(path) {
@@ -114,6 +152,7 @@ fun Route.emolgaAPI() {
                 )
             })
         }
+        staticFiles("/monimg", File("/teamgraphics/sprites"), index = null)
         route("{guild}") {
             route("/teamgraphics") {
                 get("/new") {
@@ -128,7 +167,6 @@ fun Route.emolgaAPI() {
                     PokemonCropService.insertPokemonCropData(gid, data, call.userId)
                     call.respond(HttpStatusCode.Accepted)
                 }
-                staticFiles("/img", File("/teamgraphics/sprites"), index = null)
             }
             get("channels") {
                 val gid = call.requireGuild() ?: return@get

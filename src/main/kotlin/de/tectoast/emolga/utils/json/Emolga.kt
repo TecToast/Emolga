@@ -120,6 +120,9 @@ data class SixVsPokeworldConfig(
     )
 }
 
+@Serializable
+data class DSBConfig(val host: Long, val categories: List<String>, val users: List<Long>)
+
 
 class MongoEmolga(dbUrl: String, dbName: String) {
     private val logger = KotlinLogging.logger {}
@@ -147,6 +150,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val scheduledtask by lazy { db.getCollection<ScheduledTask>("scheduledtask") }
     val remoteServerControl by lazy { db.getCollection<RemoteServerControl>("remoteservercontrol") }
     val ladderTournament by lazy { db.getCollection<LadderTournament>("laddertournament") }
+    val dsbConfig by lazy { db.getCollection<DSBConfig>("dsbconfig") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }

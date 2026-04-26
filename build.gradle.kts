@@ -82,7 +82,8 @@ val ktorDependencies = listOf(
     "ktor-server-cors",
     "ktor-server-call-logging",
     "ktor-server-call-logging-jvm",
-    "ktor-server-caching-headers"
+    "ktor-server-caching-headers",
+    "ktor-server-sse"
 
 )
 

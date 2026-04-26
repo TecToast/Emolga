@@ -11,6 +11,7 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
+import io.ktor.server.sse.*
 import org.slf4j.event.Level
 
 object Ktor {
@@ -64,5 +65,6 @@ object Ktor {
             level = Level.INFO
         }
         install(CachingHeaders) {}
+        install(SSE)
     }
 }

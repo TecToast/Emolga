@@ -88,7 +88,7 @@ object PokemonCropService {
                         val sdName = official.toSDName()
                         val pokemon = mdb.pokedex.get(sdName)!!
                         val spriteName = pokemon.calcSpriteName()
-                        val path = "/api/emolga/${guild}/teamgraphics/img/$spriteStyle/$spriteName.png"
+                        val path = "/api/emolga/monimg/$spriteStyle/$spriteName.png"
                         val done = PokemonCropDB.selectAll().where { PokemonCropDB.GUILD eq guild }.count()
                         val total = CropAuxiliaryDB.selectAll().where { CropAuxiliaryDB.GUILD eq guild }.count()
                         PokemonToCropData(official, official, path, done, total)

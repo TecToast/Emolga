@@ -104,11 +104,9 @@ fun Route.emolgaAPI() {
                 val dsb = mdb.dsbConfig.findOne(DSBConfig::host eq call.userId) ?: return@sse call.respond(
                     HttpStatusCode.NotFound
                 )
-                logger.info("SSE connected")
                 val users = dsb.users.toSet()
                 dsbFlow.collect { msg ->
                     if (msg.userId.toLongOrNull() !in users) return@collect
-                    logger.info("Sending message to sse: $msg")
                     send(webJSON.encodeToString(msg))
                 }
             }

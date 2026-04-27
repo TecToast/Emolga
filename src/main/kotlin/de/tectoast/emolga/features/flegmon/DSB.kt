@@ -19,12 +19,13 @@ object DSB {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
+            val otherOfficial = e.mon.otherOfficial!!
             dsbFlow.emit(
                 DSBMessage(
                     iData.user.toString(),
-                    e.mon.official,
+                    e.mon.official + " / " + otherOfficial,
                     "/api/emolga/monimg/SUGIMORI/${
-                        mdb.pokedex.get(e.mon.otherOfficial!!.toSDName())!!.calcSpriteName()
+                        mdb.pokedex.get(otherOfficial.toSDName())!!.calcSpriteName()
                     }.png",
                     System.currentTimeMillis().toHexString()
                 )

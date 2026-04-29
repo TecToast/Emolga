@@ -52,9 +52,7 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 import kotlin.time.measureTime
-import kotlin.time.toJavaInstant
 
 enum class DraftState {
     OFF, ON, PSEUDOEND
@@ -885,10 +883,10 @@ sealed class League {
 
     fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
         val delay = cooldown - System.currentTimeMillis()
-        if (delay >= 24 * 3600 * 1000) append(dayTimeFormat.format(Instant.fromEpochMilliseconds(cooldown).toJavaInstant())).append(" ")
+        if (delay >= 24 * 3600 * 1000) append(dayTimeFormat.formatMillis(cooldown)).append(" ")
         append(
-            (if (config.timer?.stallSeconds == 0 && delay > 15 * 60 * 1000) leagueTimeFormat else leagueTimeFormatSecs).format(
-                Instant.fromEpochMilliseconds(cooldown).toJavaInstant()
+            (if (config.timer?.stallSeconds == 0 && delay > 15 * 60 * 1000) leagueTimeFormat else leagueTimeFormatSecs).formatMillis(
+                cooldown
             )
         )
     }

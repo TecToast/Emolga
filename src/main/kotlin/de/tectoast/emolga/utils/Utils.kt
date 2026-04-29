@@ -290,7 +290,11 @@ suspend fun String.mapToChannelIdPair(): Pair<String, String?> {
     if (result == null) error("No channel found for $base")
     return result
 }
+
 fun DateTimeFormatter.parseToInstant(str: String): Instant {
     val localDateTime = LocalDateTime.parse(str, this)
     return Instant.fromEpochSeconds(localDateTime.atZone(ZoneId.systemDefault()).toEpochSecond())
 }
+
+fun DateTimeFormatter.formatMillis(millis: Long): String =
+    format(LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(millis), ZoneId.systemDefault()))

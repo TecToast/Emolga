@@ -12,6 +12,8 @@ import kotlinx.serialization.Transient
 class WPP : League() {
     override val teamsize = 11
 
+    override val duringTimerSkipMode = NEXT_PICK
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         monsOrderFromTierlist()

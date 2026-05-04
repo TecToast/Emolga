@@ -280,7 +280,7 @@ fun Route.emolgaAPI() {
         post {
             val resultId = call.parameters["resultid"] ?: return@post call.bad()
             val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
-            val body = call.receive<List<List<Map<String, KD>>>>()
+            val body = call.receive<List<List<List<KDWithName>>>>()
             if (body.size > 3 || body.isEmpty()) return@post call.bad()
             // TODO: Maybe combine with ResultEntry? and clean up
             val idx1 = resData[ResultCodesDB.P1]
@@ -295,24 +295,24 @@ fun Route.emolgaAPI() {
                 val games = body.map { singleGame ->
                     if (singleGame.size != 2 || singleGame.any { it.size > 6 }) return@post call.bad()
                     for (i in 0..1) {
-                        if (singleGame[i].values.any { it.deaths !in 0..1 }) return@post call.bad()
-                        if (singleGame[i].values.sumOf { it.kills } != singleGame[1 - i].values.sumOf { it.deaths }) return@post call.respond(
+                        if (singleGame[i].any { it.deaths !in 0..1 }) return@post call.bad()
+                        if (singleGame[i].sumOf { it.kills } != singleGame[1 - i].sumOf { it.deaths }) return@post call.respond(
                             HttpStatusCode.BadRequest
                         )
                     }
                     ReplayData(
                         kd = singleGame.reversedIf(u1IsSecond).map { p ->
-                            p.map {
+                            p.associate {
                                 NameConventionsDB.getDiscordTranslation(
-                                    it.key, guild
+                                    it.name, guild
                                 )!!.official.also { official ->
-                                    officialNameCache[it.key] = official
-                                } to it.value
-                            }.toMap()
+                                    officialNameCache[it.name] = official
+                                } to it.toKD()
+                            }
                         },
                         url = "WIFI",
                         winnerIndex = singleGame.reversedIf(u1IsSecond)
-                            .indexOfFirst { p -> p.values.sumOf { it.deaths } < p.size }
+                            .indexOfFirst { p -> p.sumOf { it.deaths } < p.size }
                         // TODO: implement UI element to select winner on "draws"
                     )
                 }

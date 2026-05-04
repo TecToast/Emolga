@@ -564,6 +564,11 @@ data class KD(
 )
 
 @Serializable
+data class KDWithName(val name: String, val kills: Int, val deaths: Int) {
+    fun toKD() = KD(kills, deaths)
+}
+
+@Serializable
 data class YTVideoSaveData(
     var enabled: Boolean = false, val vids: MutableMap<Int, String> = mutableMapOf()
 )

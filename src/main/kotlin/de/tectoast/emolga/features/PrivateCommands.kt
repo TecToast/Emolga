@@ -51,6 +51,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.migration.r2dbc.MigrationUtils
 import org.jetbrains.exposed.v1.r2dbc.*
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
@@ -747,6 +748,30 @@ object PrivateCommands {
         val gid = args().toLong()
         PokemonCropService.generateOverviewImage(gid)
         iData.done()
+    }
+
+    context(iData: InteractionData)
+    suspend fun newMegas(args: PrivateData) {
+        val list = awaitMultilineInput().split("\n").map { it.trim() }
+        suspendTransaction {
+            val englishNames = NameConventionsDB.run {
+                selectAll().where(GERMAN inList list).toMap { it[GERMAN] to it[ENGLISH] }
+            }
+            if (englishNames.size != list.size) {
+                iData.reply("Not all german names had an english translation in the DB, aborting: ${list - englishNames.keys}")
+                return@suspendTransaction
+            }
+            NameConventionsDB.batchInsert(englishNames.entries) {
+                val ger = "${it.key}-Mega"
+                val eng = "${it.value}-Mega"
+                this[NameConventionsDB.GUILD] = 0
+                this[NameConventionsDB.GERMAN] = ger
+                this[NameConventionsDB.ENGLISH] = eng
+                this[NameConventionsDB.SPECIFIED] = ger
+                this[NameConventionsDB.SPECIFIEDENGLISH] = eng
+                this[NameConventionsDB.COMMON] = false
+            }
+        }
     }
 }
 

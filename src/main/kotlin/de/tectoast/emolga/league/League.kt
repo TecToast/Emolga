@@ -1209,6 +1209,7 @@ sealed class DraftData(
     open val tier: String,
     open val idx: Int,
     open val round: Int,
+    open val points: Int?
 ) {
     val roundIndex get() = round - 1
     val indexInRound get() = league.indexInRound(round)
@@ -1236,10 +1237,11 @@ data class PickData(
     override val tier: String,
     override val idx: Int,
     override val round: Int,
+    override val points: Int?,
     val freePick: Boolean,
     val updrafted: Boolean,
     val tera: Boolean
-) : DraftData(league, pokemon, pokemonofficial, tier, idx, round) {
+) : DraftData(league, pokemon, pokemonofficial, tier, idx, round, points) {
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }
     }
@@ -1253,9 +1255,10 @@ class SwitchData(
     tier: String,
     mem: Int,
     round: Int,
+    points: Int?,
     val oldmon: DraftName,
     val oldIndex: Int
-) : DraftData(league, pokemon, pokemonofficial, tier, mem, round) {
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, round, points) {
     override val changedOnTeamsiteIndex by lazy { with(league) { getTierInsertIndex(oldIndex + 1) } }
 
     val oldDisplayName = OneTimeCache {
@@ -1277,7 +1280,8 @@ class BanData(
     tier: String,
     mem: Int,
     round: Int,
-) : DraftData(league, pokemon, pokemonofficial, tier, mem, round) {
+    points: Int?,
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, round, points) {
     override val changedOnTeamsiteIndex = -1 // not used for BanData
 }
 

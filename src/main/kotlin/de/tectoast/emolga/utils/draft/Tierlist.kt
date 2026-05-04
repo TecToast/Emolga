@@ -187,7 +187,7 @@ data class Tierlist(
         val GUILD = long("guild")
         val IDENTIFIER = varchar("identifier", 30)
         val POKEMON = varchar("pokemon", 64)
-        val TIER = varchar("tier", 8)
+        val TIER = varchar("tier", 64)
         val TYPE = varchar("type", 10).nullable()
 
         override val primaryKey = PrimaryKey(GUILD, IDENTIFIER, POKEMON)
@@ -333,13 +333,14 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
     }
 }
 
-interface FreePickPriceManager : TierlistPriceManager
+interface FreePickPriceManager : TierBasedPriceManager, PointBasedPriceManager
 
 interface PointBasedPriceManager : TierlistPriceManager {
     val globalPoints: Int
     val teraMaxPoints: Int?
 
     fun getPointsForTier(tier: String): Int?
+
     fun getPointsForMon(pokemon: DraftPokemon): Int {
         return getPointsForTier(pokemon.tier) ?: error("Tier ${pokemon.tier} not found for pokemon ${pokemon.name}")
     }
@@ -438,6 +439,24 @@ sealed interface GeneralCheck {
 
 
         private val officialToDexNumberCache = SizeLimitedMap<String, Int>(1000)
+    }
+
+    @Serializable
+    @SerialName("ExactlyOneMega")
+    data object ExactlyOneMega : GeneralCheck {
+        context(league: League, tl: Tierlist, pm: TierlistPriceManager)
+        override suspend fun check(action: DraftAction): ErrorOrNull {
+            val isMega = action.official.isMega
+            val picks = league.picks()
+            val hasPickedMega = picks.any { it.name.isMega }
+            if (isMega && hasPickedMega) {
+                return K18n_Tierlist.OnlyOneMega
+            }
+            if (!isMega && !hasPickedMega && picks.size == league.teamsize - 1) {
+                return K18n_Tierlist.ExactlyOneMega
+            }
+            return null
+        }
     }
 }
 
@@ -1033,6 +1052,128 @@ sealed interface TierlistPriceManager {
         data class SingleTierAndPointData(
             val amount: Int, val tiers: List<Int>
         )
+    }
+
+    @Serializable
+    @SerialName("FreePick")
+    data class FreePick(
+        override val generalChecks: List<GeneralCheck> = emptyList(),
+        override val globalPoints: Int,
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
+        val normalTiers: Map<String, Int>,
+        val pointPrices: Map<String, Int>,
+        val freeAmount: Int
+    ) : TierlistPriceManager,
+        FreePickPriceManager {
+        override val teraMaxPoints = null
+
+        override fun getPointsForMon(pokemon: DraftPokemon): Int {
+            if (!pokemon.free) return 0
+            return pointPrices[pokemon.tier] ?: error("No point price found for tier ${pokemon.tier}")
+        }
+
+        context(league: League, tl: Tierlist)
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
+            return getPossibleTiers(idx).entries.filterNot { it.value == 0 }
+                .joinToString { tierAmountToString(it.key, it.value) }.let {
+                    if (it.isEmpty()) null else K18n_League.PossibleTiers(it)
+                }?.let { tierMsg ->
+                    b {
+                        "${tierMsg()}, ${K18n_League.PossiblePoints(pointManager()[idx])()}, Free: ${freeAmount - league.picks(idx).count { it.free && !it.quit }}"
+                    }
+                }
+        }
+
+        context(league: League, tl: Tierlist)
+        private fun getPossibleTiers(idx: Int = league.current) = normalTiers.deductPicks(league.picks(idx))
+
+        override fun getTiers() = (normalTiers.keys + pointPrices.keys).toList()
+
+        context(tl: Tierlist)
+        override fun getSingleMap() = normalTiers
+
+        context(league: League, tl: Tierlist)
+        override suspend fun checkLegalityOfQueue(
+            idx: Int, currentState: List<QueuedAction>
+        ): ErrorOrNull {
+            val map = getPossibleTiers(idx).toMutableMap()
+            val tl = league.tierlist
+            currentState.forEach {
+                map.add(tl.getTierOf(it.g.tlName)!!, -1)
+                it.y?.let { y -> map.add(tl.getTierOf(y.tlName)!!, 1) }
+            }
+            val result = map.entries.firstOrNull { it.value < 0 }
+            val isIllegal = result != null
+            if (isIllegal) {
+                return K18n_QueuePicks.LegalTooManyInSingleTier(result.key)
+            }
+            return null
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun handleDraftActionAfterGeneralTierCheck(
+            action: DraftAction,
+            context: DraftActionContext?
+        ): ErrorOrNull {
+            val options = getPossibleTiers()
+            val picks = league.picks()
+            if (action.free) {
+                val currentFreeAmount = picks.count { it.free && !it.quit }
+                if (currentFreeAmount >= freeAmount) {
+                    return K18n_Tierlist.NoFreePicksLeft(freeAmount)
+                }
+                val pointManager = pointManager()
+                val currentPoints = pointManager[league.current]
+                val cost = getPointsForTier(action.specifiedTier) ?: return K18n_TierNotFound(action.specifiedTier)
+                val newPoints = currentPoints - cost
+                if (newPoints < 0) {
+                    return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost = $newPoints < 0")
+                }
+                val minimumRequired = minimumNeededPointsForTeamCompletion(
+                    alreadyFree = currentFreeAmount + 1,
+                    coerceAtLeaastOne = picks.any { it.free && !it.quit && getPointsForTier(it.tier)!! <= 0 })
+                if (newPoints < minimumRequired) {
+                    return K18n_Tierlist.MinimumNeededError(minimumRequired, newPoints)
+                }
+                context?.freePick = true
+                pointManager[league.current] = newPoints
+                return null
+            } else {
+                val optionsInTier = options[action.specifiedTier] ?: return K18n_TierNotFound(action.specifiedTier)
+                if (optionsInTier <= 0) {
+                    if (normalTiers[action.specifiedTier] == 0) {
+                        return K18n_Tierlist.MustUpdraft(action.specifiedTier)
+                    }
+                    if (action.switch != null) return null
+                    return K18n_Tierlist.CantPickTier(action.specifiedTier)
+                }
+            }
+            return null
+        }
+
+        private fun minimumNeededPointsForTeamCompletion(alreadyFree: Int, coerceAtLeaastOne: Boolean): Int =
+            (freeAmount - alreadyFree) * pointPrices.minOf {
+                if (coerceAtLeaastOne) it.value.coerceAtLeast(1) else it.value
+            }
+
+        context(league: League, tl: Tierlist)
+        override fun getCurrentAvailableTiers() = getPossibleTiers().filter { it.value > 0 }.keys.toList()
+
+        override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
+            val relevantPicks = picks.filter { !it.free && !it.quit }
+            val tier = relevantPicks.lastOrNull()?.tier ?: error("No picks to determine tier for index")
+            var index = 0
+            for (entry in normalTiers.entries) {
+                if (entry.key == tier) {
+                    return relevantPicks.count { !it.free && !it.quit && it.tier == tier } + index - 1
+                }
+                index += entry.value
+            }
+            error("Tier $tier not found by")
+        }
+
+
+        override fun getPointsForTier(tier: String) = pointPrices[tier]
     }
 
     @Serializable

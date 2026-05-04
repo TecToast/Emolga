@@ -90,7 +90,8 @@ data class PickInput(
                 round = getPickRoundOfficial(),
                 freePick = context.freePick,
                 updrafted = saveTier != tierData.official,
-                tera = tera
+                tera = tera,
+                points = tierlist.withPointBasedPriceManager { it.getPointsForTier(saveTier) }
             )
             pickData.savePick(noCost)
             invalidatePicksCache()
@@ -109,9 +110,10 @@ data class PickInput(
                     val infoTier = (league.config.triggers.alwaysSendTierOnPick || updrafted).ifTrueOrEmpty {
                         K18n_DraftUtils.InfoTier(tier)()
                     }
+                    val infoFreePick = freePick.ifTrueOrEmpty { K18n_DraftUtils.InfoFreePick() }
                     val infoTeraUser = tera.ifTrueOrEmpty { K18n_DraftUtils.InfoTeraUser() }
                     val infoUpdrafted = updrafted.ifTrueOrEmpty { K18n_DraftUtils.InfoUpdrafted() }
-                    K18n_DraftUtils.PickRegular(pokemon, infoTier, infoTeraUser, infoUpdrafted)()
+                    K18n_DraftUtils.PickRegular(pokemon, infoTier, infoTeraUser, infoFreePick, infoUpdrafted)()
                 })
                 checkEmolga()
             }
@@ -173,7 +175,8 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 mem = mem,
                 round = round,
                 oldmon = oldmon,
-                oldIndex = oldIndex
+                oldIndex = oldIndex,
+                points = null
             )
             switchData.saveSwitch()
             invalidatePicksCache()
@@ -238,7 +241,8 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
                 pokemon.official,
                 tier,
                 current,
-                round
+                round,
+                null
             )
             lastPickedMon = pokemon
             banData.saveBan()

@@ -57,6 +57,7 @@ object Ktor {
             allowMethod(HttpMethod.Delete)
             allowMethod(HttpMethod.Patch)
             allowHeader(HttpHeaders.Authorization)
+            allowHeader(HttpHeaders.ContentType)
             allowHost("emolga.tectoast.de", schemes = listOf("https"))
             allowHost("localhost:4200")
             allowCredentials = true

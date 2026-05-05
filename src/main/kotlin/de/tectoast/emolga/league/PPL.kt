@@ -17,7 +17,7 @@ class PPL : League() {
         val isMega = data.pokemonofficial.contains("-Mega")
         val offset = when {
             isMega -> 7
-            data.freePick -> 7 + data.picks.count { it.free && !it.quit }
+            data.freePick -> 7 + data.picks.count { it.free && !it.quit && !it.name.contains("-Mega") }
             else -> data.getTierInsertIndex()
         }
         val y = offset + 5

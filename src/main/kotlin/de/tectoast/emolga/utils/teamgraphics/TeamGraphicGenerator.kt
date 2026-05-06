@@ -65,6 +65,16 @@ object TeamGraphicGenerator {
         }
     }
 
+    suspend fun generateAndStoreInFS(league: League, style: TeamGraphicStyle) {
+        val targetDir = File("/teamgraphics/generated/${league.leaguename}")
+        targetDir.mkdirs()
+        withContext(Dispatchers.IO) {
+            generateForLeague(league, style).forEachIndexed { index, image ->
+                ImageIO.write(image, "png", targetDir.resolve("$index.png"))
+            }
+        }
+    }
+
     suspend fun editTeamGraphicForLeague(league: League, idx: Int) {
         val style = league.config.teamgraphics?.style ?: return
         val teamData = TeamData.singleFromLeague(league, idx)
@@ -86,9 +96,16 @@ object TeamGraphicGenerator {
                 .toMap { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
         }
         return createOneTeamGraphic(
-            teamData.teamOwner, teamData.teamName, teamData.logo, teamData.englishNames.mapValues { (_, name) ->
+            teamData.teamOwner,
+            teamData.teamName,
+            teamData.logo,
+            teamData.leaguename,
+            teamData.idx,
+            teamData.englishNames.mapValues { (_, name) ->
                 (monData[name] ?: error("MonData for $name not found"))
-            }.toMap(), style, options
+            }.toMap(),
+            style,
+            options
         )
     }
 
@@ -129,11 +146,14 @@ object TeamGraphicGenerator {
         teamOwner: String?,
         teamName: String?,
         logo: BufferedImage?,
+        leaguename: String,
+        idx: Int,
         monData: Map<Int, DrawData>,
         style: TeamGraphicStyle,
         options: Options
     ): BufferedImage {
-        val backgroundImage = loadImageForBase(style.backgroundPath)
+        val bgPath = style.backgroundPath(leaguename, idx)
+        val backgroundImage = loadImageForBase(bgPath)
         val image = if (options.blankBackground) {
             BufferedImage(backgroundImage.width, backgroundImage.height, BufferedImage.TYPE_INT_ARGB)
         } else {
@@ -144,7 +164,7 @@ object TeamGraphicGenerator {
         g2d.drawOptionalText(teamOwner?.let(style::transformUsername), style.playerText)
         g2d.drawOptionalText(teamName, style.teamnameText)
         g2d.drawMons(monData, style, TeamGraphicsMetaDB.getSpriteStyle(style.guild) ?: TeamgraphicsSpriteStyle.SUGIMORI)
-        style.overlayPath?.let {
+        style.overlayPath(leaguename, idx)?.let {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
         g2d.drawLogo(
@@ -223,7 +243,12 @@ object TeamGraphicGenerator {
     }
 
     data class TeamData(
-        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: Map<Int, String>
+        val teamOwner: String?,
+        val teamName: String?,
+        val logo: BufferedImage?,
+        val englishNames: Map<Int, String>,
+        val leaguename: String,
+        val idx: Int
     ) {
         companion object {
             suspend fun allFromLeague(league: League): List<TeamData> {
@@ -266,7 +291,12 @@ object TeamGraphicGenerator {
                 val teamName = userData.data[SignUpInput.TEAMNAME_ID]
                 val logo = userData.downloadLogo()
                 return TeamData(
-                    teamOwner = teamOwner, teamName = teamName, logo = logo, englishNames = englishNames
+                    teamOwner = teamOwner,
+                    teamName = teamName,
+                    logo = logo,
+                    englishNames = englishNames,
+                    leaguename = league.leaguename,
+                    idx = idx
                 )
             }
         }
@@ -340,6 +370,7 @@ fun Graphics2D.setCommonRenderingHints() {
     setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
     setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
 }
+
 interface UserNameProvider {
     suspend fun getUserName(userId: Long): String
 }

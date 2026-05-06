@@ -11,13 +11,13 @@ import javax.imageio.ImageIO
 @Serializable
 sealed interface TeamGraphicStyle {
     fun getDataForIndex(index: Int, data: DrawData): IndexDataStyle
-    val backgroundPath: String
-    val overlayPath: String?
     val sizeOfShape: Int
     val playerText: TextProperties?
     val teamnameText: TextProperties?
     val logoProperties: LogoProperties?
     val guild: Long
+    fun backgroundPath(league: String, idx: Int): String
+    fun overlayPath(league: String, idx: Int): String?
 
     fun transformUsername(username: String) = username
 
@@ -123,15 +123,18 @@ data class GDLStyle(val conference: String) : TeamGraphicStyle {
         return IndexDataStyle(x, y, Ellipse2D.Float(0f, 0f, data.size.toFloat(), data.size.toFloat()))
     }
 
-    override val overlayPath = "/teamgraphics/league/GDL/$conference.png"
-    override val backgroundPath = "/teamgraphics/league/GDL/Universe.png"
+
+    override fun overlayPath(league: String, idx: Int) = "/teamgraphics/league/GDL/$conference.png"
+
+    override fun backgroundPath(league: String, idx: Int) = "/teamgraphics/league/GDL/Universe.png"
+
     override val sizeOfShape = SIZE_OF_CIRCLE
 
     override val playerText by lazy {
         TeamGraphicStyle.TextProperties(
             fontPath = "/teamgraphics/league/GDL/MASQUE.ttf",
             fontColor = run {
-                val layer = ImageIO.read(File(overlayPath))
+                val layer = ImageIO.read(File(overlayPath("", 0)))
                 Color(layer.getRGB(1, 800))
             },
             fontSize = 72f,
@@ -202,8 +205,12 @@ data object ABLStyle : TeamGraphicStyle {
         shape
     }
 
-    override val backgroundPath = "/teamgraphics/league/ABL/ABL_Grafiken_woBG.png"
-    override val overlayPath = null
+    override fun backgroundPath(league: String, idx: Int) = "/teamgraphics/league/ABL/ABL_Grafiken_woBG.png"
+
+    override fun overlayPath(league: String, idx: Int): String? {
+        return null
+    }
+
     override val playerText =
         TeamGraphicStyle.TextProperties(
             fontPath = "/teamgraphics/league/ABL/BasementGrotesque-Black_v1.202.otf",
@@ -231,12 +238,53 @@ data object ABLStyle : TeamGraphicStyle {
         TeamGraphicStyle.LogoProperties(173, 250, 580, 580, null)
     override val guild: Long = 977969587448602654
 
-    fun Shape.scaled(scale: Double): Shape {
-        val bounds = this.bounds2D
-        val scaleX = scale * bounds.width / this.bounds.width
-        val scaleY = scale * bounds.height / this.bounds.height
+}
 
-        val transform = java.awt.geom.AffineTransform.getScaleInstance(scaleX, scaleY)
-        return transform.createTransformedShape(this)
+fun Shape.scaled(scale: Double): Shape {
+    val bounds = this.bounds2D
+    val scaleX = scale * bounds.width / this.bounds.width
+    val scaleY = scale * bounds.height / this.bounds.height
+
+    val transform = java.awt.geom.AffineTransform.getScaleInstance(scaleX, scaleY)
+    return transform.createTransformedShape(this)
+}
+
+@Serializable
+@SerialName("WPP")
+data object WPPStyle : TeamGraphicStyle {
+    private val coordMap = mapOf(
+        0 to Pair(165, 70),
+        1 to Pair(782, 49),
+        2 to Pair(600, 347),
+        3 to Pair(1109, 98),
+        4 to Pair(1634, 66),
+        5 to Pair(1619, 382),
+        6 to Pair(894, 367),
+        7 to Pair(1283, 440),
+        8 to Pair(741, 704),
+        9 to Pair(1208, 723),
+        10 to Pair(1630, 802)
+    )
+
+    override fun getDataForIndex(
+        index: Int,
+        data: DrawData
+    ): IndexDataStyle {
+        val (x, y) = coordMap[index] ?: error("No coordinates for index $index")
+        return IndexDataStyle(x, y, Ellipse2D.Float(0f, 0f, data.size.toFloat(), data.size.toFloat()))
+    }
+
+    override val sizeOfShape: Int = 228
+    override val playerText: TeamGraphicStyle.TextProperties? = null
+    override val teamnameText: TeamGraphicStyle.TextProperties? = null
+    override val logoProperties: TeamGraphicStyle.LogoProperties? = null
+    override val guild: Long = 1042904158652616745
+
+    override fun backgroundPath(league: String, idx: Int): String {
+        return "/teamgraphics/league/WPP/$league/$idx.jpg"
+    }
+
+    override fun overlayPath(league: String, idx: Int): String? {
+        return null
     }
 }

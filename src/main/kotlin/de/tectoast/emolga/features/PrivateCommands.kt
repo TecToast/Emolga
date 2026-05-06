@@ -200,6 +200,23 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun generateTeamGraphicsInFS(args: PrivateData) {
+        iData.done()
+        val league = mdb.league(args[0])
+        val style = league.config.teamgraphics!!.style
+        TeamGraphicGenerator.generateAndStoreInFS(league, style)
+    }
+
+    context(iData: InteractionData)
+    suspend fun generateAllGraphicsInFS(args: PrivateData) {
+        iData.done()
+        mdb.leaguesByGuild(args().toLong()).forEach { league ->
+            val style = league.config.teamgraphics!!.style
+            TeamGraphicGenerator.generateAndStoreInFS(league, style)
+        }
+    }
+
+    context(iData: InteractionData)
     suspend fun florixcontrol(args: PrivateData) {
         mdb.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])

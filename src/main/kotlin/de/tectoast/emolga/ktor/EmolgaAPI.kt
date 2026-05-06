@@ -405,7 +405,8 @@ fun Route.emolgaAPI() {
                 CacheControl.MaxAge(60 * 60 * 5)
             )
             return@get call.respondBytes(
-                Files.readAllBytes(Path(style.backgroundPath)), contentType = ContentType.Image.PNG
+                // TODO
+                Files.readAllBytes(Path(style.backgroundPath("", -1))), contentType = ContentType.Image.PNG
             )
         }
         val num = numRaw / 2

@@ -240,7 +240,7 @@ interface TierBasedPriceManager : TierlistPriceManager {
 
     context(league: League, tl: Tierlist)
     override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
-        updraftHandler.handleUpdraft(action)?.let { return it }
+        if(action.specifiedTier != action.officialTier) updraftHandler.handleUpdraft(action)?.let { return it }
         return handleDraftActionAfterGeneralTierCheck(action, context)
     }
 

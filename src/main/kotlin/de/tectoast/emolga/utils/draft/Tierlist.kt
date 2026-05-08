@@ -471,7 +471,7 @@ sealed interface TierlistPriceManager {
     }
 
     context(tl: Tierlist)
-    fun compareTiers(tierA: String, tierB: String): Int? = getTiers().compareTiersFromOrder(tierA, tierB)
+    fun compareTiers(tierA: String, tierB: String): Int? = getTiersForUpdraftCompare().compareTiersFromOrder(tierA, tierB)
 
     context(league: League, tl: Tierlist)
     suspend fun handleDraftActionWithGeneralChecks(
@@ -496,6 +496,7 @@ sealed interface TierlistPriceManager {
     suspend fun buildAnnounceData(idx: Int = league.current): K18nMessage?
 
     fun getTiers(): List<String>
+    fun getTiersForUpdraftCompare(): List<String> = getTiers()
 
     context(league: League, tl: Tierlist)
     suspend fun checkLegalityOfQueue(idx: Int, currentState: List<QueuedAction>): ErrorOrNull
@@ -1088,6 +1089,8 @@ sealed interface TierlistPriceManager {
         private fun getPossibleTiers(idx: Int = league.current) = normalTiers.deductPicks(league.picks(idx))
 
         override fun getTiers() = (normalTiers.keys + pointPrices.keys).toList()
+
+        override fun getTiersForUpdraftCompare() = normalTiers.keys.toList()
 
         context(tl: Tierlist)
         override fun getSingleMap() = normalTiers

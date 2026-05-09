@@ -240,7 +240,7 @@ interface TierBasedPriceManager : TierlistPriceManager {
 
     context(league: League, tl: Tierlist)
     override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
-        if(action.specifiedTier != action.officialTier) updraftHandler.handleUpdraft(action)?.let { return it }
+        if (action.specifiedTier != action.officialTier) updraftHandler.handleUpdraft(action)?.let { return it }
         return handleDraftActionAfterGeneralTierCheck(action, context)
     }
 
@@ -471,7 +471,8 @@ sealed interface TierlistPriceManager {
     }
 
     context(tl: Tierlist)
-    fun compareTiers(tierA: String, tierB: String): Int? = getTiersForUpdraftCompare().compareTiersFromOrder(tierA, tierB)
+    fun compareTiers(tierA: String, tierB: String): Int? =
+        getTiersForUpdraftCompare().compareTiersFromOrder(tierA, tierB)
 
     context(league: League, tl: Tierlist)
     suspend fun handleDraftActionWithGeneralChecks(
@@ -1080,7 +1081,11 @@ sealed interface TierlistPriceManager {
                     if (it.isEmpty()) null else K18n_League.PossibleTiers(it)
                 }?.let { tierMsg ->
                     b {
-                        "${tierMsg()}, ${K18n_League.PossiblePoints(pointManager()[idx])()}, Free: ${freeAmount - league.picks(idx).count { it.free && !it.quit }}"
+                        "${tierMsg()}, ${K18n_League.PossiblePoints(pointManager()[idx])()}, Free: ${
+                            freeAmount - league.picks(
+                                idx
+                            ).count { it.free && !it.quit }
+                        }"
                     }
                 }
         }
@@ -1129,12 +1134,14 @@ sealed interface TierlistPriceManager {
                 val currentPoints = pointManager[league.current]
                 val cost = getPointsForTier(action.specifiedTier) ?: return K18n_TierNotFound(action.specifiedTier)
                 val newPoints = currentPoints - cost
-                if (newPoints < 0) {
+                val hasMega = picks.any { it.free && !it.quit && getPointsForTier(it.tier)!! <= 0 }
+                if (newPoints < 0 && (hasMega || newPoints < pointPrices.values.min())) {
                     return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost = $newPoints < 0")
                 }
                 val minimumRequired = minimumNeededPointsForTeamCompletion(
                     alreadyFree = currentFreeAmount + 1,
-                    coerceAtLeaastOne = picks.any { it.free && !it.quit && getPointsForTier(it.tier)!! <= 0 })
+                    coerceAtLeastOne = hasMega
+                )
                 if (newPoints < minimumRequired) {
                     return K18n_Tierlist.MinimumNeededError(minimumRequired, newPoints)
                 }
@@ -1154,10 +1161,14 @@ sealed interface TierlistPriceManager {
             return null
         }
 
-        private fun minimumNeededPointsForTeamCompletion(alreadyFree: Int, coerceAtLeaastOne: Boolean): Int =
-            (freeAmount - alreadyFree) * pointPrices.minOf {
-                if (coerceAtLeaastOne) it.value.coerceAtLeast(1) else it.value
+        private fun minimumNeededPointsForTeamCompletion(alreadyFree: Int, coerceAtLeastOne: Boolean): Int {
+            val missingAmount = freeAmount - alreadyFree
+            if (missingAmount <= 0) return 0
+            val base = pointPrices.minOf {
+                if (coerceAtLeastOne) it.value.coerceAtLeast(1) else it.value
             }
+            return base + (missingAmount - 1) * pointPrices.minOf { it.value.coerceAtLeast(1) }
+        }
 
         context(league: League, tl: Tierlist)
         override fun getCurrentAvailableTiers() = getPossibleTiers().filter { it.value > 0 }.keys.toList()

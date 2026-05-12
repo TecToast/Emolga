@@ -45,7 +45,8 @@ data class SDPokemon(
     }
 
     context(context: BattleContext)
-    fun addVolatileEffect(name: String, pokemon: SDPokemon) {
+    fun addVolatileEffect(name: String, pokemon: SDPokemon, fromActivate: Boolean) {
+        if(fromActivate && name in volatileEffects) return
         volatileEffects[name] = pokemon.withZoroCheck()
     }
 
@@ -518,7 +519,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             split[1].parsePokemon().run {
                 split.getSource()?.let {
-                    addVolatileEffect(split[2].substringAfter(": "), it)
+                    addVolatileEffect(split[2].substringAfter(": "), it, split[0] == "-activate")
                 }
             }
         }

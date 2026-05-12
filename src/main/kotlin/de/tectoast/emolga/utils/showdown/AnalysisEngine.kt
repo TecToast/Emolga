@@ -568,7 +568,9 @@ sealed class SDEffect(vararg val types: String) {
     data object SideCondition : SDEffect("-sidestart") {
         context(context: BattleContext)
         override fun execute(split: List<String>) {
-            val pokemon = context.lastMoveUser.value.parsePokemon()
+            val fromOther =
+                if (context.lastLine.value.contains("-activate")) context.lastLine.value.cleanSplit()[1].tryParsePokemon() else null
+            val pokemon = fromOther ?: context.lastMoveUser.value.parsePokemon()
             val type = split[2].substringAfter(": ")
             context.sdPlayers[split[1][1].digitToInt() - 1].sideConditions[type] = pokemon
         }
@@ -769,6 +771,9 @@ fun String.cleanSplit() = this.split("|").drop(1)
 context(context: BattleContext)
 fun String.parsePokemon() =
     parsePokemonLocation().let { context.monsOnField[it.first][it.second] }
+
+context(context: BattleContext)
+fun String.tryParsePokemon() = runCatching { parsePokemon() }.getOrNull()
 
 fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let {
     val p = it[0].digitToInt() - 1

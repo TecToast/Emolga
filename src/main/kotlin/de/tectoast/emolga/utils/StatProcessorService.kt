@@ -110,19 +110,13 @@ object StatProcessorService {
                     groupNumbers.matchesMatchNum(it.matchNum) && groupNumbers.matchesMonIndex(it.monIndex)
                 }
                 for ((coord, provider) in coordMap) {
-                    val result = if (relevantEntries.size > 1) {
-                        val accumulator = mutableMapOf<MonDataProvider, Int>()
-                        for (provider in coordMap.values.toSet()) {
-                            if (provider.accumulatePerGame) {
-                                accumulator[provider] =
-                                    relevantEntries.groupBy { it.matchNum }.values.sumOf { entriesPerGame -> entriesPerGame.first().data[provider] as Int }
-                            } else {
-                                accumulator[provider] = relevantEntries.sumOf { it.data[provider] as Int }
-                            }
+                    val accumulationMode = provider.accumulationMode
+                    val result =
+                        if (relevantEntries.size == 1 || accumulationMode == AccumulationMode.NEVER) relevantEntries.first().data[provider]!! else when (accumulationMode) {
+                            AccumulationMode.DEFAULT -> relevantEntries.sumOf { it.data[provider] as Int }
+                            AccumulationMode.PER_GAME -> relevantEntries.groupBy { it.matchNum }.values.sumOf { entriesPerGame -> entriesPerGame.first().data[provider] as Int }
                         }
-                        accumulator
-                    } else relevantEntries.first().data
-                    b.addSingle(coord, result[provider]!!)
+                    b.addSingle(coord, result)
                 }
             }
         }

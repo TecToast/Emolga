@@ -323,7 +323,11 @@ interface MonDataProvider {
         fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
     ): Any
 
-    val accumulatePerGame: Boolean get() = false
+    val accumulationMode: AccumulationMode get() = AccumulationMode.DEFAULT
+}
+
+enum class AccumulationMode {
+    NEVER, PER_GAME, DEFAULT
 }
 
 data class AdditionalDataProvider(
@@ -367,6 +371,21 @@ data class NameConventionsProviderCache(
     }
 }
 
+sealed interface OtherMonDataProvider : MonDataProvider {
+    data class WinLossLiteral(val win: String, val loss: String) : MonDataProvider {
+        override suspend fun provideData(
+            fullGameData: FullGameData,
+            statProcessorData: StatProcessorData,
+            provider: AdditionalDataProvider
+        ): Any {
+            val (wins, losses) = fullGameData.getWinsLosses(statProcessorData)
+            return if(wins > losses) win else loss
+        }
+
+        override val accumulationMode = AccumulationMode.NEVER
+    }
+}
+
 @OptIn(DocEntryInternal::class)
 enum class DataTypeForMon : MonDataProvider {
     KILLS {
@@ -384,14 +403,25 @@ enum class DataTypeForMon : MonDataProvider {
             fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getWinsLosses(statProcessorData).first
 
-        override val accumulatePerGame = true
+        override val accumulationMode = AccumulationMode.PER_GAME
     },
     LOSSES {
         override suspend fun provideData(
             fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getWinsLosses(statProcessorData).second
 
-        override val accumulatePerGame = true
+        override val accumulationMode = AccumulationMode.PER_GAME
+    },
+    DIFF {
+        override suspend fun provideData(
+            fullGameData: FullGameData,
+            statProcessorData: StatProcessorData,
+            provider: AdditionalDataProvider
+        ): Any {
+            val kd = fullGameData.getKD(statProcessorData)
+            return kd.kills - kd.deaths
+        }
+
     },
     MONNAME {
         override suspend fun provideData(
@@ -491,18 +521,20 @@ enum class DataTypeForMon : MonDataProvider {
     fun FullGameData.getNameKDEntry(data: StatProcessorData): Map.Entry<String, KD> =
         games[data.matchNum].kd[data.indexInBattle].entries.drop(data.monIterationIndex).first()
 
-    fun FullGameData.getWinsLosses(data: StatProcessorData): Pair<Int, Int> {
-        var wins = 0
-        var looses = 0
-        val game = games[data.matchNum]
-        val winnerIndex = game.winnerIndex
-        if (data.indexInBattle == winnerIndex) {
-            wins++
-        } else {
-            looses++
-        }
-        return wins to looses
+}
+
+@OptIn(DocEntryInternal::class)
+private fun FullGameData.getWinsLosses(data: StatProcessorData): Pair<Int, Int> {
+    var wins = 0
+    var looses = 0
+    val game = games[data.matchNum]
+    val winnerIndex = game.winnerIndex
+    if (data.indexInBattle == winnerIndex) {
+        wins++
+    } else {
+        looses++
     }
+    return wins to looses
 }
 
 @Serializable

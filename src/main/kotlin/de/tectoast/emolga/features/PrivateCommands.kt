@@ -486,12 +486,21 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun moveGuildToArchive(args: PrivateData) {
+        moveLeagueNamesToArchive(mdb.leaguesByGuild(args().toLong()).map { it.leaguename })
+    }
+
+    context(iData: InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
+        moveLeagueNamesToArchive(args)
+    }
+
+    suspend fun moveLeagueNamesToArchive(leagues: List<String>) {
         val archiveLeague = mdb.db.getCollection<League>("oldleague")
         val currentLeague = mdb.league
         val archiveMR = mdb.db.getCollection<LeagueEvent>("oldmatchresults")
         val currentMR = mdb.db.getCollection<LeagueEvent>("matchresults")
-        args.forEach {
+        leagues.forEach {
             if (!it.matches(Regex("^NDSS\\d+$"))) {
                 val league = mdb.league(it)
                 archiveLeague.insertOne(league)

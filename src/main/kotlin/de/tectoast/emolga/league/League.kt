@@ -1396,7 +1396,7 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
 
     override suspend fun League.bypassCurrentPlayerCheck(user: Long): BypassCurrentPlayerData {
         val no = BypassCurrentPlayerData.No
-        val idx = this(user)
+        val idx = table.indexOf(user)
         // Are we in the pseudo end?
         if (!pseudoEnd) return no
         // Has the user moved turns?

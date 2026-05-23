@@ -302,7 +302,7 @@ object Analysis {
         },
         SCRAPE(false) {
             private val logRegex =
-                Regex("<script type=\"text/plain\" class=\"log\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
+                Regex("<script type=\"text/plain\" class=\"battle-log-data\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
 
             override fun getLogFromWebsiteText(text: String) = logRegex.find(text)?.groupValues[1] ?: ""
         },
@@ -321,6 +321,7 @@ object Analysis {
         "replays.tectoast.de" to ReplayServerMode.LOG,
         "replay.reshowdown.top" to ReplayServerMode.LOG,
         "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE,
+        "play.champsnatdex.dynv6.net/replays" to ReplayServerMode.SCRAPE,
         "replay.pokeathlon.com" to ReplayServerMode.POKEATHLON,
     )
     val regex = Regex("https://(${modeByServer.keys.joinToString("|")}).*")

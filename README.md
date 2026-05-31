@@ -1,5 +1,5 @@
 # Emolga
-
+## Disclaimer: The current structure of the bot is not very good / maintainable. I'm currently rewriting it, but it will take some time, so if you plan to contribute, please wait until the rewrite is done.
 Emolga is a discord bot based on the [JDA](https://github.com/discord-jda/JDA) library, which is mainly focused on Pokémon.
 The main feature is the analysis of Pokémon Showdown! replays.
 It has also lots of features helping to manage a draft league, like hosting a draft with a timer, automatic insertion of

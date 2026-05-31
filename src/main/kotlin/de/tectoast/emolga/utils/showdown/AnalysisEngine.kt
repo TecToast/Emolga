@@ -535,8 +535,8 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             if (split[0] == "-start") {
                 if (split.getOrNull(2)?.contains(name) == true) {
-                    val (pl, idx) = context.lastLine.value.cleanSplit()[3].parsePokemonLocation()
-                    context.sdPlayers[pl].slotConditions.getOrPut(idx) { mutableMapOf() }[this] =
+                    val (pl, idx) = context.lastLine.value.cleanSplit()[3].parsePokemonLocationSlotNullable()
+                    context.sdPlayers[pl].slotConditions.getOrPut(idx ?: 0) { mutableMapOf() }[this] =
                         split[1].parsePokemon()
                 }
             } else if (split[0] == "-end") {
@@ -779,6 +779,10 @@ fun String.tryParsePokemon() = runCatching { parsePokemon() }.getOrNull()
 fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let {
     val p = it[0].digitToInt() - 1
     p to if (p > 1) 0 else it[1].cToI()
+}
+fun String.parsePokemonLocationSlotNullable() = substringAfter('p').substringBefore(':').let {
+    val p = it[0].digitToInt() - 1
+    p to if (p > 1) 0 else it.getOrNull(1)?.cToI()
 }
 
 fun String.parsePlayer() = substringAfter('p').substringBefore(':').let {

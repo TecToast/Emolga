@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils.teamgraphics
 
 import java.awt.Color
 import java.awt.Font
-import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.font.FontRenderContext
 import java.awt.image.BufferedImage
@@ -18,7 +17,7 @@ object ImageUtils {
      * Creates a Gaussian Blur filter.
      * @param radius Controls the blur intensity. Higher is blurrier.
      */
-    fun getGaussianBlurFilter(radius: Int): ConvolveOp {
+    private fun getGaussianBlurFilter(radius: Int): ConvolveOp {
         if (radius < 1) {
             throw IllegalArgumentException("Radius must be >= 1")
         }
@@ -80,46 +79,6 @@ object ImageUtils {
         // The filter needs a destination image of the same size
         val blurredImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
         return blurOp.filter(shadowImage, blurredImage)
-    }
-
-    fun drawTextWithSoftShadow(
-        g2d: Graphics2D,
-        text: String,
-        centerX: Int,
-        centerY: Int,
-        font: Font, // Must pass the font object explicitly
-        fontColor: Color,
-        shadowColor: Color = Color(0, 0, 0, 180), // Semi-transparent black
-        shadowOffset: Int = 5,
-        blurRadius: Int = 6
-    ) {
-        // 1. Create the blurred shadow image
-        val blurredShadow = createBlurredShadowImage(text, font, shadowColor, blurRadius)
-        g2d.font = font
-        val metrics = g2d.fontMetrics
-
-        // 3. Calculate X: Target Center - Half Width
-        val textWidth = metrics.stringWidth(text)
-        val x = centerX - (textWidth / 2)
-
-        // 4. Calculate Y: Target Center + Half Height Adjustment
-        // Using (ascent - descent) / 2 aligns the "visual center" of the text (e.g. caps height)
-        val y = centerY + ((metrics.ascent - metrics.descent) / 2)
-
-        // 2. Calculate position to draw shadow (adjusting for padding from the blur step)
-        // We subtract padding to align the shadow's "core" with the text position
-        val padding = blurRadius * 2
-        val shadowX = x + shadowOffset - padding
-        val shadowY = y + shadowOffset - padding - font.size // Adjust y to account for baseline
-
-        // 3. Draw the blurred image
-        g2d.drawImage(blurredShadow, shadowX, shadowY, null)
-
-        // 4. Draw the main text on top
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-        g2d.font = font
-        g2d.color = fontColor
-        g2d.drawString(text, x, y)
     }
 
     fun cropToContent(source: BufferedImage): BufferedImage {

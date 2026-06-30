@@ -5,5 +5,6 @@ pluginManagement {
         maven("https://maven.tectoast.de/releases")
 //        mavenLocal()
         gradlePluginPortal()
+        mavenCentral()
     }
 }

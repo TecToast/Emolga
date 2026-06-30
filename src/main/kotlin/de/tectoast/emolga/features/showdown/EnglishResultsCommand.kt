@@ -1,12 +1,15 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.database.exposed.EnglishResultsDB
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.NoArgs
+import de.tectoast.emolga.domain.game.service.EnglishResultsService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.NoArgs
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import org.koin.core.annotation.Single
 
-object EnglishResultsCommand : CommandFeature<NoArgs>(
+@Single(binds = [ListenerProvider::class])
+class EnglishResultsCommand(private val service: EnglishResultsService) : CommandFeature<NoArgs>(
     NoArgs(),
     CommandSpec(
         "englishresults",
@@ -15,10 +18,6 @@ object EnglishResultsCommand : CommandFeature<NoArgs>(
 ) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        if (EnglishResultsDB.delete(iData.gid)) {
-            return iData.reply(K18n_EnglishResults.German)
-        }
-        EnglishResultsDB.insert(iData.gid)
-        iData.reply(K18n_EnglishResults.English)
+        return iData.reply(service.toggle(iData.gid))
     }
 }

@@ -1,22 +1,36 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.database.exposed.CmdManager
-import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.domain.cmdmanage.model.AddRemove
+import de.tectoast.emolga.domain.cmdmanage.repository.CommandManagementRepository
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.*
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
 import de.tectoast.emolga.utils.filterContainsIgnoreCase
 import de.tectoast.emolga.utils.k18n
+import org.koin.core.annotation.Single
+import org.koin.core.component.inject
 
-object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanage", "CmdManage".k18n)) {
+@Single(binds = [ListenerProvider::class])
+class CmdManageCommand(
+    guildGroup: GuildGroup,
+    guildCommand: GuildCommand,
+    groupCommand: GroupCommand,
+    update: Update
+) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanage", "CmdManage".k18n)) {
+    override val children = listOf(guildGroup, guildCommand, groupCommand, update)
 
-    object GuildGroup : CommandFeature<GuildGroup.Args>(
+    @Single
+    class GuildGroup(private val cmdRegistry: CommandRegistryService) : CommandFeature<GuildGroup.Args>(
         ::Args, CommandSpec("guildgroup", "GuildGroup verwalten".k18n)
     ) {
         class Args : Arguments() {
+            private val cmdRepo by inject<CommandManagementRepository>()
+
             var guildId by long("guildid", "Die ID des Servers".k18n)
             var group by string("group", "Der Name der Gruppe".k18n) {
                 slashCommand { s, _ ->
-                    CmdManager.getGroups().filterContainsIgnoreCase(s)
+                    cmdRepo.getGroups().filterContainsIgnoreCase(s)
                 }
             }
             var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
@@ -27,16 +41,21 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply(true)
-            CmdManager.modifyGuildGroup(e.guildId, e.group, e.action)
+            cmdRegistry.modifyGuildGroup(e.guildId, e.group, e.action)
             iData.done()
         }
     }
 
-    object GuildCommand :
+    @Single
+    class GuildCommand(private val cmdRegistry: CommandRegistryService) :
         CommandFeature<GuildCommand.Args>(::Args, CommandSpec("guildcommand", "GuildCommand verwalten".k18n)) {
         class Args : Arguments() {
+            val registry by inject<FeatureRegistry>()
+
             var guildId by long("guildid", "Die ID des Servers".k18n)
-            var command by commandArg()
+            var command by this.string("command", "Der Name des Commands".k18n) {
+                slashCommand { string, _ -> registry.featureNames.filterContainsIgnoreCase(string) }
+            }
             var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
@@ -45,20 +64,26 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply(true)
-            CmdManager.modifyGuildCommand(e.guildId, e.command, e.action)
+            cmdRegistry.modifyGuildCommand(e.guildId, e.command, e.action)
             iData.done()
         }
     }
 
-    object GroupCommand :
+    @Single
+    class GroupCommand(private val cmdRegistry: CommandRegistryService) :
         CommandFeature<GroupCommand.Args>(::Args, CommandSpec("groupcommand", "GroupCommand verwalten".k18n)) {
         class Args : Arguments() {
+            private val cmdRepo by inject<CommandManagementRepository>()
+            val registry by inject<FeatureRegistry>()
+
             var group by string("group", "Der Name der Gruppe".k18n) {
                 slashCommand { s, _ ->
-                    CmdManager.getGroups().filterContainsIgnoreCase(s)
+                    cmdRepo.getGroups().filterContainsIgnoreCase(s)
                 }
             }
-            var command by commandArg()
+            var command by this.string("command", "Der Name des Commands".k18n) {
+                slashCommand { string, _ -> registry.featureNames.filterContainsIgnoreCase(string) }
+            }
             var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
@@ -67,12 +92,13 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply(true)
-            CmdManager.modifyGroupCommand(e.group, e.command, e.action)
+            cmdRegistry.modifyGroupCommand(e.group, e.command, e.action)
             iData.done()
         }
     }
 
-    object Update :
+    @Single
+    class Update(private val cmdRegistry: CommandRegistryService) :
         CommandFeature<Update.Args>(::Args, CommandSpec("update", "Update".k18n)) {
         class Args : Arguments() {
             var guildId by long("guildid", "Die ID des Servers".k18n)
@@ -81,28 +107,14 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply(true)
-            EmolgaMain.featureManager().updateCommandsForGuild(e.guildId)
+            cmdRegistry.updateCommandsForGuild(e.guildId)
             iData.done()
         }
     }
 
-    private val featureNames = OneTimeCache {
-        EmolgaMain.featureManager().registeredFeatureList.map { it.spec.name }
-    }
-
-    private fun Arguments.commandArg() = string("command", "Der Name des Commands".k18n) {
-        slashCommand { string, _ -> featureNames().filterContainsIgnoreCase(string) }
-    }
-
-
-    context(data: InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
 
     }
 }
 
-enum class AddRemove {
-    ADD, REMOVE;
-
-    fun add() = this == ADD
-}

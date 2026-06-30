@@ -1,38 +1,21 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.database.exposed.AnalysisDB
-import de.tectoast.emolga.database.exposed.GuildUsingReplayDB
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.showdown.Analysis
-import dev.minn.jda.ktx.generics.getChannel
-import mu.KotlinLogging
-import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import de.tectoast.emolga.domain.game.service.ReplayService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.interaction.toK18nMessageSender
+import de.tectoast.emolga.features.interaction.toMessageSender
+import de.tectoast.emolga.features.system.Arguments
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import de.tectoast.emolga.utils.isError
+import org.koin.core.annotation.Single
 
-object ReplayCommand : CommandFeature<ReplayCommand.Args>(
+@Single(binds = [ListenerProvider::class])
+class ReplayCommand(private val replayService: ReplayService) : CommandFeature<ReplayCommand.Args>(
     ::Args,
     CommandSpec("replay", K18n_Replay.Help)
 ) {
-    private val logger = KotlinLogging.logger {}
-
-    init {
-        registerDMListener { e ->
-            val msg = e.message.contentDisplay
-            if (msg.contains("https://")) {
-                Analysis.regex.find(msg)?.run {
-                    val url = groupValues[0]
-                    logger.info(url)
-                    Analysis.analyseReplay(
-                        urlProvided = url,
-                        //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
-                        resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
-                    )
-                }
-            }
-        }
-    }
 
     class Args : Arguments() {
         var url by string("Replay-Link", K18n_Replay.ArgReplay)
@@ -42,14 +25,16 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.deferReply()
-        val channel = AnalysisDB.getResultChannel(iData.tc)
-            ?: return iData.reply(K18n_ReplayGeneric.NoReplayChannel)
-        val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
-        if (tc == null) {
-            iData.reply(K18n_ReplayGeneric.NoAccessToResultChannel(channel))
-            return
+        val result = replayService.analyseReplay(
+            guild = iData.gid,
+            tcId = iData.tc,
+            urlProvided = e.url,
+            infoSender = iData.toK18nMessageSender(true),
+            replaySender = iData.toMessageSender(false)
+        )
+        if (result.isError()) {
+            iData.reply(result.message, ephemeral = true)
         }
-        GuildUsingReplayDB.add(iData.gid, iData.guild().name)
-        Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = iData)
     }
 }
+

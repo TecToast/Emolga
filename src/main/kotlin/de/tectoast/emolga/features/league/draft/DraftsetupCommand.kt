@@ -1,14 +1,15 @@
 package de.tectoast.emolga.features.league.draft
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.league.draft.generic.K18n_NoWritePermission
-import de.tectoast.emolga.league.League
-import net.dv8tion.jda.api.Permission
+import de.tectoast.emolga.domain.league.draft.service.core.DraftService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.Arguments
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import org.koin.core.annotation.Single
 
-object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
+@Single(binds = [ListenerProvider::class])
+class DraftsetupCommand(private val draftService: DraftService) : CommandFeature<DraftsetupCommand.Args>(
     ::Args,
     CommandSpec("draftsetup", K18n_Draftsetup.Help)
 ) {
@@ -25,20 +26,7 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        iData.reply("+1", ephemeral = true)
-        League.executeOnFreshLock(e.name) {
-            if (!iData.guild().selfMember.hasPermission(
-                    iData.textChannel,
-                    Permission.VIEW_CHANNEL,
-                    Permission.MESSAGE_SEND
-                )
-            ) {
-                return@executeOnFreshLock iData.reply(
-                    K18n_NoWritePermission,
-                    ephemeral = true
-                )
-            }
-            startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft)
-        }
+        iData.replyRaw("+1", ephemeral = true)
+        draftService.startDraft(e.name, iData.tc, e.switchdraft)
     }
 }

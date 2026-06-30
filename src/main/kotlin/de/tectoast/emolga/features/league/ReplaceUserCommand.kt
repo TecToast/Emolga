@@ -1,19 +1,15 @@
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.json.SignUpInput
-import de.tectoast.emolga.utils.json.mdb
-import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
-import org.litote.kmongo.eq
-import org.litote.kmongo.pos
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
+import de.tectoast.emolga.domain.league.member.service.UserReplaceService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.Arguments
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import org.koin.core.annotation.Single
 
-object ReplaceUserCommand :
+@Single(binds = [ListenerProvider::class])
+class ReplaceUserCommand(private val service: UserReplaceService) :
     CommandFeature<ReplaceUserCommand.Args>(::Args, CommandSpec("replaceuser", K18n_ReplaceUser.Help)) {
 
     init {
@@ -29,28 +25,12 @@ object ReplaceUserCommand :
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val uidOld = e.oldUser.idLong
-        val uidNew = e.newUser.idLong
-        val league = mdb.leagueByGuild(iData.gid, uidOld) ?: return iData.reply(K18n_ReplaceUser.OldUserNotInLeague)
-        val idx = league(uidOld)
-        mdb.league.updateOne(
-            League::leaguename eq league.leaguename,
-            set(League::table.pos(idx) setTo uidNew)
-        )
-        league.getSignup()?.let { signup ->
-            val uData = signup.users.first { it.users.contains(uidOld) }
-            uData.users.apply {
-                remove(uidOld)
-                add(uidNew)
-            }
-            e.sdName?.let {
-                uData.data[SignUpInput.SDNAME_ID] = it
-            }
-            e.teamName?.let {
-                uData.data[SignUpInput.TEAMNAME_ID] = it
-            } ?: TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
-            signup.save()
+        val result = service.replaceUser(iData.gid, e.oldUser.idLong, e.newUser.idLong, e.sdName, e.teamName)
+        if (result) {
+            iData.done(true)
+        } else {
+            iData.reply(K18n_ReplaceUser.OldUserNotInLeague, ephemeral = true)
         }
-        iData.done(true)
     }
 }
+

@@ -1,0 +1,125 @@
+[versions]
+coroutines = "1.11.0"
+exposed = "1.3.0"
+google-drive = "v3-rev20260428-2.0.0"
+google-sheets = "v4-rev20260610-2.0.0"
+google-youtube = "v3-rev20260608-2.0.0"
+jda = "6.4.2"
+jda-ktx = "0.14.2"
+jib = "3.5.3"
+jsoup = "1.22.2"
+k18n = "2.2.1"
+koin = "4.2.2"
+kotest = "6.2.1"
+kotlin = "2.4.0"
+kotlin-logging = "3.0.5"
+ktor = "3.5.0"
+logback = "1.5.35"
+mockk = "1.14.11"
+r2dbc-pool = "1.0.2.RELEASE"
+r2dbc-postgresql = "1.1.2.RELEASE"
+r2dbc-spi = "1.0.0.RELEASE"
+serialization-json = "1.11.0"
+slf4j = "2.0.18"
+
+[plugins]
+gradleversions = "nl.littlerobots.version-catalog-update:1.1.0"
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+k18n = { id = "de.tectoast.k18n", version.ref = "k18n" }
+koin-compiler = "io.insert-koin.compiler.plugin:1.0.1"
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[libraries]
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
+exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+exposed-migration-r2dbc = { module = "org.jetbrains.exposed:exposed-migration-r2dbc", version.ref = "exposed" }
+exposed-r2dbc = { module = "org.jetbrains.exposed:exposed-r2dbc", version.ref = "exposed" }
+google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "google-drive" }
+google-api-services-sheets = { module = "com.google.apis:google-api-services-sheets", version.ref = "google-sheets" }
+google-api-services-youtube = { module = "com.google.apis:google-api-services-youtube", version.ref = "google-youtube" }
+jda = { module = "net.dv8tion:JDA", version.ref = "jda" }
+jda-ktx = { module = "club.minnced:jda-ktx", version.ref = "jda-ktx" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-runner-junit5-jvm = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
+kotlin-logging-jvm = { module = "io.github.microutils:kotlin-logging-jvm", version.ref = "kotlin-logging" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
+ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
+ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
+ktor-server-call-logging-jvm = { module = "io.ktor:ktor-server-call-logging-jvm", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
+ktor-server-sessions = { module = "io.ktor:ktor-server-sessions", version.ref = "ktor" }
+ktor-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
+r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
+r2dbc-spi = { module = "io.r2dbc:r2dbc-spi", version.ref = "r2dbc-spi" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+
+[bundles]
+database = [
+    "exposed-core",
+    "exposed-json",
+    "exposed-kotlin-datetime",
+    "exposed-migration-r2dbc",
+    "exposed-r2dbc",
+    "r2dbc-pool",
+    "r2dbc-postgresql",
+    "r2dbc-spi",
+]
+google = [
+    "google-api-services-drive",
+    "google-api-services-sheets",
+    "google-api-services-youtube",
+]
+kotlin = [
+    "kotlin-reflect",
+    "kotlinx-coroutines-core",
+    "kotlinx-serialization-json",
+]
+ktor = [
+    "ktor-client-apache",
+    "ktor-client-cio",
+    "ktor-client-content-negotiation",
+    "ktor-client-core",
+    "ktor-serialization-kotlinx-json",
+    "ktor-server-auth",
+    "ktor-server-caching-headers",
+    "ktor-server-call-logging",
+    "ktor-server-call-logging-jvm",
+    "ktor-server-cio",
+    "ktor-server-content-negotiation",
+    "ktor-server-core",
+    "ktor-server-cors",
+    "ktor-server-sessions",
+    "ktor-server-sse",
+]
+logging = [
+    "kotlin-logging-jvm",
+    "logback-classic",
+    "slf4j-api",
+]
+testing = [
+    "kotest-assertions-core",
+    "kotest-runner-junit5-jvm",
+    "kotlinx-coroutines-test",
+    "mockk",
+]

@@ -1,14 +1,16 @@
 package de.tectoast.emolga.features.league
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.league.draft.generic.K18n_NotSignedUp
-import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.json.mdb
+import de.tectoast.emolga.domain.league.signup.service.SignupService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.Arguments
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import de.tectoast.emolga.utils.msg
+import org.koin.core.annotation.Single
 
-object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
+@Single(binds = [ListenerProvider::class])
+class AddTeammateCommand(private val signupService: SignupService) : CommandFeature<AddTeammateCommand.Args>(
     ::Args, CommandSpec(
         "addteammate",
         K18n_AddTeammate.Help,
@@ -20,19 +22,7 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val lsData =
-            mdb.signups.get(iData.gid, iData.user) ?: return iData.reply(
-                K18n_NotSignedUp,
-                ephemeral = true
-            )
-        val data = lsData.getDataByUser(iData.user) ?: return iData.reply(K18n_NotSignedUp)
-        val member = e.user
-        if (lsData.getDataByUser(member.idLong) != null) return iData.reply(
-            K18n_AddTeammate.PartnerAlreadySignedUp(
-                member.idLong
-            )
-        )
-        lsData.handleNewUserInTeam(member.idLong, data)
-        iData.reply(K18n_AddTeammate.Success(member.idLong), ephemeral = true)
+        val result = signupService.addTeammate(iData.gid, iData.user, e.user.idLong)
+        iData.reply(result.msg(), ephemeral = true)
     }
 }

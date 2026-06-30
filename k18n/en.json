@@ -102,8 +102,8 @@
                 "ManageFinishEnabled": "Your new queue pick order has been saved!\nThe system is currently **enabled** for you.",
                 "ManageSaveAndDisable": "Save and disable",
                 "ManageSaveAndEnable": "Save and enable",
-                "SnipeWarningEnabled": "`{pokemon}` from your queue was picked by {sniper}.\nHowever, the system continues to run for you.",
-                "SnipeWarningDisabled": "`{pokemon}` from your queue was picked by {sniper}.\nThe system was disabled for you so you can replan.",
+                "SnipeWarningEnabled": "The following Pokémon were sniped:\n```{data}```\nHowever, the system continues to run for you.",
+                "SnipeWarningDisabled": "The following Pokémon were sniped:\n```{data}```\nThe system was disabled for you so you can replan.",
                 "PickNotification": "You picked `{pokemon}`.\nRounds until you need to pick manually again: **{roundsLeft:Int}**",
                 "LegalTooManyInTier": "With this queue you would have too many Pokemon in one or more tiers!",
                 "LegalTooManyInSingleTier": "With this queue you would have too many Pokemon in the {tier} tier!",
@@ -129,7 +129,7 @@
                 "OnlyAllowedInTiers": "In this league random picks are only allowed in the following tiers: {tiers}"
               },
               "Skip_nested": {
-                "Help": "Skips your switch",
+                "Help": "Skips your pick/switch",
                 "IsNoSwitchDraft": "This draft is a switch draft, so /skip is not supported!",
                 "Success": "skipped the switch!"
               },
@@ -174,6 +174,7 @@
               "Help": "Adds a mon to the tierlist",
               "ArgPokemon": "The Pokemon you want to add",
               "ArgTier": "The tier, otherwise the lowest",
+              "ArgIdentifier": "The identifier of the tierlist, if there are multiple",
               "PokemonAlreadyInTierlist": "`{pokemon}` is already in the tierlist!",
               "Success": "`{pokemon}` is now in the {tier} tier!"
             },
@@ -200,7 +201,7 @@
               "Help": "Options to manage a league",
               "ArgLeague": "The name of the league you want to manage",
               "ResultCheckHelp": "Outputs which battles are already finished and which are not",
-              "ResultCheckArgGameday": "The week you want to check",
+              "ResultCheckArgWeek": "The week you want to check",
               "ResultCheckArgPublic": "Whether the output should be public"
             },
             "Logo_nested": {
@@ -214,6 +215,7 @@
               "ArgLogo": "The logo"
             },
             "Nominate_nested": {
+              "NoActiveLeague": "There is no active league where you could nominate on this server!",
               "AlreadyNominated": "You have already nominated your team for this week ({num:Int})!",
               "EmbedTitle": "Nominations",
               "Description": "**Nominated: ({nominatedSize:Int})**\n{nominated}\n**Not nominated: ({notNominatedSize:Int})**\n{notNominated}",
@@ -223,7 +225,8 @@
             },
             "PrepareTierlist_nested": {
               "Help": "Sets up the tierlist",
-              "DuplicatePokemon": "Duplicate Pokemon were found in the tierlist! Please check the following Pokemon: {pokemon}"
+              "DuplicatePokemon": "Duplicate Pokemon were found in the tierlist! Please check the following Pokemon: {pokemon}",
+              "InvalidRegionalPlaceholder": "The regional forms must contain `***` as a placeholder, e.g., `Alola-***`!"
             },
             "ReplaceUser_nested": {
               "Help": "Replaces a user in a league",
@@ -244,12 +247,13 @@
               "NotSignedUp": "❌ You are not currently signed up!",
               "SignupChangeHelp": "Allows you to modify your signup",
               "SignupChangeNoData": "There is no data you can change!",
-              "SignupMessageData": "\n\n**Participants: {current}/{max}**",
+              "SignupMessageData": "**Participants: {current}/{max}**",
               "SignupFull": "❌ The signup is already full!",
               "DataChangeSuccessful": "Your data was changed successfully!",
               "SignupSuccess": "✅ You were signed up successfully!",
               "SignupFailure": "❌ Signup not successful:\n\n{errors}",
               "SignupClosed": "Signup closed",
+              "SignupSuccessWithLogoError": "✅ You were signed up successfully!\nHowever, your logo could not be uploaded:\n{error}",
               "LogoError": "⚠️ Your logo could not be uploaded: {error}",
               "NoOwnLogos": "In this league there are no custom logos!",
               "SignupConfirmMessage": "Signup by {name}:\n{data}"
@@ -285,22 +289,22 @@
               "SelfNoPredictions": "You haven’t submitted any predictions yet!",
               "SelfSuccess": "# You in comparison\n{aboveAndBelow}\n# Your stats per league\n{resultsPerLeague}",
               "CheckMissingHelp": "Check for missing predictions on a week",
-              "CheckMissingArgGameday": "The week you want to check",
+              "CheckMissingArgWeek": "The week you want to check",
               "CheckMissingAllPredictionsGiven": "You have submitted all predictions for week {gameday:Int}!",
               "CheckMissingTooLong": "The list of missing predictions is too long to display here. A total of {amount:Int} predictions are missing.",
               "CheckMissingSuccess": "# Missing predictions for week {num:Int}\n{list}",
               "OwnVotesHelp": "View your predictions for a week",
               "OwnVotesArgLeague": "The league for which you want to view your predictions",
-              "OwnVotesArgGameday": "The week for which you want to view your predictions",
+              "OwnVotesArgWeek": "The week for which you want to view your predictions",
               "OwnVotesLeagueNotFound": "There is no league with the name {league}!",
-              "OwnVotesGamedayNotFound": "There is no week {gameday:Int} in the league {league}!",
+              "OwnVotesWeekNotFound": "There is no week {gameday:Int} in the league {league}!",
               "OwnVotesNoVotes": "You haven’t submitted any predictions for {league} on week {gameday:Int} yet!",
               "OwnVotesSuccess": "# Your predictions for {league} on week {gameday:Int}\n{predictions}"
             },
             "Transaction_nested": {
               "CommandHelp": "Starts a transaction, please press enter for more details",
               "Created": "Please enter the transaction details on the official Emolga-Website:\nhttps://emolga.tectoast.de/transaction/{uuid}",
-              "Done": "New transaction of {user:Mention}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Remaining transaction points: {remainingPoints:Int}\nValid from week **{week:Int}**."
+              "Done": "New transaction of {user}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Remaining transaction points: {remainingPoints:Int}\nValid from week **{week:Int}**."
             }
           },
           "showdown": {
@@ -370,7 +374,7 @@
         },
         "league": {
           "YouTube_nested": {
-            "GamedayAndBattle": "**Week {gameday:Int}**\n_Battle {battle:Int}_",
+            "WeekAndBattle": "**Week {gameday:Int}**\n_Battle {battle:Int}_",
             "ViewOfPlayer": "View of {player}: {url}",
             "NotUploaded": "_not uploaded yet_"
           },
@@ -391,13 +395,15 @@
             "TimeUntil": "Time until: **{time}**",
             "TimeUntilStallSeconds": " (with maxed timer allowance until {time})",
             "LegalRandomPickObligatory": "Only random picks are allowed in this draft!",
+            "RandomPickDisabled": "RandomPick is disabled in this league!",
+            "RandomPickAlreadyGambled": "You have already gambled a random pick!",
             "LegalActionIsNotBan": "The current round (**{round:Int}**) is a ban round, therefore you cannot pick!",
             "LegalActionIsBan": "The current round (**{round:Int}**) is **not** a ban round, therefore you cannot ban!",
             "TeamFull": "Your roster is already full!",
             "DraftFinished": "The draft is over!",
             "DraftFinishedBecauseAllFinished": "Since everyone has already finished their drafts, the draft is over!",
             "StoreStatus": "## Current status of week {gameday:Int} [{leaguename}]:\n{status}",
-            "ReminderToParticipant": "Your battle on week {gameday:Int} against {opponent:Mention} has not yet been recorded.\nIf this was forgotten, please clarify who will enter the battle.\n\nIf the battle has already been entered, this system isn’t working; please inform {mytag} :)",
+            "ReminderToParticipant": "Your battle on week {gameday:Int} against {opponent} has not yet been recorded.\nIf this was forgotten, please clarify who will enter the battle.\n\nIf the battle has already been entered, this system isn’t working; please inform {mytag} :)",
             "NoDraftInChannel": "There is currently no draft running in this channel!",
             "SlightlyTooSlow": "You were a bit too slow!",
             "NoOpenPicks": "You have no open picks left!",
@@ -413,12 +419,15 @@
           }
         },
         "utils": {
+          "Wizard_nested": {
+            "WrongInput": "Invalid input! Please try again."
+          },
           "draft": {
             "Tierlist_nested": {
               "MustUpdraft": "A Pokemon from the {tier} tier must be updrafted to another tier!",
               "CantPickTier": "You can’t pick a {tier} Pokemon anymore!",
-              "OnlyOneMega": "You can only have one Mega Pokemon on your team!",
-              "ExactlyOneMega": "You must have one Mega Pokemon on your team!",
+              "AtmostMega": "You can only have {count:Int} Mega Pokemon on your team!",
+              "ExactlyMega": "You must have {count:Int} Mega Pokemon on your team!",
               "SpeciesClause": "You can only have one Pokemon per dex number on your team!",
               "NotEnoughPoints": "You don’t have enough points for that! (`{calculation}`)",
               "MinimumNeededError": "If you were to take this Pokemon, your roster could no longer be completed! (After this pick you must still have at least {minimumRequired:Int} points, but you would only have {newPoints:Int})",
@@ -454,7 +463,9 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` has already been picked or banned!",
               "BanRegular": "{pokemonName} ({tier}) banned!",
               "BanQueue": "{user:Mention} banned {pokemonName} ({tier})! [Queue]",
-              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!"
+              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!",
+              "PickedForRound": "made up from round {round:Int}",
+              "MadeUpInRound": "made up in round {round:Int}"
             }
           },
           "json": {
@@ -490,7 +501,8 @@
               "KillsDeathsNotMatching": "Kills and deaths do not match! {potentialZoroark} Please check yourself where the error lies. My developer has been notified.",
               "PotentialZoroark": "This is likely due to Illusion.",
               "OtherIssue": "This is most likely due to a bug in my analysis.",
-              "AllDead": " (all dead)"
+              "AllDead": " (all dead)",
+              "InvalidBo3": "The games are not from the same Bo3!"
             }
           },
           "StateStore_nested": {
@@ -533,12 +545,16 @@
         "NoPermission": "You are not authorized to execute this interaction!",
         "RoutineMaintenance": "Routine maintenance is being performed; I should be reachable again in a few minutes.",
         "ClickMe": "Click me!",
-        "Gameday": "Week",
+        "Week": "Week",
         "Battle": "Battle",
         "Or": "or",
         "German": "German",
         "English": "English",
-        "SelectLanguage": "Select language"
+        "SelectLanguage": "Select language",
+        "Round": "Round",
+        "Finished": "Finished",
+        "UpdateNotice": "Update Notice",
+        "UpdateNoticeUrl": "https://emolga.tectoast.de/en/update"
       }
     }
   }

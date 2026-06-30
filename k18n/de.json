@@ -102,8 +102,8 @@
                 "ManageFinishEnabled": "Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **aktiviert**.",
                 "ManageSaveAndDisable": "Speichern und deaktivieren",
                 "ManageSaveAndEnable": "Speichern und aktivieren",
-                "SnipeWarningEnabled": "`{pokemon}` aus deiner Queue wurde von {sniper} gepickt.\nDas System läuft jedoch für dich weiter.",
-                "SnipeWarningDisabled": "`{pokemon}` aus deiner Queue wurde von {sniper} gepickt.\nDas System wurde für dich deaktiviert, damit du umplanen kannst.",
+                "SnipeWarningEnabled": "Folgende Pokémon wurden aus deiner Queue gesniped:\n```{data}```\nDas System läuft jedoch für dich weiter.",
+                "SnipeWarningDisabled": "Folgende Pokémon wurden aus deiner Queue gesniped:\n```{data}```\nDas System wurde für dich deaktiviert, damit du umplanen kannst.",
                 "PickNotification": "Du  hast `{pokemon}` gepickt.\nRunden, bis wieder manuell gepickt werden muss: **{roundsLeft:Int}**",
                 "LegalTooManyInTier": "Mit dieser Queue hättest du zu viele Pokemon in einem oder mehreren Tiers!",
                 "LegalTooManyInSingleTier": "Mit dieser Queue hättest du zu viele Pokemon im {tier}-Tier!",
@@ -129,7 +129,7 @@
                 "OnlyAllowedInTiers": "In dieser Liga darf nur in folgenden Tiers gerandompicked werden: {tiers}"
               },
               "Skip_nested": {
-                "Help": "Überspringt deinen Switch",
+                "Help": "Überspringt deinen Pick/Switch",
                 "IsNoSwitchDraft": "Dieser Draft ist ein Switch-Draft, daher wird /skip nicht unterstützt!",
                 "Success": "den Switch übersprungen!"
               },
@@ -174,6 +174,7 @@
               "Help": "Fügt ein Mon in die Tierliste ein",
               "ArgPokemon": "Das Pokemon, das du hinzufügen möchtest",
               "ArgTier": "Das Tier, sonst das unterste",
+              "ArgIdentifier": "Der Identifier der Tierlist, falls es mehrere gibt",
               "PokemonAlreadyInTierlist": "`{pokemon}` befindet sich bereits in der Tierlist!",
               "Success": "`{pokemon}` ist nun im {tier}-Tier!"
             },
@@ -200,7 +201,7 @@
               "Help": "Möglichkeiten zur Verwaltung einer Liga",
               "ArgLeague": "Der Name der Liga, die du verwalten möchtest",
               "ResultCheckHelp": "Gibt aus, welche Kämpfe schon beendet sind und welche nicht",
-              "ResultCheckArgGameday": "Der Spieltag, den du überprüfen willst",
+              "ResultCheckArgWeek": "Der Spieltag, den du überprüfen willst",
               "ResultCheckArgPublic": "Ob die Ausgabe öffentlich sein soll"
             },
             "Logo_nested": {
@@ -214,6 +215,7 @@
               "ArgLogo": "Das Logo"
             },
             "Nominate_nested": {
+              "NoActiveLeague": "Du nimmst an keiner aktiven Liga teil, für die du nominieren könntest!",
               "AlreadyNominated": "Du hast für diesen Spieltag ({num:Int}) dein Team bereits nominiert!",
               "EmbedTitle": "Nominierungen",
               "Description": "**Nominiert: ({nominatedSize:Int})**\n{nominated}\n**Nicht nominiert: ({notNominatedSize:Int})**\n{notNominated}",
@@ -223,7 +225,8 @@
             },
             "PrepareTierlist_nested": {
               "Help": "Richtet die Tierliste ein",
-              "DuplicatePokemon": "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: {pokemon}"
+              "DuplicatePokemon": "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: {pokemon}",
+              "InvalidRegionalPlaceholder": "Die Regionalformen müssen `***` als Platzhalter enthalten, bspw. `Alola-***`!"
             },
             "ReplaceUser_nested": {
               "Help": "Ersetzt einen User durch einen anderen",
@@ -244,12 +247,13 @@
               "NotSignedUp": "❌ Du bist derzeit nicht angemeldet!",
               "SignupChangeHelp": "Ermöglicht es dir, deine Anmeldung anzupassen",
               "SignupChangeNoData": "Es gibt keine Daten, die du ändern kannst!",
-              "SignupMessageData": "\n\n**Teilnehmer: {current}/{max}**",
+              "SignupMessageData": "**Teilnehmer: {current}/{max}**",
               "SignupFull": "❌ Die Anmeldung ist bereits voll!",
               "DataChangeSuccessful": "Deine Daten wurden erfolgreich geändert!",
               "SignupSuccess": "✅ Du wurdest erfolgreich angemeldet!",
               "SignupFailure": "❌ Anmeldung nicht erfolgreich:\n\n{errors}",
               "SignupClosed": "Anmeldung geschlossen",
+              "SignupSuccessWithLogoError": "✅ Du wurdest erfolgreich angemeldet! Allerdings gab es ein Problem mit deinem Logo:\n{error}",
               "LogoError": "⚠\uFE0F Dein Logo konnte nicht hochgeladen werden: {error}",
               "NoOwnLogos": "In dieser Liga gibt es keine eigenen Logos!",
               "SignupConfirmMessage": "Anmeldung von {name}:\n{data}"
@@ -285,22 +289,22 @@
               "SelfNoPredictions": "Du hast noch keine Tipps abgegeben!",
               "SelfSuccess": "# Du im Vergleich\n{aboveAndBelow}\n# Deine Statistik pro Liga\n{resultsPerLeague}",
               "CheckMissingHelp": "Prüfe auf fehlende Tipps an einem Spieltag",
-              "CheckMissingArgGameday": "Der Spieltag, den du überprüfen möchtest",
+              "CheckMissingArgWeek": "Der Spieltag, den du überprüfen möchtest",
               "CheckMissingAllPredictionsGiven": "Du hast alle Tipps für Spieltag {gameday:Int} abgegeben!",
               "CheckMissingTooLong": "Die Liste der fehlenden Tipps ist zu lang, um sie hier anzuzeigen. Es fehlen insgesamt {amount:Int} Tipps.",
               "CheckMissingSuccess": "# Fehlende Tipps für Spieltag {num:Int}\n{list}",
               "OwnVotesHelp": "Zeigt deine abgegebenen Tipps an",
               "OwnVotesArgLeague": "Die Liga",
-              "OwnVotesArgGameday": "Der Spieltag, für den du deine Tipps sehen möchtest",
+              "OwnVotesArgWeek": "Der Spieltag, für den du deine Tipps sehen möchtest",
               "OwnVotesLeagueNotFound": "Keine Liga unter dem Namen `{league}` gefunden!",
-              "OwnVotesGamedayNotFound": "Liga {league} hat keinen Spieltag mit der Nummer {gameday:Int}!",
+              "OwnVotesWeekNotFound": "Liga {league} hat keinen Spieltag mit der Nummer {gameday:Int}!",
               "OwnVotesNoVotes": "Du hast noch keine Tipps für {league} an Spieltag {gameday:Int} abgegeben!",
               "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday:Int}\n{predictions}"
             },
             "Transaction_nested": {
               "CommandHelp": "Führt eine Transaktion durch",
               "Created": "Bitte trage deine Transaktionen auf meiner Website ein:\nhttps://emolga.tectoast.de/transaction/{uuid}",
-              "Done": "Neue Transaktion von {user:Mention}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Verbleibende Transaktionspunkte: {remainingPoints:Int}\nGültig ab Spieltag **{week:Int}**."
+              "Done": "Neue Transaktion von {user}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Verbleibende Transaktionspunkte: {remainingPoints:Int}\nGültig ab Spieltag **{week:Int}**."
             }
           },
           "showdown": {
@@ -370,7 +374,7 @@
         },
         "league": {
           "YouTube_nested": {
-            "GamedayAndBattle": "**Spieltag {gameday:Int}**\n_Kampf {battle:Int}_",
+            "WeekAndBattle": "**Spieltag {gameday:Int}**\n_Kampf {battle:Int}_",
             "ViewOfPlayer": "Sicht von {player}: {url}",
             "NotUploaded": "_noch nicht hochgeladen_"
           },
@@ -391,13 +395,15 @@
             "TimeUntil": "Zeit bis: **{time}**",
             "TimeUntilStallSeconds": " (mit ausgereiztem Timer-Zuschlag bis {time})",
             "LegalRandomPickObligatory": "In diesem Draft sind nur Randompicks erlaubt!",
+            "RandomPickDisabled": "RandomPick ist in dieser Liga deaktiviert!",
+            "RandomPickAlreadyGambled": "Du hast bereits ein Mon gegambled!",
             "LegalActionIsNotBan": "Die aktuelle Runde (**{round:Int}**) ist eine Ban-Runde, dementsprechend kann man nichts picken!",
             "LegalActionIsBan": "Die aktuelle Runde (**{round:Int}**) ist **keine** Ban-Runde, dementsprechend kann man nichts bannen!",
             "TeamFull": "Dein Kader ist bereits voll!",
             "DraftFinished": "Der Draft ist vorbei!",
             "DraftFinishedBecauseAllFinished": "Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!",
             "StoreStatus": "## Aktueller Stand von Spieltag {gameday:Int} [{leaguename}]:\n{status}",
-            "ReminderToParticipant": "Dein Kampf an Spieltag {gameday:Int} gegen {opponent:Mention} ist noch nicht eingetragen.\nFalls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\nFalls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann {mytag} Bescheid :)",
+            "ReminderToParticipant": "Dein Kampf an Spieltag {gameday:Int} gegen {opponent} ist noch nicht eingetragen.\nFalls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\nFalls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann {mytag} Bescheid :)",
             "NoDraftInChannel": "Es läuft zurzeit kein Draft in diesem Channel!",
             "SlightlyTooSlow": "Du warst etwas zu langsam!",
             "NoOpenPicks": "Du hast keine offenen Picks mehr!",
@@ -413,12 +419,15 @@
           }
         },
         "utils": {
+          "Wizard_nested": {
+            "WrongInput": "Ungültige Eingabe! Bitte wähle eine der Optionen aus."
+          },
           "draft": {
             "Tierlist_nested": {
               "MustUpdraft": "Ein Pokemon aus dem {tier}-Tier musst du in ein anderes Tier hochdraften!",
               "CantPickTier": "Du kannst dir kein {tier}-Pokemon mehr picken!",
-              "OnlyOneMega": "Du kannst nur ein Mega-Pokemon in deinem Team haben!",
-              "ExactlyOneMega": "Du musst ein Mega-Pokemon in deinem Team haben!",
+              "AtmostMega": "Du kannst maximal {count:Int} Mega-Pokemon in deinem Team haben!",
+              "ExactlyMega": "Du musst {count:Int} Mega-Pokemon in deinem Team haben!",
               "NoFreePicksLeft": "Du hast keine Free-Picks mehr! (Es gibt maximal {max:Int})",
               "SpeciesClause": "Du kannst nur ein Pokemon pro Dex-Nummer in deinem Team haben!",
               "NotEnoughPoints": "Dafür hast du nicht genug Punkte! (`{calculation}`)",
@@ -456,7 +465,10 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` wurde bereits gepickt oder gebannt!",
               "BanRegular": "{pokemonName} ({tier}) gebannt!",
               "BanQueue": "{user:Mention} hat {pokemonName} ({tier}) gebannt! [Queue]",
-              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!"
+              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!",
+              "PickedForRound": "nachgeholt aus Runde {round:Int}",
+              "MadeUpInRound": "nachgeholt in Runde {round:Int}"
+
             }
           },
           "json": {
@@ -492,7 +504,8 @@
               "KillsDeathsNotMatching": "Die Kills und Deaths stimmen nicht überein! {potentialZoroark} Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt.",
               "PotentialZoroark": "Dies liegt wahrscheinlich an Illusion.",
               "OtherIssue": "Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.",
-              "AllDead": " (alle tot)"
+              "AllDead": " (alle tot)",
+              "InvalidBo3": "Die Kämpfe gehören nicht alle zum gleichen Matchup!"
             }
           },
           "StateStore_nested": {
@@ -535,12 +548,16 @@
         "NoPermission": "Du bist nicht berechtigt, diese Interaktion auszuführen!",
         "RoutineMaintenance": "Es werden routinemäßige Wartungsarbeiten durchgeführt, ich sollte in wenigen Minuten wieder erreichbar sein.",
         "ClickMe": "Klick mich!",
-        "Gameday": "Spieltag",
+        "Week": "Spieltag",
         "Battle": "Kampf",
         "Or": "oder",
         "German": "Deutsch",
         "English": "Englisch",
-        "SelectLanguage": "Sprache auswählen"
+        "SelectLanguage": "Sprache auswählen",
+        "Round": "Runde",
+        "Finished": "Beendet",
+        "UpdateNotice": "Update-Hinweis",
+        "UpdateNoticeUrl": "https://emolga.tectoast.de/de/update"
       }
     }
   }

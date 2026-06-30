@@ -1,14 +1,17 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.features.ButtonFeature
-import de.tectoast.emolga.features.ButtonSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.NoArgs
-import de.tectoast.emolga.utils.httpClient
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.ButtonSpec
+import de.tectoast.emolga.features.system.NoArgs
+import de.tectoast.emolga.features.system.types.ButtonFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import org.koin.core.annotation.Single
 
-object IPChecker : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ipchecker")) {
+@Single(binds = [ListenerProvider::class])
+class IPChecker(private val httpClient: HttpClient) : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ipchecker")) {
 
     init {
         restrict(flo)
@@ -17,6 +20,6 @@ object IPChecker : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ipchecker")) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         iData.deferReply(true)
-        iData.reply(httpClient.get("https://api.ipify.org").bodyAsText(), ephemeral = true)
+        iData.replyRaw(httpClient.get("https://api.ipify.org").bodyAsText(), ephemeral = true)
     }
 }

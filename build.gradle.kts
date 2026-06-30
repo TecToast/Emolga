@@ -1,20 +1,21 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.3.20"
 plugins {
-    val kVersion = "2.3.0"
-    kotlin("jvm") version kVersion
-    kotlin("plugin.serialization") version kVersion
-    id("maven-publish")
-    id("com.google.cloud.tools.jib") version "3.5.3"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.koin.compiler)
+    alias(libs.plugins.jib)
+    `maven-publish`
     application
-    id("de.tectoast.k18n") version "2.2.1"
+    alias(libs.plugins.k18n)
+    alias(libs.plugins.gradleversions)
 }
 
 jib {
     System.setProperty("jib.console", "plain")
     from {
+        image = "eclipse-temurin:26"
         platforms {
             platform {
                 os = "linux"
@@ -27,7 +28,7 @@ jib {
         jvmFlags = listOf(
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
             "-Dlogback.configurationFile=logback.xml",
-            "-Xmx2G"
+            "-Xmx2G",
         )
         ports = listOf("58700", "58701", "5005")
         volumes = listOf("/logs", "/logback.xml")
@@ -40,7 +41,7 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_26
     withSourcesJar()
 }
 
@@ -51,12 +52,14 @@ tasks {
     withType<KotlinCompile> {
         compilerOptions {
             freeCompilerArgs.add("-Xcontext-parameters")
+            freeCompilerArgs.add("-Xexplicit-backing-fields")
+            freeCompilerArgs.add("-Xcontext-sensitive-resolution")
         }
     }
 }
 
 group = "de.tectoast"
-version = "3.0"
+version = "4.0"
 
 repositories {
     mavenLocal()
@@ -64,77 +67,37 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val exposedVersion = "1.1.1"
-val ktorVersion = "3.2.2"
-val ktorDependencies = listOf(
-    // Client
-    "ktor-client-core",
-    "ktor-client-cio",
-    "ktor-serialization-kotlinx-json",
-    "ktor-client-content-negotiation",
-    // Server
-    "ktor-server-core",
-    "ktor-server-cio",
-    "ktor-server-auth",
-    "ktor-server-sessions",
-    "ktor-server-content-negotiation",
-    "ktor-serialization-kotlinx-json",
-    "ktor-server-cors",
-    "ktor-server-call-logging",
-    "ktor-server-call-logging-jvm",
-    "ktor-server-caching-headers",
-    "ktor-server-sse"
-
-)
-
 dependencies {
     // Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
+    implementation(libs.bundles.kotlin)
 
     // Logging
-    implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.32")
-    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    implementation(libs.bundles.logging)
 
     // JDA
-    implementation("net.dv8tion:JDA:6.3.2")
-    implementation("io.github.MinnDevelopment:jda-ktx:7695f84e10")
+    implementation(libs.jda)
+    implementation(libs.jda.ktx)
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20251110-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20251210-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20251217-2.0.0")
+    implementation(libs.bundles.google)
+
+    // DI
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.annotations)
 
     // Database
     // MySQL
-    implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
-    implementation("io.r2dbc:r2dbc-spi:1.0.0.RELEASE")
-    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-migration-r2dbc:$exposedVersion")
-    // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.6.0")
-    implementation("org.litote.kmongo:kmongo-id-serialization:5.6.0")
-    /*implementation(platform("org.mongodb:mongodb-driver-bom:5.6.4"))
-    implementation("org.mongodb:mongodb-driver-kotlin-coroutine")
-    implementation("org.mongodb:mongodb-driver-kotlin-extensions")
-    implementation("org.mongodb:bson-kotlinx")*/
+    implementation(libs.bundles.database)
 
     // Ktor
-    ktor()
+    implementation(libs.bundles.ktor)
 
     // Utils
-    implementation("org.jsoup:jsoup:1.22.1")
+    implementation(libs.jsoup)
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.1.7")
-    testImplementation("io.kotest:kotest-assertions-core:6.1.7")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
-    testImplementation("io.mockk:mockk:1.14.9")
+    testImplementation(libs.bundles.testing)
 
 }
 
@@ -151,11 +114,6 @@ tasks.withType<Test>().configureEach {
     systemProperty("kotest.framework.config.fqn", "de.tectoast.emolga.KotestProjectConfig")
 }
 
-fun DependencyHandler.ktor() {
-    ktorDependencies.forEach {
-        implementation("io.ktor:$it:$ktorVersion")
-    }
-}
 
 publishing {
     publications {

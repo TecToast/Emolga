@@ -1,12 +1,15 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.database.exposed.SpoilerTagsDB
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.NoArgs
+import de.tectoast.emolga.domain.game.service.SpoilerTagsService
+import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.NoArgs
+import de.tectoast.emolga.features.system.types.CommandFeature
+import de.tectoast.emolga.features.system.types.ListenerProvider
+import org.koin.core.annotation.Single
 
-object SpoilerTagsCommand : CommandFeature<NoArgs>(
+@Single(binds = [ListenerProvider::class])
+class SpoilerTagsCommand(private val service: SpoilerTagsService) : CommandFeature<NoArgs>(
     NoArgs(),
     CommandSpec(
         "spoilertags",
@@ -15,10 +18,6 @@ object SpoilerTagsCommand : CommandFeature<NoArgs>(
 ) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        if (SpoilerTagsDB.delete(iData.gid)) {
-            return iData.reply(K18n_SpoilerTags.Disabled)
-        }
-        SpoilerTagsDB.insert(iData.gid)
-        iData.reply(K18n_SpoilerTags.Enabled)
+        return iData.reply(if (service.toggle(iData.gid)) K18n_SpoilerTags.Enabled else K18n_SpoilerTags.Disabled)
     }
 }

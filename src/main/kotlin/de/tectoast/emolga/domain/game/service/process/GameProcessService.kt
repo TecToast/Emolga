@@ -155,11 +155,9 @@ class GameProcessService(
                         is4v4 = singleGame.is4v4,
                         language = language,
                         dontTranslateFromReplayServer = fullInputGame.dontTranslatePokemon,
-                        playerNames = uindicesInOrder.mapIndexed { index, idx ->
+                        playerNames = uindices.mapIndexed { index, idx ->
                             mentions[idx] ?: fromReplay?.let { fromReplay ->
-                                fromReplay.showdownUserNames.reversedIf(
-                                    p1IsSecond
-                                )[index]
+                                fromReplay.showdownUserNames[index]
                             } ?: "N/A"
                         },
                         gid = guildId,

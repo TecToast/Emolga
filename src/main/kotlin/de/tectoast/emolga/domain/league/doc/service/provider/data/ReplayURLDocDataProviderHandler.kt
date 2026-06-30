@@ -17,6 +17,6 @@ class ReplayURLDocDataProviderHandler : DocDataProviderHandler<DocDataProviderCo
         provider: AdditionalDataProvider
     ): Any {
         val url = fullGameData.games[statProcessorData.matchNum].url
-        return config.text?.let { "=HYPERLINK(\"$url\", \"$it\")" } ?: url
+        return config.text?.let { "=HYPERLINK(\"$url\"; \"$it\")" } ?: url
     }
 }

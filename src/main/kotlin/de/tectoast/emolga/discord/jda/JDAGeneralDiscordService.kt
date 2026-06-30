@@ -87,7 +87,7 @@ class JDAGeneralDiscordService(
     }
 
     /**
-     * Updates the presence of Emolga to the current number of replays (or maintencance mode message)
+     * Updates the presence of Emolga to the current number of replays (or maintenance mode message)
      */
     override suspend fun updatePresence() {
         if (maintenance != null) {

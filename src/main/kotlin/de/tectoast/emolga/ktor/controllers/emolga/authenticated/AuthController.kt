@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.BotConfig
 import de.tectoast.emolga.utils.BotConstants
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.request.get
+import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -35,7 +35,7 @@ class AuthController(
                 val principal: OAuthAccessTokenResponse.OAuth2 =
                     call.principal() ?: return@get call.respondRedirect("/")
                 val accessToken = principal.accessToken
-                val user = httpClient.getLoggedInUserID(accessToken)
+                val user = httpClient.getLoggedInUser(accessToken)
                 val userId = user.id.toLong()
                 if (!guildManagerRepo.isUserAuthorized(userId)) {
                     return@get call.respondRedirect("/alpha")
@@ -85,17 +85,15 @@ class AuthController(
     }
 }
 
-private suspend fun HttpClient.getLoggedInUserID(accessToken: String) =
+private suspend fun HttpClient.getLoggedInUser(accessToken: String) =
     get(
-        "https://discord.com/api/users/@me",
+        "https://discord.com/api/v10/users/@me",
     ) {
         headers {
             append(HttpHeaders.Authorization, "Bearer $accessToken")
         }
-    }.body<LoggedInUserResponse>().user
+    }.body<LoggedInUser>()
 
-@Serializable
-private data class LoggedInUserResponse(val user: LoggedInUser)
 
 @Serializable
 private data class LoggedInUser(val id: String, @SerialName("global_name") val displayName: String, val avatar: String)

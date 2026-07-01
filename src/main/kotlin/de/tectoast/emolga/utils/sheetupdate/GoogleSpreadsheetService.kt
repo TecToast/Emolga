@@ -68,7 +68,9 @@ class GoogleSpreadsheetService(
         maxRetries: Int = 5
     ) {
         var currentDelay = 1.seconds
-
+        for (valueUpdate in ctx.valueUpdates) {
+            logger.info("${valueUpdate.range} -> ${valueUpdate.getValues()}")
+        }
         repeat(maxRetries) { attempt ->
             try {
                 if (ctx.valueUpdates.isNotEmpty()) {

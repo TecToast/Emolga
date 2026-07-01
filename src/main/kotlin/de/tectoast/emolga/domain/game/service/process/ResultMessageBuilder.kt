@@ -101,7 +101,7 @@ class ResultMessageBuilder(
                 buildString {
                     append(pokemonName)
                     if (mon.kills > 0) append(" ${mon.kills}")
-                    if (notAllDead || spoiler) append(" X")
+                    if (mon.deaths > 0 && (notAllDead || spoiler)) append(" X")
                 }
             }
         }

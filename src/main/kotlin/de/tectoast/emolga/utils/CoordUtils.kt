@@ -19,6 +19,19 @@ infix fun String.xy(xy: Pair<Int, Int>) = Coord(this, xy.first, xy.second)
 fun Int.coordXMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
     Coord(sheet, this % num * xFactor + xSummand, this / num * yFactor + ySummand)
 
+fun Int.coordXModShift(
+    sheet: String,
+    num: Int,
+    xFactor: Int,
+    xSummand: Int,
+    yFactor: Int = 1,
+    ySummand: Int,
+    shifts: Map<Int, Int>
+): Coord {
+    val baseToUse = shifts[this] ?: this
+    return baseToUse.coordXMod(sheet, num, xFactor, xSummand, yFactor, ySummand)
+}
+
 fun Int.coordYMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
     Coord(sheet, this / num * xFactor + xSummand, this % num * yFactor + ySummand)
 

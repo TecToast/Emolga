@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.dsl
 
 import de.tectoast.emolga.utils.coordXMod
+import de.tectoast.emolga.utils.coordXModShift
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -36,6 +37,32 @@ data class CoordXMod(
 }
 
 @Serializable
+@SerialName("CoordXModShift")
+data class CoordXModShift(
+    private val base: IntExpr,
+    private val sheet: StringExpr,
+    private val num: IntExpr,
+    private val xFactor: IntExpr,
+    private val xSummand: IntExpr,
+    private val yFactor: IntExpr,
+    private val ySummand: IntExpr,
+    private val shifts: Map<Int, Int>
+) : CoordExpr {
+    override fun eval(env: AstEnvironment): Coord {
+        val i = base.eval(env)
+        return i.coordXModShift(
+            sheet.eval(env),
+            num.eval(env),
+            xFactor.eval(env),
+            xSummand.eval(env),
+            yFactor.eval(env),
+            ySummand.eval(env),
+            shifts
+        )
+    }
+}
+
+@Serializable
 @SerialName("CoordIfElse")
 data class CoordIfElse(
     private val condition: BooleanExpr,
@@ -46,3 +73,4 @@ data class CoordIfElse(
         return if (condition.eval(env)) ifTrue.eval(env) else ifFalse.eval(env)
     }
 }
+

@@ -10,8 +10,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
+import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -25,6 +27,7 @@ class RepeatTaskSchedulerService(
 ) : RepeatTaskScheduler {
     private val scope = createCoroutineScope("TaskSchedulerService", dispatcher)
     private val tasks = ConcurrentHashMap<RepeatTaskType, RepeatTask>()
+    private val logger = KotlinLogging.logger {}
 
     override fun schedule(task: RepeatTask, action: suspend (Int) -> Unit) {
         tasks[task.type] = task
@@ -32,6 +35,9 @@ class RepeatTaskSchedulerService(
             while (isActive) {
                 val now = clock.now()
                 val nextExecution = task.calculateNextExecution(now) ?: break
+                if(task.printTimestamps) {
+                    logger.info { "Next execution of ${task.type} is count ${nextExecution.count} at ${nextExecution.time}" }
+                }
                 delay(nextExecution.time - now)
                 action(nextExecution.count)
                 delay(1.seconds) // prevent multiple executions at the same time
@@ -57,7 +63,7 @@ class RepeatTaskSchedulerService(
         if (now > lastExecution) return null
         var targetTime = lastExecution
         var count = amount
-        while (targetTime - interval > now) {
+        while (targetTime - interval > now && (count > max(skipFirstN, 0) + 1)) {
             targetTime -= interval
             count--
         }

@@ -31,7 +31,9 @@ class PredictionGameRepeatTask(
                 RepeatTaskType.PredictionGameSending(leagueName),
                 lastSending,
                 amount,
-                interval
+                interval,
+                printTimestamps = true,
+                skipFirstN = skipFirstN
             )
         ) { week ->
             predictionGameService.send(leagueName, week)

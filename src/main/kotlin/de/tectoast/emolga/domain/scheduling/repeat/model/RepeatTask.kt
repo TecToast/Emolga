@@ -8,5 +8,6 @@ data class RepeatTask(
     val lastExecution: Instant,
     val amount: Int,
     val interval: Duration,
-    val printTimestamps: Boolean = false
+    val printTimestamps: Boolean = false,
+    val skipFirstN: Int = 0
 )

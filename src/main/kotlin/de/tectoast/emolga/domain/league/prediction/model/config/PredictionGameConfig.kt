@@ -18,7 +18,8 @@ data class PredictionGameConfig(
     val customEmbedColor: Int? = null,
     val roleToPing: Long? = null,
     val currentState: PredictionGameCurrentStateType? = null,
-    val leaderboardConfig: PredictionGameLeaderboardConfig? = null
+    val leaderboardConfig: PredictionGameLeaderboardConfig? = null,
+    val skipFirstN: Int = 0
 )
 
 

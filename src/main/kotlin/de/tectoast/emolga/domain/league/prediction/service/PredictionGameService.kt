@@ -18,9 +18,11 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.generic.K18n_Week
 import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import java.awt.Color
+import kotlin.time.Duration.Companion.seconds
 
 @Single
 class PredictionGameService(
@@ -143,6 +145,7 @@ class PredictionGameService(
                 )
                 val messageId = ui.sendPredictionGameMessage(state)
                 predictionGameMessageRepo.setMessageId(leagueName, week, matchUp.battleIndex, messageId)
+                delay(1.seconds)
             }
             config.roleToPing?.let { roleId ->
                 ui.sendRolePing(channel, roleId)

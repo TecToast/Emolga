@@ -60,20 +60,20 @@ class JDAPredictionGameUI(private val jda: JDA) : PredictionGameUI, KoinComponen
             this.battleIndex = state.battleIndex
         }
 
-        return ActionRow.of(btn.withoutIData(label = state.player1Name.k18n) {
+        return ActionRow.of(btn.withoutIData(label = state.player1Name.k18n, disabled = state.isLocked) {
             base()
             this.idx = state.idx1
-        }, btn.withoutIData(label = state.player2Name.k18n) {
+        }, btn.withoutIData(label = state.player2Name.k18n, disabled = state.isLocked) {
+            base()
             this.idx = state.idx2
         }).into()
     }
 
     private fun renderEmbed(state: PredictionMatchViewState): List<MessageEmbed> {
-        val description = state.embedDescription ?: return emptyList()
         return Embed(
             title = "${state.player1Name} vs. ${state.player2Name}",
             color = state.embedColor,
-            description = description
+            description = state.embedDescription
         ).into()
     }
 }

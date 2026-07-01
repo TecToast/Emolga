@@ -201,7 +201,7 @@ class GameProcessService(
                 )
             )
         } else {
-            sendResultMessages(allResultMessages, finalResultChannel, language)
+            sendResultMessages(allResultMessages, finalResultChannel, matchUpData?.week, language)
         }
         if (games.isNotEmpty() && matchUpData != null) {
             docEntryService.checkAndProcess(
@@ -215,7 +215,7 @@ class GameProcessService(
         }
     }
 
-    private suspend fun sendResultMessages(messages: List<ResultMessage>, channelId: Long, language: K18nLanguage) {
+    private suspend fun sendResultMessages(messages: List<ResultMessage>, channelId: Long, week: Int?, language: K18nLanguage) {
         val resultSender = channelInterface.createSingleChannel(channelId)
         for (message in messages) {
             when (message) {
@@ -225,7 +225,8 @@ class GameProcessService(
                             embeds = Embed(
                                 description = message.description,
                                 authorName = K18n_UpdateNotice.translateTo(language),
-                                authorUrl = K18n_UpdateNoticeUrl.translateTo(language)
+                                authorUrl = K18n_UpdateNoticeUrl.translateTo(language),
+                                title = week?.let { "${K18n_Week.translateTo(language)} $it" }
                             ).into()
                         )
                     )

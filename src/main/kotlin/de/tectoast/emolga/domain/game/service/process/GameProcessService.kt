@@ -142,8 +142,8 @@ class GameProcessService(
                                         "${source.format} replay: ${source.showdownUserNames.joinToString(" vs. ")}"
                                     this.url = source.url
                                     this.description =
-                                        "${K18n_Week.translateTo(language)} $week: " + uindices.joinToString(" vs. ") {
-                                            mentions[it] ?: "N/A"
+                                        "${K18n_Week.translateTo(language)} $week: " + uindices.withIndex().joinToString(" vs. ") { (index, idx) ->
+                                            mentions[idx] ?: source.showdownUserNames[index]
                                         }
                                 }.into()
                             )

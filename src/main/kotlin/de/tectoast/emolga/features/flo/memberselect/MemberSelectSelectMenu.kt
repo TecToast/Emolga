@@ -20,7 +20,7 @@ class MemberSelectSelectMenu(private val leagueMemberRepo: LeagueMemberRepositor
 
     class Args : Arguments() {
         var league by string().compIdOnly()
-        var isForTeammate by boolean().compIdOnly()
+        var isForTeammate by boolean().compIdOnly().default(false)
         var members by multiOptionLong(1..25)
     }
 

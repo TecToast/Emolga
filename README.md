@@ -13,7 +13,7 @@ Contributions are welcome, feel free to open an issue or a pull request.
 For contact, you can join [Emolga's discord server](https://discord.gg/WYfKHPCgs9) or contact me directly on discord
 (`@tectoast`).
 
-An detailed documentation of the codebase is planned.
+A detailed documentation of the codebase is planned.
 
 ## Development
 

@@ -90,6 +90,25 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         }.toList()
     }
 
+    suspend fun setScalarLeagueData(scalar: ScalarLeagueData) = suspendTransaction(db) {
+        LeagueCoreTable.update({ LeagueCoreTable.leagueName eq scalar.leagueName }) {
+            it[prettyName] = scalar.prettyName
+            it[num] = scalar.num
+            it[guild] = scalar.guild
+            it[sheetId] = scalar.sheetId
+            it[draftChannel] = scalar.draftChannel
+        }
+    }
+
+    suspend inline fun updateScalarLeagueData(leagueName: String, update: ScalarLeagueData.() -> ScalarLeagueData?) : ScalarLeagueData {
+        val old = getScalarLeagueData(leagueName)
+        val new = update(old)
+        if(new != null) {
+            setScalarLeagueData(new)
+        }
+        return new ?: old
+    }
+
     suspend fun getLeagueFromDraftChannelOrUser(channel: Long, guild: Long, user: Long) = suspendTransaction(db) {
         LeagueCoreTable.innerJoin(LeagueUserTable, { leagueName }, { leagueName }).select(
             LeagueCoreTable.leagueName,

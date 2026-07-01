@@ -55,13 +55,3 @@ object PredictionGameMessagesTable : Table("predictiongamemessages") {
     override val primaryKey = PrimaryKey(leaguename, week, battle)
 }
 
-object PredictionGameVotesTable : Table("predictiongamevotes") {
-    val leagueName = text("leaguename").referencesLeagueName()
-    val userId = long("userid")
-    val week = integer("week")
-    val battle = integer("battle")
-    val idx = integer("idx")
-    val correct = bool("correct").nullable().default(null)
-
-    override val primaryKey = PrimaryKey(leagueName, userId, week, battle)
-}

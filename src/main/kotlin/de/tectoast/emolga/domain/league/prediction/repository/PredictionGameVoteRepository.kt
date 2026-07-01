@@ -1,5 +1,7 @@
 package de.tectoast.emolga.domain.league.prediction.repository
 
+import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
@@ -35,6 +37,15 @@ class PredictionGameVoteRepository(
             }
         }
     }
+}
 
+object PredictionGameVotesTable : Table("predictiongamevotes") {
+    val leagueName = text("leaguename").referencesLeagueName()
+    val userId = long("userid")
+    val week = integer("week")
+    val battle = integer("battle")
+    val idx = integer("idx")
+    val correct = bool("correct").nullable().default(null)
 
+    override val primaryKey = PrimaryKey(leagueName, userId, week, battle)
 }

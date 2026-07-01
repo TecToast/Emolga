@@ -14,8 +14,11 @@ class DiscordUserService(
     suspend fun getData(guildId: Long, users: Iterable<Long>): Map<Long, DiscordUserData> {
         val validCache = repo.getValidEntries(users)
         val usersToFetch = users.toSet() - validCache.mapTo(mutableSetOf()) { it.userId }
-        val fetched = discordUserProvider.provideMultipleUsers(guildId, usersToFetch)
-        repo.set(fetched)
+        val fetched = if(usersToFetch.isNotEmpty()) {
+            val fetched = discordUserProvider.provideMultipleUsers(guildId, usersToFetch)
+            repo.set(fetched)
+            fetched
+        } else emptyMap()
         return buildMap {
             validCache.forEach { put(it.userId, it) }
             putAll(fetched)

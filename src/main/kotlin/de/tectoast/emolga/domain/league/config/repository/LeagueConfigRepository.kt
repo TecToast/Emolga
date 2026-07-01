@@ -89,6 +89,9 @@ class LeagueConfigRepository(private val db: R2dbcDatabase) {
             LeagueConfig() + guildConfig + leagueConfig
         }
 
+    fun clearCache() {
+        cache.clear()
+    }
 }
 
 object GuildDefaultConfigTable : Table("guild_default_config") {

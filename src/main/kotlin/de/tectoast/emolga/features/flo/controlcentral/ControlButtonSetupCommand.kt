@@ -1,4 +1,4 @@
-package de.tectoast.emolga.features.flo
+package de.tectoast.emolga.features.flo.controlcentral
 
 import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlFeature
@@ -8,7 +8,6 @@ import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.CommandSpec
 import de.tectoast.emolga.features.system.types.CommandFeature
 import de.tectoast.emolga.features.system.types.ListenerProvider
-import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.Embed
@@ -31,14 +30,14 @@ class ControlButtonSetupCommand(
     }
 
     enum class ControlButtonType {
-        CONTROLCENTRAL, REMOTE_SERVER_CONTROL;
+        CONTROLCENTRAL, REMOTE_SERVER_CONTROL, ;
     }
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.done(true)
         when (e.type) {
-            CONTROLCENTRAL -> {
+            ControlButtonType.CONTROLCENTRAL -> {
                 val embed = Embed(title = "Kontrollzentrale", color = Constants.EMBED_COLOR).into()
                 val components = listOf(
                     controlCentralButton("Breakpoint".k18n, ButtonStyle.SUCCESS) {
@@ -47,11 +46,14 @@ class ControlButtonSetupCommand(
                     controlCentralButton("Log-Config reloaden".k18n, ButtonStyle.PRIMARY) {
                         mode = ControlCentralButton.Mode.RELOAD_LOG_CONFIG
                     },
+                    controlCentralButton("Clear ConfigCache".k18n, ButtonStyle.SUCCESS) {
+                        mode = ControlCentralButton.Mode.CLEAR_CONFIG_CACHE
+                    }
                 ).into()
                 channelInterface.sendMessage(iData.tc, MessageCreate(embeds = embed, components = components))
             }
 
-            REMOTE_SERVER_CONTROL -> {
+            ControlButtonType.REMOTE_SERVER_CONTROL -> {
                 for (control in remoteServerControlRepo.getAll()) {
                     val embed = Embed(title = "${control.name} Control", color = Constants.EMBED_COLOR).into()
                     val components = buildList {

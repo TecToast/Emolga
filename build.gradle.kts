@@ -52,8 +52,6 @@ tasks {
     }
     withType<KotlinCompile> {
         compilerOptions {
-            freeCompilerArgs.add("-Xcontext-parameters")
-            freeCompilerArgs.add("-Xexplicit-backing-fields")
             freeCompilerArgs.add("-Xcontext-sensitive-resolution")
         }
     }

@@ -35,7 +35,7 @@ class SignupModalHandler(private val signupService: SignupService, private val l
                     continue
                 }
                 if (id == SignupInput.TEAMMATE_ID) {
-                    teammates = entry.asLongList
+                    teammates = entry.asMentions.users.filter { u -> !u.isBot }.map { u -> u.idLong }
                     continue
                 }
                 fieldData[id] = when (entry.type) {

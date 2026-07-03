@@ -8,7 +8,6 @@ import de.tectoast.emolga.domain.league.signup.model.form.FileSubmission
 import de.tectoast.emolga.domain.league.signup.model.form.SignupSubmissionRequest
 import de.tectoast.emolga.domain.league.signup.service.SignupService
 import de.tectoast.emolga.features.system.types.ListenerProvider
-import de.tectoast.emolga.utils.t
 import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import org.koin.core.annotation.Single
@@ -21,7 +20,9 @@ class SignupModalHandler(private val signupService: SignupService, private val l
             val modalId = it.modalId
             if (!modalId.startsWith("signup;")) return@registerListener
             val gid = it.guild?.idLong ?: return@registerListener
-            it.deferReply(true).queue()
+            val lang = languageRepo.getLanguage(gid)
+            val iData = JDAInteractionData(it, lang)
+            iData.deferReply(true)
             val split = modalId.split(';')
             val identifier = split[1]
             val change = split[2].isNotBlank()
@@ -55,10 +56,8 @@ class SignupModalHandler(private val signupService: SignupService, private val l
                     logoAttachment = logoAttachment
                 )
             )
-            val lang = languageRepo.getLanguage(gid)
-            val iData = JDAInteractionData(it, lang)
             with(iData) {
-                it.reply(result.toMessageContent().t()).setEphemeral(true).queue()
+                reply(result.toMessageContent())
             }
         }
     }

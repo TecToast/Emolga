@@ -4,7 +4,8 @@ import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
 import de.tectoast.emolga.domain.league.draft.model.core.DraftPokemon
 import de.tectoast.emolga.domain.league.draft.service.core.PicksModifiedFlow
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
 import de.tectoast.emolga.utils.groupByMapping
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.firstOrNull
@@ -143,7 +144,7 @@ object LeaguePickTable : Table("league_pick") {
     val leagueName = text("league_name").referencesLeagueName()
     val userIndex = integer("user_index")
     val pickIndex = integer("pick_index")
-    val showdownId = showdownIDColumn()
+    val showdownId = showdownIDColumn().referencesPokedex()
     val tier = text("tier")
     val quit = bool("quit").default(false)
     val freePick = bool("free_pick").default(false)

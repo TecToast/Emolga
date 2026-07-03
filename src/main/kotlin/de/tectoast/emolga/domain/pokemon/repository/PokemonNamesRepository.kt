@@ -2,7 +2,7 @@ package de.tectoast.emolga.domain.pokemon.repository
 
 import de.tectoast.emolga.domain.pokemon.model.PokemonNameRawData
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.map
@@ -59,7 +59,7 @@ class PokemonNamesRepository(private val db: R2dbcDatabase) {
 
 
 object PokemonDictionaryTable : Table("pokemon_dictionary") {
-    val showdownId = showdownIDColumn()
+    val showdownId = showdownIDColumn().referencesPokedex()
     val nameEn = text("name_en")
     val nameDe = text("name_de")
 

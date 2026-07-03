@@ -1,6 +1,5 @@
-package de.tectoast.emolga.utils.database
+package de.tectoast.emolga.domain.pokemon.model
 
-import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import org.jetbrains.exposed.v1.core.ColumnType
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.vendors.currentDialect

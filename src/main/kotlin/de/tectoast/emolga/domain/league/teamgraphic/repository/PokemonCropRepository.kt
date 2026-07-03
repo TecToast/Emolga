@@ -5,7 +5,8 @@ import de.tectoast.emolga.domain.league.teamgraphic.model.PokemonCropData
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistEntryTable
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistMetaTable
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
 import kotlinx.coroutines.flow.associate
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -115,7 +116,7 @@ class PokemonCropRepository(
 @OptIn(ExperimentalTime::class)
 object PokemonCropTable : Table("pokemon_crop") {
     val guild = long("guild")
-    val showdownId = showdownIDColumn()
+    val showdownId = showdownIDColumn().referencesPokedex()
     val x = integer("x").default(0)
     val y = integer("y").default(0)
     val user = long("user").default(0)

@@ -108,8 +108,8 @@ class LeagueQueryService(
         val allPossibleIds = pokedexRepo.getAllPossibleForms(matchMonIds.flatten())
         val allPicks = getAllPicksGroupedByLeagueAndIdx(gid)
         val (leagueResult, duration) = measureTimedValue {
-            val allowedIds1 = matchMonIds[0].map { allPossibleIds[it] ?: listOf(it) }
-            val allowedIds2 = matchMonIds[1].map { allPossibleIds[it] ?: listOf(it) }
+            val allowedIds1 = matchMonIds[0].map { allPossibleIds[it] ?: setOf(it) }
+            val allowedIds2 = matchMonIds[1].map { allPossibleIds[it] ?: setOf(it) }
             val validPm1ByLeague = mutableMapOf<String, PickedMonsData>()
             for (pick in allPicks) {
                 val mons = pick.mons

@@ -1,7 +1,7 @@
 package de.tectoast.emolga.domain.pokemon.repository
 
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
 import de.tectoast.emolga.utils.toShowdownID

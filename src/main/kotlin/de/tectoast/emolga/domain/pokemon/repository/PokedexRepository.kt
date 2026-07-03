@@ -3,13 +3,15 @@ package de.tectoast.emolga.domain.pokemon.repository
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.domain.pokemon.model.Pokemon
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.utils.jsonb
+import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.toShowdownID
 import kotlinx.coroutines.flow.associateTo
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.selectAll
@@ -66,16 +68,21 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
         destination
     }
 
-    suspend fun getAllPossibleForms(ids: Iterable<ShowdownID>): Map<ShowdownID, List<ShowdownID>> = withReady {
-        val destination = mutableMapOf<ShowdownID, List<ShowdownID>>()
+    suspend fun getAllPossibleForms(ids: Iterable<ShowdownID>): Map<ShowdownID, Set<ShowdownID>> = withReady {
+        val destination = mutableMapOf<ShowdownID, Set<ShowdownID>>()
         for (id in ids) {
             pokedex[id]?.let { pokemon ->
                 val formes = pokemon.otherFormes
                 val baseSpecies = pokemon.baseSpecies
-                destination[id] = buildList {
+                destination[id] = buildSet {
                     add(id)
                     if (formes != null) addAll(formes.map(String::toShowdownID))
-                    if (baseSpecies != null) add(baseSpecies.toShowdownID())
+                    if (baseSpecies != null) {
+                        val baseId = baseSpecies.toShowdownID()
+                        add(baseId)
+                        val baseOtherForms = pokedex[baseId]?.otherFormes
+                        if (baseOtherForms != null) addAll(baseOtherForms.map(String::toShowdownID))
+                    }
                 }
             }
         }
@@ -93,3 +100,6 @@ object PokedexTable : Table("pokedex") {
 
     override val primaryKey = PrimaryKey(id)
 }
+
+context(t: Table)
+fun <C : Column<ShowdownID>> C.referencesPokedex(): C = referencesCascade(PokedexTable.id)

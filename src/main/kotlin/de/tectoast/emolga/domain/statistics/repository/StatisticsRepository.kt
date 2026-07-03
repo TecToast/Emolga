@@ -4,9 +4,9 @@ package de.tectoast.emolga.domain.statistics.repository
 
 import de.tectoast.emolga.domain.game.service.process.analysis.AnalysisEvents
 import de.tectoast.emolga.domain.game.service.process.analysis.BattleContext
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.domain.statistics.model.DetailedSDReplayData
 import de.tectoast.emolga.domain.statistics.model.SwitchType
-import de.tectoast.emolga.utils.database.showdownIDColumn
 import de.tectoast.emolga.utils.newThreadSafeCache
 import io.ktor.client.*
 import io.ktor.client.call.*

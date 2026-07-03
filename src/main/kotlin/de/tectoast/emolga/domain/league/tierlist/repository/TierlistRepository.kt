@@ -5,8 +5,9 @@ import de.tectoast.emolga.domain.league.tierlist.model.config.TierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistMetaTable.config
 import de.tectoast.emolga.domain.league.transaction.model.TransactionPokemonData
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
+import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
+import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
 import de.tectoast.emolga.utils.Language
-import de.tectoast.emolga.utils.database.showdownIDColumn
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.referencesCascade
 import kotlinx.coroutines.flow.*
@@ -169,7 +170,7 @@ object TierlistMetaTable : Table("tierlist_meta") {
 
 object TierlistEntryTable : Table("tierlist_entries") {
     val tierlistId = long("tierlist_id").referencesCascade(TierlistMetaTable.id)
-    val showdownId = showdownIDColumn()
+    val showdownId = showdownIDColumn().referencesPokedex()
     val tier = text("tier")
     val type = text("type").nullable()
 

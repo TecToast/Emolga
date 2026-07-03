@@ -4,7 +4,7 @@ import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
 import de.tectoast.emolga.domain.league.transaction.model.TransactionAmounts
 import de.tectoast.emolga.domain.league.transaction.model.TransactionEntry
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.utils.database.ShowdownIdColumnType
+import de.tectoast.emolga.domain.pokemon.model.ShowdownIdColumnType
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.associate
 import kotlinx.coroutines.flow.firstOrNull

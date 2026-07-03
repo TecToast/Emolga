@@ -33,13 +33,14 @@ class SignupMessageSyncWorker(
             syncDirtySignups()
             while (isActive) {
                 wakeupSignal.receive()
-                delay(10.seconds)
+                delay(2.seconds)
                 syncDirtySignups()
+                delay(8.seconds)
             }
         }
     }
 
-    private suspend fun syncDirtySignups() = tx {
+    private suspend fun syncDirtySignups() = tx(serializableIsolation = true) {
         signupRepo.getDirtySignups().forEach { signup ->
             updateSignupMessage(
                 signup.config,
@@ -51,7 +52,7 @@ class SignupMessageSyncWorker(
         signupRepo.markSyncCompleted()
     }
 
-    fun notifyNewSignup() {
+    fun notifySignupChange() {
         wakeupSignal.trySend(Unit)
     }
 
@@ -66,6 +67,7 @@ class SignupMessageSyncWorker(
             append(config.signupMessage)
             if (!config.hideUserCount) {
                 val current = userCount.toString()
+                append("\n\n")
                 append(
                     K18n_Signup.SignupMessageData(
                         current,

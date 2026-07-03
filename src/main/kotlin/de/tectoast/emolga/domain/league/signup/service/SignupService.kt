@@ -133,7 +133,7 @@ class SignupService(
                     leagueSignup.config.logoSettings?.let { logoSettings ->
                         logoSettingsDispatcher.handleSignupRemoved(logoSettings, leagueSignup, data = entry)
                     }
-                    messageSyncWorker.notifyNewSignup()
+                    messageSyncWorker.notifySignupChange()
                 } else {
                     handleSignupChange(leagueSignup, entry)
                 }
@@ -309,7 +309,7 @@ class SignupService(
             }
             return@tx SignupResult.Success(K18n_Signup.SignupSuccess)
         }
-        if (isNewSignup) messageSyncWorker.notifyNewSignup()
+        if (isNewSignup) messageSyncWorker.notifySignupChange()
         return signupResult
     }
 

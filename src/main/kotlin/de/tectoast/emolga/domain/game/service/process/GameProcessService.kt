@@ -14,12 +14,12 @@ import de.tectoast.emolga.domain.league.gamedata.model.GameData
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.schedule.repository.LeagueScheduleRepository
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoWritePermissionInChannel
+import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.joinToTeammates
 import de.tectoast.emolga.utils.showdown.K18n_Analysis
 import de.tectoast.generic.K18n_UpdateNotice
-import de.tectoast.generic.K18n_UpdateNoticeUrl
 import de.tectoast.generic.K18n_Week
 import de.tectoast.k18n.generated.K18nLanguage
 import dev.minn.jda.ktx.messages.Embed
@@ -43,6 +43,7 @@ class GameProcessService(
     private val hideGamesInsertFlow: HideGamesInsertFlow,
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
+    private val botConstants: BotConstants,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {
 
@@ -225,7 +226,7 @@ class GameProcessService(
                             embeds = Embed(
                                 description = message.description,
                                 authorName = K18n_UpdateNotice.translateTo(language),
-                                authorUrl = K18n_UpdateNoticeUrl.translateTo(language),
+                                authorUrl = "${botConstants.webBaseUrl}/${language.name.lowercase()}/update",
                                 title = week?.let { "${K18n_Week.translateTo(language)} $it" }
                             ).into()
                         )

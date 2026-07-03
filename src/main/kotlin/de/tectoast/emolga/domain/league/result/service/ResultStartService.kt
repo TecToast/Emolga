@@ -31,6 +31,6 @@ class ResultStartService(
         val week = scheduleData.week
         val uuid =
             resultCodesRepo.add(league.leagueName, week, idx1, idx2)
-        return K18n_EnterResult.Success(uuid.toString()).success()
+        return K18n_EnterResult.Success(botConstants.webBaseUrl, uuid.toString()).success()
     }
 }

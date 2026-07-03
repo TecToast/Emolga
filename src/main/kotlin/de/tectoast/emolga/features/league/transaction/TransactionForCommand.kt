@@ -24,6 +24,6 @@ class TransactionForCommand(private val repo: TransactionCodesRepository) :
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val transactionId = repo.add(e.leaguename, e.idx)
-        iData.reply(K18n_Transaction.Created(transactionId.toString()), ephemeral = true)
+        iData.reply(K18n_Transaction.Created(botConstants.webBaseUrl, transactionId.toString()), ephemeral = true)
     }
 }

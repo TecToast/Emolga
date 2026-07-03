@@ -185,7 +185,7 @@
               "ResultForArgUser": "Die Person, für die du das Ergebnis eingeben möchtest",
               "ResultForArgOpponent": "Der Gegner der Person, für die du das Ergebnis eingeben möchtest",
               "NoLeagueWithOpponent": "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei {mytag}!",
-              "Success": "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/{url}"
+              "Success": "Bitte trage das Ergebnis auf meiner Website ein:\n{baseUrl}/result/{code}"
             },
             "LadderTournament_nested": {
               "NoTournamentHere": "Auf diesem Server gibt es keine laufendes Ladder-Turnier!",
@@ -303,7 +303,7 @@
             },
             "Transaction_nested": {
               "CommandHelp": "Führt eine Transaktion durch",
-              "Created": "Bitte trage deine Transaktionen auf meiner Website ein:\nhttps://emolga.tectoast.de/transaction/{uuid}",
+              "Created": "Bitte trage deine Transaktionen auf meiner Website ein:\n{baseUrl}/transaction/{code}",
               "Done": "Neue Transaktion von {user}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Verbleibende Transaktionspunkte: {remainingPoints:Int}\nGültig ab Spieltag **{week:Int}**."
             }
           },
@@ -557,8 +557,7 @@
         "SelectLanguage": "Sprache auswählen",
         "Round": "Runde",
         "Finished": "Beendet",
-        "UpdateNotice": "Update-Hinweis",
-        "UpdateNoticeUrl": "https://emolga.tectoast.de/de/update"
+        "UpdateNotice": "Update-Hinweis"
       }
     }
   }

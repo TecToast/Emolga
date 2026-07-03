@@ -185,7 +185,7 @@
               "ResultForArgUser": "The person for whom you want to enter the result",
               "ResultForArgOpponent": "The opponent of the person for whom you want to enter the result",
               "NoLeagueWithOpponent": "You are not in a league with this user! If you think this is an error, please contact {mytag}!",
-              "Success": "Please enter the result on my website:\nhttps://emolga.tectoast.de/result/{url}"
+              "Success": "Please enter the result on my website:\n{baseUrl}/result/{code}"
             },
             "LadderTournament_nested": {
               "NoTournamentHere": "There is no ongoing ladder tournament on this server!",
@@ -303,7 +303,7 @@
             },
             "Transaction_nested": {
               "CommandHelp": "Starts a transaction, please press enter for more details",
-              "Created": "Please enter the transaction details on the official Emolga-Website:\nhttps://emolga.tectoast.de/transaction/{uuid}",
+              "Created": "Please enter the transaction details on the official Emolga-Website:\n{baseUrl}/transaction/{code}",
               "Done": "New transaction of {user}:\n\nDrops:\n{drops}\n\nPicks:\n{picks}\n\n{potentialTera}Remaining transaction points: {remainingPoints:Int}\nValid from week **{week:Int}**."
             }
           },
@@ -554,8 +554,7 @@
         "SelectLanguage": "Select language",
         "Round": "Round",
         "Finished": "Finished",
-        "UpdateNotice": "Update Notice",
-        "UpdateNoticeUrl": "https://emolga.tectoast.de/en/update"
+        "UpdateNotice": "Update Notice"
       }
     }
   }

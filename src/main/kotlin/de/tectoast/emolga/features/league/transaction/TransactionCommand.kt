@@ -19,6 +19,6 @@ class TransactionCommand(private val service: TransactionStartService) :
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         val transactionId = service.startTransaction(iData.gid, iData.user).onFailureReply() ?: return
-        iData.reply(K18n_Transaction.Created(transactionId), ephemeral = true)
+        iData.reply(K18n_Transaction.Created(botConstants.webBaseUrl, transactionId), ephemeral = true)
     }
 }

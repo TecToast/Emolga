@@ -53,7 +53,7 @@ class SignupController(
     }
 
     private fun Route.config() {
-        configurator.configOption(dataHandler = { config ->
+        configurator.configOption(submitString = "Anmeldung eröffnen", dataHandler = { config ->
             signupService.createSignup(guildId, config)
         }, dataProvider = {
             LeagueSignupConfig(

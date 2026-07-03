@@ -5,6 +5,7 @@ import de.tectoast.emolga.domain.game.model.KDWithName
 import de.tectoast.emolga.domain.game.model.ResultMessage
 import de.tectoast.emolga.domain.game.repository.EnglishResultsRepository
 import de.tectoast.emolga.domain.game.repository.SpoilerTagsRepository
+import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.utils.BotConstants
@@ -20,7 +21,8 @@ class ResultMessageBuilder(
     private val generalMessageSender: GeneralMessageSender,
     private val englishResultsRepo: EnglishResultsRepository,
     private val spoilerTagsRepo: SpoilerTagsRepository,
-    private val botConstants: BotConstants
+    private val botConstants: BotConstants,
+    private val tierlistRepo: TierlistRepository
 ) {
     private val logger = KotlinLogging.logger {}
     suspend fun getResultMessages(
@@ -33,7 +35,8 @@ class ResultMessageBuilder(
         defaultNameLookup: Map<ShowdownID, String> = emptyMap(),
         urlIfPresent: String? = null,
     ): List<ResultMessage> {
-        val isEnglishResults = englishResultsRepo.contains(gid)
+        val isEnglishResults = englishResultsRepo.contains(gid) || tierlistRepo.getAllMetasForGuild(gid)
+            .any { it.language == Language.ENGLISH }
         val pokemonLang =
             if (dontTranslateFromReplayServer) null else if (isEnglishResults) Language.ENGLISH else Language.GERMAN
         val spoiler = spoilerTagsRepo.contains(gid)

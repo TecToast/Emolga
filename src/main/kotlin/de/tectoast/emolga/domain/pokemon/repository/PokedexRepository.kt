@@ -6,9 +6,10 @@ import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.utils.database.showdownIDColumn
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.toShowdownID
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.associateTo
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.selectAll
@@ -18,18 +19,26 @@ import org.koin.core.annotation.Single
 
 @Single
 class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
-    private val ready = CompletableDeferred<Unit>()
     private val pokedex = mutableMapOf<ShowdownID, Pokemon>()
+    private val lock = Mutex()
 
     override suspend fun onStartup() {
-        suspendTransaction(db) {
-            PokedexTable.selectAll().map { it[PokedexTable.id] to it[PokedexTable.data] }.associateTo(pokedex) { it }
+        setupCacheIfRequired()
+    }
+
+    private suspend fun setupCacheIfRequired() {
+        lock.withLock {
+            if (pokedex.isEmpty()) {
+                suspendTransaction(db) {
+                    PokedexTable.selectAll().map { it[PokedexTable.id] to it[PokedexTable.data] }
+                        .associateTo(pokedex) { it }
+                }
+            }
         }
-        ready.complete(Unit)
     }
 
     private suspend inline fun <T> withReady(block: suspend () -> T): T {
-        ready.await()
+        setupCacheIfRequired()
         return block()
     }
 

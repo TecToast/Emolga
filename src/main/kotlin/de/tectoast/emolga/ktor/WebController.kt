@@ -10,4 +10,4 @@ abstract class WebController(val basePath: String = "/api/") {
 }
 
 abstract class EmolgaWebController(path: String = "") : WebController("/api/emolga$path")
-abstract class EmolgaGuildWebController : EmolgaWebController("/guild")
+abstract class EmolgaGuildWebController : EmolgaWebController("/{guild}")

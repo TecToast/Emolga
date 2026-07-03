@@ -20,6 +20,7 @@ import de.tectoast.emolga.features.league.K18n_AddTeammate
 import de.tectoast.emolga.features.league.K18n_Logo
 import de.tectoast.emolga.features.league.K18n_Signup
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoSignupInGuild
+import de.tectoast.emolga.features.league.signup.SignoutButton
 import de.tectoast.emolga.features.league.signup.SignupButton
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.K18n_SignupInput
@@ -82,11 +83,12 @@ class SignupService(
                             )
                         }
                     },
-                    components = get<SignupButton>().withoutIData(
-                        language = language
-                    ) {
-                        this.identifier = identifier
-                    }.into()
+                    components = listOf(
+                        get<SignupButton>().withoutIData(
+                            language = language
+                        ) {
+                            this.identifier = identifier
+                        }, get<SignoutButton>().withoutIData(language = language)).into()
                 )
             ) ?: return false
         signupRepo.createNewSignup(gid, identifier, config, messageid)
@@ -125,6 +127,7 @@ class SignupService(
             SignupRemoveUserResult.NotFound -> K18n_Signup.NotSignedUp.error()
             is SignupRemoveUserResult.Removed -> {
                 val leagueSignup = signupRepo.getLeagueSignup(result.signupId) ?: return K18n_NoSignupInGuild.error()
+                takeParticipantRole(leagueSignup.config.participantRole, guild, user)
                 val entry = result.entry
                 if (result.deletedEntry) {
                     entry.signupMessageId?.let {
@@ -316,7 +319,13 @@ class SignupService(
 
     private suspend fun giveParticipantRole(participantRole: Long?, guildId: Long, uid: Long) {
         participantRole?.let {
-            guildMemberRepo.addRole(uid, guildId, it)
+            guildMemberRepo.addRole(guildId, uid, it)
+        }
+    }
+
+    private suspend fun takeParticipantRole(participantRole: Long?, guildId: Long, uid: Long) {
+        participantRole?.let {
+            guildMemberRepo.removeRole(guildId, uid, it)
         }
     }
 

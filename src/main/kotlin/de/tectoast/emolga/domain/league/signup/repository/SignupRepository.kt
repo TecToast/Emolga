@@ -44,7 +44,7 @@ class SignupRepository(private val db: R2dbcDatabase) {
 
     suspend fun getDirtySignups() = suspendTransaction(db) {
         val count = SignupEntryTable.id.count().over().partitionBy(LeagueSignupTable.id).alias("user_count")
-        LeagueSignupTable.innerJoin(SignupEntryTable, { this.id }, { this.signupId })
+        LeagueSignupTable.leftJoin(SignupEntryTable, { this.id }, { this.signupId })
             .select(LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, count)
             .where { LeagueSignupTable.needsMessageSync eq true }
             .map {

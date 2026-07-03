@@ -30,7 +30,7 @@ class SignupButton(private val signupService: SignupService) : ButtonFeature<Sig
     override suspend fun exec(e: Args) {
         val buttonResult = signupService.handleSignupClick(iData.gid, e.identifier.orEmpty(), iData.user)
         if (buttonResult.isError()) {
-            return iData.reply(buttonResult.message)
+            return iData.reply(buttonResult.message, ephemeral = true)
         }
         when (val result = buttonResult.value) {
             is SignupButtonResult.Form -> {

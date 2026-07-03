@@ -38,7 +38,7 @@ class SignupButton(private val signupService: SignupService) : ButtonFeature<Sig
             }
 
             is SignupButtonResult.DirectSignup -> {
-                iData.reply(result.signupResult.toMessageContent())
+                iData.reply(result.signupResult.toMessageContent(), ephemeral = true)
             }
         }
     }

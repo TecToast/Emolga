@@ -56,24 +56,22 @@ class DocEntryService(
             predictionGameService.lockButtonsIndividual(leagueName, week, data.battleIndex)
             predictionGameService.updateCorrectBattles(leagueName, week, data.battleIndex, data.winnerIdx)
         }
-        if (store != null || (!ignoreHideGames && config.hideGames != null) || config.triggers.saveGameData) {
-            replayDataRepo.storeFullGameData(leagueName, data)
-            if (store != null) {
-                val currentWeek =
-                    repeatTaskScheduler.getUpcomingNumber(RepeatTaskType.RegisterInDoc(leagueName, data.battleIndex))
-                        ?: Int.MAX_VALUE
-                if (currentWeek <= week) return
-            } else if (!ignoreHideGames && config.hideGames != null) {
-                val hideGames = config.hideGames
-                if (week in hideGames.weeks) {
-                    replayDataRepo.getFullGameDataForWeekIfAllPresent(leagueName, week)?.let { allData ->
-                        val guild = leagueCoreRepo.getScalarLeagueData(leagueName).guild
-                        hideGamesInsertFlow.tryEmit(
-                            allData.toHideGamesInsertData(leagueName, hideGames, guild)
-                        )
-                    }
-                    return
+        val hideGamesConfig = config.hideGames?.takeUnless { ignoreHideGames }
+        replayDataRepo.storeFullGameData(leagueName, data)
+        if (store != null) {
+            val currentWeek =
+                repeatTaskScheduler.getUpcomingNumber(RepeatTaskType.RegisterInDoc(leagueName, data.battleIndex))
+                    ?: Int.MAX_VALUE
+            if (currentWeek <= week) return
+        } else if (hideGamesConfig != null) {
+            if (week in hideGamesConfig.weeks) {
+                replayDataRepo.getFullGameDataForWeekIfAllPresent(leagueName, week)?.let { allData ->
+                    val guild = leagueCoreRepo.getScalarLeagueData(leagueName).guild
+                    hideGamesInsertFlow.tryEmit(
+                        allData.toHideGamesInsertData(leagueName, hideGamesConfig, guild)
+                    )
                 }
+                return
             }
         }
         process(leagueName, data, withSort)

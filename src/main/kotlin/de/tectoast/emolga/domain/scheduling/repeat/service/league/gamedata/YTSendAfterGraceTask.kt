@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.scheduling.repeat.service.league.gamedata
 
-import de.tectoast.emolga.domain.game.model.GameDataStoreConfig
+import de.tectoast.emolga.domain.game.model.ScheduledGameRegisterConfig
 import de.tectoast.emolga.domain.game.model.YTEnableConfig
 import de.tectoast.emolga.domain.league.config.model.LeagueConfig
 import de.tectoast.emolga.domain.league.youtube.service.YouTubeSendService
@@ -10,11 +10,11 @@ import de.tectoast.emolga.domain.scheduling.repeat.service.RepeatTaskScheduler
 import org.koin.core.annotation.Single
 
 @Single
-class YTSendAfterGraceTask(private val service: YouTubeSendService) : GameDataTask {
+class YTSendAfterGraceTask(private val service: YouTubeSendService) : ScheduledGameRegisterTask {
     override suspend fun setup(
         scheduler: RepeatTaskScheduler,
         leagueName: String,
-        config: GameDataStoreConfig,
+        config: ScheduledGameRegisterConfig,
         battleIndex: Int,
         leagueConfig: LeagueConfig
     ) {

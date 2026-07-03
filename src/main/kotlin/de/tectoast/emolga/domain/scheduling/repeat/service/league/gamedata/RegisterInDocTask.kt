@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.scheduling.repeat.service.league.gamedata
 
-import de.tectoast.emolga.domain.game.model.GameDataStoreConfig
+import de.tectoast.emolga.domain.game.model.ScheduledGameRegisterConfig
 import de.tectoast.emolga.domain.game.model.YTEnableConfig
 import de.tectoast.emolga.domain.league.config.model.LeagueConfig
 import de.tectoast.emolga.domain.league.doc.service.RegisterInDocService
@@ -15,11 +15,11 @@ class RegisterInDocTask(
     private val ytVideoSendRepo: YTVideoSendRepository,
     private val registerInDocService: RegisterInDocService
 ) :
-    GameDataTask {
+    ScheduledGameRegisterTask {
     override suspend fun setup(
         scheduler: RepeatTaskScheduler,
         leagueName: String,
-        config: GameDataStoreConfig,
+        config: ScheduledGameRegisterConfig,
         battleIndex: Int,
         leagueConfig: LeagueConfig
     ) {

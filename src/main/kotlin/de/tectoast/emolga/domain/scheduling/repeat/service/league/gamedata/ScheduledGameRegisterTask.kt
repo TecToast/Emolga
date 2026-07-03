@@ -1,14 +1,14 @@
 package de.tectoast.emolga.domain.scheduling.repeat.service.league.gamedata
 
-import de.tectoast.emolga.domain.game.model.GameDataStoreConfig
+import de.tectoast.emolga.domain.game.model.ScheduledGameRegisterConfig
 import de.tectoast.emolga.domain.league.config.model.LeagueConfig
 import de.tectoast.emolga.domain.scheduling.repeat.service.RepeatTaskScheduler
 
-interface GameDataTask {
+interface ScheduledGameRegisterTask {
     suspend fun setup(
         scheduler: RepeatTaskScheduler,
         leagueName: String,
-        config: GameDataStoreConfig,
+        config: ScheduledGameRegisterConfig,
         battleIndex: Int,
         leagueConfig: LeagueConfig
     )

@@ -50,7 +50,7 @@ class DocEntryService(
         leagueName: String, data: FullGameData, ignoreHideGames: Boolean = false, withSort: Boolean = true
     ) {
         val config = leagueConfigRepo.getConfig(leagueName)
-        val store = config.gameDataStore
+        val store = config.scheduledGameRegister
         val week = data.week
         config.predictionGame?.let { _ ->
             predictionGameService.lockButtonsIndividual(leagueName, week, data.battleIndex)

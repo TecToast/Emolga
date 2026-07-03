@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.league.config.model
 
-import de.tectoast.emolga.domain.game.model.GameDataStoreConfig
+import de.tectoast.emolga.domain.game.model.ScheduledGameRegisterConfig
 import de.tectoast.emolga.domain.league.doc.model.HideGamesConfig
 import de.tectoast.emolga.domain.league.doc.model.MonsDocOrderConfig
 import de.tectoast.emolga.domain.league.doc.model.StatProcessor
@@ -21,7 +21,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class LeagueConfig(
     var timer: DraftTimerConfig? = null,
-    val gameDataStore: GameDataStoreConfig? = null,
+    val scheduledGameRegister: ScheduledGameRegisterConfig? = null,
     val predictionGame: PredictionGameConfig? = null,
     val draftBan: DraftBanConfig? = null,
     val randomPick: RandomPickConfig = RandomPickConfig(),
@@ -46,7 +46,7 @@ data class LeagueConfig(
         if (other == null) return this
         return LeagueConfig(
             timer = other.timer ?: timer,
-            gameDataStore = other.replayDataStore ?: gameDataStore,
+            scheduledGameRegister = other.scheduledGameRegister ?: scheduledGameRegister,
             predictionGame = other.predictionGame ?: predictionGame,
             draftBan = other.draftBan ?: draftBan,
             randomPick = randomPick + other.randomPick,
@@ -71,7 +71,7 @@ data class LeagueConfig(
 @Serializable
 data class LeagueConfigOverride(
     var timer: DraftTimerConfig? = null,
-    val replayDataStore: GameDataStoreConfig? = null,
+    val scheduledGameRegister: ScheduledGameRegisterConfig? = null,
     val predictionGame: PredictionGameConfig? = null,
     val draftBan: DraftBanConfig? = null,
     val randomPick: RandomPickConfigOverride? = null,

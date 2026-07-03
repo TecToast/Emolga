@@ -123,7 +123,7 @@ class GameProcessService(
                 val mentions = leagueMemberRepo.getPrimaryIds(leagueName, uindices).mapValues {
                     it.value.joinToTeammates()
                 }
-                if ((shouldntSendData == null) && ((config.gameDataStore?.hideResults == true)
+                if ((shouldntSendData == null) && ((config.scheduledGameRegister?.hideResults == true)
                             || (!ignoreHideGames && config.hideGames?.weeks?.contains(week) == true))
                 ) {
                     shouldntSendData = ShouldntSendData(week, uindicesInOrder.map { mentions[it] ?: "N/A" })

@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 @Serializable
-data class GameDataStoreConfig(
+data class ScheduledGameRegisterConfig(
     @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
     @Serializable(with = DurationSerializer::class) val gracePeriodForYT: Duration = Duration.ZERO,
     @Serializable(with = DurationSerializer::class) val intervalBetweenWeeks: Duration = 7.days,

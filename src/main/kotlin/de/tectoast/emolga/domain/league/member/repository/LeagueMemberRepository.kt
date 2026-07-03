@@ -60,18 +60,24 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
             .map { it[userId] }.toList()
     }
 
-    suspend fun getParticipantsForIdx(leagueName: String, idx: Int) = suspendTransaction(db, LeagueUserTable) {
-        select(userId, substitute, shouldPing)
-            .where { (this.leagueName eq leagueName) and (this.idx eq idx) }
-            .orderBy(userOrder).map {
+    suspend fun getParticipantsForIdx(leagueName: String, idx: Int) = getParticipants { (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) }
+
+    suspend fun getAllParticipants(leagueName: String) = getParticipants { LeagueUserTable.leagueName eq leagueName }
+
+    private suspend fun getParticipants(condition: () -> Op<Boolean>) = suspendTransaction(db, LeagueUserTable) {
+        select(idx, userId, substitute, shouldPing)
+            .where(condition)
+            .orderBy(this.idx to SortOrder.ASC, this.userOrder to SortOrder.ASC).map {
                 LeagueParticipant(
-                    idx = idx,
+                    idx = it[idx],
                     userId = it[userId],
                     substitute = it[substitute],
                     shouldPing = it[shouldPing]
                 )
             }.toList()
     }
+
+
 
     suspend fun setPrimaryUsers(leagueName: String, users: List<Long>) = suspendTransaction(db, LeagueUserTable) {
         deleteWhere { this.leagueName eq leagueName and (substitute eq false) }

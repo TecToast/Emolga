@@ -1,6 +1,8 @@
 package de.tectoast.emolga.domain.league.gamedata.model
 
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class FullGameData(
     val uindices: List<Int>,
     val week: Int,

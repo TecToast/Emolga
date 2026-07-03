@@ -69,6 +69,35 @@ class GameDataRepository(private val db: R2dbcDatabase) {
             }
         }
 
+    suspend fun getAllFullGameDatas(leagueName: String): List<FullGameData> = suspendTransaction(db) {
+        LeagueScheduleTable.innerJoin(GameDataTable, { this.id }, { this.scheduleId })
+            .select(
+                GameDataTable.data,
+                LeagueScheduleTable.week,
+                LeagueScheduleTable.battleIndex,
+                LeagueScheduleTable.p1,
+                LeagueScheduleTable.p2
+            )
+            .orderBy(LeagueScheduleTable.week to SortOrder.ASC, LeagueScheduleTable.battleIndex to SortOrder.ASC)
+            .groupByMapping({
+                Triple(
+                    it[LeagueScheduleTable.week], it[LeagueScheduleTable.battleIndex], listOf(
+                        it[LeagueScheduleTable.p1],
+                        it[LeagueScheduleTable.p2]
+                    )
+                )
+            }) {
+                it[GameDataTable.data]
+            }.map { (battleData, singleGameDatas) ->
+                FullGameData(
+                    uindices = battleData.third,
+                    week = battleData.first,
+                    battleIndex = battleData.second,
+                    singleGameDatas
+                )
+            }
+    }
+
     suspend fun getAllGameDataUntil(leagueName: String, maxWeek: Int?) = suspendTransaction(db) {
         GameDataTable.innerJoin(LeagueScheduleTable).select(GameDataTable.data, LeagueScheduleTable.week)
             .where { LeagueScheduleTable.leagueName eq leagueName }.apply {

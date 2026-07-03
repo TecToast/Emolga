@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.config.model
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 data class Triggers(
     val queuePicks: Boolean = true,
     val allowPickDuringSwitch: Boolean = false,

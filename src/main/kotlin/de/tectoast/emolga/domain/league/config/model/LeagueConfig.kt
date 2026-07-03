@@ -18,6 +18,7 @@ import de.tectoast.emolga.domain.league.youtube.model.YouTubeConfig
 import kotlinx.serialization.Serializable
 
 
+@Serializable
 data class LeagueConfig(
     var timer: DraftTimerConfig? = null,
     val gameDataStore: GameDataStoreConfig? = null,

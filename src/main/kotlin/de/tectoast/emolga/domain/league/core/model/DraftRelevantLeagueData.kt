@@ -1,7 +1,9 @@
 package de.tectoast.emolga.domain.league.core.model
 
 import de.tectoast.emolga.domain.league.draft.model.timer.TimerSkipMode
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class DraftRelevantLeagueData(
     val leagueName: String,
     val displayName: String,

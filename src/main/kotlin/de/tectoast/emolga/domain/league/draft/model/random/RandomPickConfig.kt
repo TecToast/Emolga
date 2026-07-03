@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.draft.model.random
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 data class RandomPickConfig(
     val enabled: Boolean = true,
     val mode: RandomPickMode = RandomPickMode.Default(),

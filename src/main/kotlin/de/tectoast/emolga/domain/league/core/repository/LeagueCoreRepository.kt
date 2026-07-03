@@ -10,11 +10,8 @@ import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.json.extract
-import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
-import org.jetbrains.exposed.v1.r2dbc.andWhere
-import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.*
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.r2dbc.update
 import org.koin.core.annotation.Single
 
 
@@ -49,8 +46,8 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
     suspend fun getDraftRelevantData(channelId: Long, locking: Boolean = true) =
         getDraftRelevantData(locking = locking) { LeagueCoreTable.draftChannel eq channelId }.firstOrNull()
 
-    suspend fun getDraftRelevantData(leagueName: String, locking: Boolean = true) =
-        getDraftRelevantData(locking = locking) { LeagueCoreTable.leagueName eq leagueName }.firstOrNull()
+    suspend fun getDraftRelevantData(leagueName: String, locking: Boolean = true, checkRunning: Boolean = true) =
+        getDraftRelevantData(locking = locking, checkRunning = checkRunning) { LeagueCoreTable.leagueName eq leagueName }.firstOrNull()
 
     suspend fun getDraftStateLocking(leagueName: String) = suspendTransaction(db) {
         LeagueCoreTable.select(LeagueCoreTable.draftData).forUpdate().where { LeagueCoreTable.leagueName eq leagueName }
@@ -100,10 +97,13 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend inline fun updateScalarLeagueData(leagueName: String, update: ScalarLeagueData.() -> ScalarLeagueData?) : ScalarLeagueData {
+    suspend inline fun updateScalarLeagueData(
+        leagueName: String,
+        update: ScalarLeagueData.() -> ScalarLeagueData?
+    ): ScalarLeagueData {
         val old = getScalarLeagueData(leagueName)
         val new = update(old)
-        if(new != null) {
+        if (new != null) {
             setScalarLeagueData(new)
         }
         return new ?: old
@@ -141,7 +141,11 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         LeagueWithParticipants(leagueName, guild, users)
     }
 
-    private suspend fun getDraftRelevantData(locking: Boolean, check: (() -> Op<Boolean>)?) = suspendTransaction(db) {
+    private suspend fun getDraftRelevantData(
+        locking: Boolean,
+        checkRunning: Boolean = true,
+        check: (() -> Op<Boolean>)?
+    ) = suspendTransaction(db) {
         with(LeagueCoreTable) {
             select(
                 leagueName,
@@ -156,11 +160,9 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
                 draftData
             ).apply {
                 if (locking) forUpdate()
+                if (checkRunning) andWhere { isRunningCondition }
+                check?.let { andWhere(it) }
             }
-                .where { isRunningCondition }
-                .apply {
-                    check?.let { andWhere(it) }
-                }
                 .map {
                     DraftRelevantLeagueData(
                         leagueName = it[leagueName],
@@ -207,6 +209,10 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
 
     suspend fun getAllLeagueGuilds() = suspendTransaction(db) {
         LeagueCoreTable.select(LeagueCoreTable.guild).map { it[LeagueCoreTable.guild] }.toSet()
+    }
+
+    suspend fun delete(leagueName: String) = suspendTransaction(db) {
+        LeagueCoreTable.deleteWhere { LeagueCoreTable.leagueName eq leagueName }
     }
 
     private val isRunningCondition by lazy { LeagueCoreTable.draftData.extract<String>("draftState") neq DraftState.OFF.name }

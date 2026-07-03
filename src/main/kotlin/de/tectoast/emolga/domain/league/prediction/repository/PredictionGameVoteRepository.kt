@@ -1,10 +1,15 @@
 package de.tectoast.emolga.domain.league.prediction.repository
 
 import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
+import de.tectoast.emolga.domain.league.prediction.model.PredictionGameVoteData
+import de.tectoast.emolga.utils.suspendTransaction
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.update
 import org.jetbrains.exposed.v1.r2dbc.upsert
@@ -36,6 +41,12 @@ class PredictionGameVoteRepository(
                 it[PredictionGameVotesTable.idx] = idx
             }
         }
+    }
+
+    suspend fun getAllPredictionGameVotes(leagueName: String) = suspendTransaction(db, PredictionGameVotesTable) {
+        PredictionGameVotesTable.selectAll().where { PredictionGameVotesTable.leagueName eq leagueName }
+            .map { PredictionGameVoteData(it[userId], it[week], it[battle], it[idx], it[correct]) }
+            .toList()
     }
 }
 

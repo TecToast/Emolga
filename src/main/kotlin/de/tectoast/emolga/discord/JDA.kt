@@ -105,7 +105,7 @@ class JDAGuildMetaRepository(private val jda: JDA) : GuildMetaRepository {
 class JDAGuildChannelRepository(private val jda: JDA) : GuildChannelRepository {
     override suspend fun getChannelsOfGuild(guildId: Long): Map<String, Map<String, String>> {
         val guild = jda.getGuildById(guildId) ?: return emptyMap()
-        return guild.categories.associate { cat -> cat.name to cat.textChannels.associate { it.name to it.id } }
+        return guild.categories.associate { cat -> cat.name to cat.textChannels.associate { it.id to it.name } }
     }
 }
 

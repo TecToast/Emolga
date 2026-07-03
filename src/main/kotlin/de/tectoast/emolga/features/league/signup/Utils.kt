@@ -51,6 +51,7 @@ internal fun SignupFormField.toComponent(): LabelChildComponent = when (this) {
 
     is UserSelectState -> EntitySelectMenu(
         customId = this.id,
+        valueRange = 0..2,
         types = listOf(EntitySelectMenu.SelectTarget.USER)
     ) {
         this.isRequired = inputRequired

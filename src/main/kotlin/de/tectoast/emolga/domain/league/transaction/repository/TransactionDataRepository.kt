@@ -4,14 +4,10 @@ import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
 import de.tectoast.emolga.domain.league.transaction.model.TransactionAmounts
 import de.tectoast.emolga.domain.league.transaction.model.TransactionEntry
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
-import de.tectoast.emolga.domain.pokemon.model.ShowdownIdColumnType
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.associate
 import kotlinx.coroutines.flow.firstOrNull
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.select
@@ -69,10 +65,12 @@ object TransactionRunningTable : Table("transaction_data") {
     val leagueName = text("league_name").referencesLeagueName()
     val week = integer("week")
     val idx = integer("idx")
-    val drops = array("drops", ShowdownIdColumnType()).default(emptyList())
-    val picks = array("picks", ShowdownIdColumnType()).default(emptyList())
+    val drops = array<String>("drops").default(emptyList()).showdownIDTransform()
+    val picks = array<String>("picks").default(emptyList()).showdownIDTransform()
 
     override val primaryKey = PrimaryKey(leagueName, week, idx)
+
+    private fun Column<List<String>>.showdownIDTransform() = transform(wrap = { it.map { id -> ShowdownID(id) } }, unwrap = { it.map { id -> id.value } })
 }
 
 object TransactionAmountsTable : Table("transaction_amounts") {

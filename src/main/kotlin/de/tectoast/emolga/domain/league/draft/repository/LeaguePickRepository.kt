@@ -120,6 +120,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
                 this[LeaguePickTable.pickIndex] = index
                 this[LeaguePickTable.showdownId] = pokemon.showdownId
                 this[LeaguePickTable.tier] = pokemon.tier
+                this[LeaguePickTable.quit] = pokemon.quit
                 this[LeaguePickTable.freePick] = pokemon.free
                 this[LeaguePickTable.noCost] = pokemon.noCost
                 this[LeaguePickTable.tera] = pokemon.tera

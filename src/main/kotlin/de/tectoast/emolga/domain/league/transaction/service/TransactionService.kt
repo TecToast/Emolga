@@ -18,9 +18,7 @@ import de.tectoast.emolga.domain.league.transaction.repository.TransactionDataRe
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTaskType
 import de.tectoast.emolga.domain.scheduling.repeat.service.RepeatTaskScheduler
-import de.tectoast.emolga.utils.createCoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import kotlin.uuid.Uuid
 
@@ -39,7 +37,6 @@ class TransactionService(
     private val successfulTransactionHandler: SuccessfulTransactionHandler,
     dispatcher: CoroutineDispatcher
 ) {
-    private val handlerScope = createCoroutineScope("TransactionService", dispatcher)
     suspend fun getTransactionData(transactionId: Uuid): APITransactionData? {
         val (leagueName, idx) = codesRepo.getDataByCode(transactionId) ?: return null
         val config = leagueConfigRepo.getConfig(leagueName)
@@ -102,16 +99,18 @@ class TransactionService(
         if (newTransactionPoints < 0) return@tx null
         val dropsAsList = data.drops.toList()
         val picksAsList = data.picks.toList()
+        val tierlistConfig = tierlistRepo.getMeta(leagueData.guild, config.tlIdentifier)?.config ?: return@tx null
         dropsAsList.forEachIndexed { index, drop ->
             val old = myPicks.firstOrNull { it.showdownId == drop } ?: return@tx null
             val newName = picksAsList[index]
+            val newTier = tierlistRepo.getTier(leagueData.guild, config.tlIdentifier, newName) ?: return@tx null
             old.showdownId = newName
+            old.tier = newTier
             myPicks += DraftPokemon(drop, tier = "N/A", quit = true)
         }
         myPicks.forEach {
             if (!it.quit) it.tera = data.teraUsers.contains(it.showdownId)
         }
-        val tierlistConfig = tierlistRepo.getMeta(leagueData.guild, config.tlIdentifier)?.config ?: return@tx null
         with(ValidationRelevantData(myPicks, idx, config.teamSize)) {
             val error = tierlistActionDispatcher.checkLegalityOfQueue(tierlistConfig, idx, currentState = emptyList())
             if (error != null) return@tx null
@@ -124,17 +123,14 @@ class TransactionService(
         transactionDataRepo.setTransactionAmounts(leagueName, idx, amounts)
         transactionDataRepo.setRunning(leagueName, week, idx, currentEntry.drops, currentEntry.picks)
         codesRepo.deleteCode(transactionId)
-        handlerScope.launch {
-            successfulTransactionHandler.handleSuccessfulTransaction(
-                idx,
-                leagueData,
-                data,
-                week,
-                newTransactionPoints,
-                oldTeraUsers.zip(newTeraUsers)
-            )
-        }
-        Unit
+        successfulTransactionHandler.handleSuccessfulTransaction(
+            idx,
+            leagueData,
+            data,
+            week,
+            newTransactionPoints,
+            oldTeraUsers.zip(newTeraUsers)
+        )
     }
 
 

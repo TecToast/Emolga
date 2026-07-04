@@ -47,7 +47,7 @@ class SuccessfulTransactionHandler(
                     primaryIds.joinToTeammates(),
                     request.drops.joinToString("\n") { it.toDisplayName() },
                     request.picks.joinToString("\n") { it.toDisplayName() },
-                    teraUserChanges.joinToString("\n") { (old, new) ->
+                    if(teraUserChanges.isEmpty()) "" else teraUserChanges.joinToString("\n", prefix = "Tera:\n", postfix = "\n\n") { (old, new) ->
                         "${old.toDisplayName()} -> ${new.toDisplayName()}"
                     },
                     remainingPoints,

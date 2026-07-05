@@ -308,11 +308,6 @@
             }
           },
           "showdown": {
-            "EnglishResults_nested": {
-              "Help": "Has no effect if the global language of the server is English",
-              "German": "On this server, Pokemon in Showdown results are now **displayed in German**!",
-              "English": "On this server, Pokemon in Showdown results are now **displayed in English**!"
-            },
             "ReplayBo3_nested": {
               "Help": "Replay command for Bo3 games",
               "ArgReplay1": "The first replay",
@@ -336,11 +331,6 @@
               "Help": "Analyzes a replay and sends the result to the configured results channel",
               "ArgReplay": "The replay link"
             },
-            "SpoilerTags_nested": {
-              "Help": "Enables or disables spoiler protection for Showdown results (server-wide)",
-              "Enabled": "On this server, spoiler tags for Showdown results are now **enabled**!",
-              "Disabled": "On this server, spoiler tags for Showdown results are now **disabled**!"
-            },
             "ReplayGeneric_nested": {
               "NoReplayChannel": "This channel is not a replay channel! Use `/replaychannel add` to make this channel a replay channel!",
               "NoAccessToResultChannel": "I don’t have access to the results channel {channel:ChannelMention}!"
@@ -357,10 +347,23 @@
               "TooSoon": "{user:Mention} You cannot change your name yet!\nCooldown: {cooldown}",
               "Success": "{user:Mention} Your nickname was successfully changed to `{nickname}`!"
             },
-            "SetLanguage_nested": {
-              "Help": "Changes the language that I'm using in this server",
-              "ArgLanguage": "The language to switch to",
-              "Success": "The language in this server has been changed to {language}!"
+            "config": {
+              "GenericHelp": "Configurates server-wide settings",
+              "SetLanguage_nested": {
+                "Help": "Changes the language that I'm using in this server",
+                "ArgLanguage": "The language to switch to",
+                "Success": "The language in this server has been changed to {language}!"
+              },
+              "SpoilerTags_nested": {
+                "Help": "Enables or disables spoiler protection for Showdown results (server-wide)",
+                "Enabled": "On this server, spoiler tags for Showdown results are now **enabled**!",
+                "Disabled": "On this server, spoiler tags for Showdown results are now **disabled**!"
+              },
+              "EnglishResults_nested": {
+                "Help": "Has no effect if the global language of the server is English",
+                "German": "On this server, Pokemon in Showdown results are now **displayed in German**!",
+                "English": "On this server, Pokemon in Showdown results are now **displayed in English**!"
+              }
             }
           },
           "Arguments_nested": {

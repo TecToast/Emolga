@@ -308,11 +308,6 @@
             }
           },
           "showdown": {
-            "EnglishResults_nested": {
-              "Help": "Stellt ein, ob die Pokemon in Ergebnissen auf deutsch oder englisch angezeigt werden (serverweit)",
-              "German": "Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Deutsch angezeigt**!",
-              "English": "Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Englisch angezeigt**!"
-            },
             "ReplayBo3_nested": {
               "Help": "Replay-Command für Bo3-Spiele",
               "ArgReplay1": "Das erste Replay",
@@ -336,11 +331,6 @@
               "Help": "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel",
               "ArgReplay": "Der Replay-Link"
             },
-            "SpoilerTags_nested": {
-              "Help": "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
-              "Enabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!",
-              "Disabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!"
-            },
             "ReplayGeneric_nested": {
               "NoReplayChannel": "Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!",
               "NoAccessToResultChannel": "Ich habe keinen Zugriff auf den Ergebnischannel {channel:ChannelMention}!"
@@ -357,10 +347,23 @@
               "TooSoon": "{user:Mention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: {cooldown}",
               "Success": "{user:Mention} Dein Nickname wurde erfolgreich zu `{nickname}` geändert!"
             },
-            "SetLanguage_nested": {
-              "Help": "Ändert die Sprache, die ich auf diesem Server verwende",
-              "ArgLanguage": "Die Sprache, die du einstellen möchtest",
-              "Success": "Die Sprache dieses Servers wurde erfolgreich zu {language} geändert!"
+            "config": {
+              "GenericHelp": "Konfiguriert verschiedene Einstellungen",
+              "SetLanguage_nested": {
+                "Help": "Ändert die Sprache, die ich auf diesem Server verwende",
+                "ArgLanguage": "Die Sprache, die du einstellen möchtest",
+                "Success": "Die Sprache dieses Servers wurde erfolgreich zu {language} geändert!"
+              },
+              "EnglishResults_nested": {
+                "Help": "Stellt ein, ob die Pokemon in Ergebnissen auf deutsch oder englisch angezeigt werden (serverweit)",
+                "German": "Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Deutsch angezeigt**!",
+                "English": "Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Englisch angezeigt**!"
+              },
+              "SpoilerTags_nested": {
+                "Help": "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
+                "Enabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!",
+                "Disabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!"
+              }
             }
           },
           "Arguments_nested": {

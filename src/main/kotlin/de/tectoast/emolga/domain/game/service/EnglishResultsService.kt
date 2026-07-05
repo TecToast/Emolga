@@ -1,7 +1,7 @@
 package de.tectoast.emolga.domain.game.service
 
 import de.tectoast.emolga.domain.game.repository.EnglishResultsRepository
-import de.tectoast.emolga.features.showdown.K18n_EnglishResults
+import de.tectoast.emolga.features.various.config.K18n_EnglishResults
 import de.tectoast.k18n.generated.K18nMessage
 import org.koin.core.annotation.Single
 

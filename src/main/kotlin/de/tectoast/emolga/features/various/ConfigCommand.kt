@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.various
 
+import de.tectoast.emolga.domain.game.service.EmbedResultsService
 import de.tectoast.emolga.domain.game.service.EnglishResultsService
 import de.tectoast.emolga.domain.game.service.SpoilerTagsService
 import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
@@ -10,17 +11,14 @@ import de.tectoast.emolga.features.system.NoArgs
 import de.tectoast.emolga.features.system.types.CommandFeature
 import de.tectoast.emolga.features.system.types.ListenerProvider
 import de.tectoast.emolga.features.various.ConfigCommand.SetLanguage.Args
-import de.tectoast.emolga.features.various.config.K18n_EnglishResults
-import de.tectoast.emolga.features.various.config.K18n_GenericHelp
-import de.tectoast.emolga.features.various.config.K18n_SetLanguage
-import de.tectoast.emolga.features.various.config.K18n_SpoilerTags
+import de.tectoast.emolga.features.various.config.*
 import de.tectoast.k18n.generated.K18nLanguage
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class])
-class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, setLanguage: SetLanguage) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("config", K18n_GenericHelp)) {
+class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, setLanguage: SetLanguage, embedResults: EmbedResults) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("config", K18n_GenericHelp)) {
 
-    override val children = listOf(spoilerTags, englishResults, setLanguage)
+    override val children = listOf(spoilerTags, englishResults, setLanguage, embedResults)
 
     @Single
     class SpoilerTags(private val service: SpoilerTagsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("spoilertags", K18n_SpoilerTags.Help)) {
@@ -52,7 +50,13 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
         }
     }
 
-
+    @Single
+    class EmbedResults(private val service: EmbedResultsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("embedresults", K18n_EmbedResults.Help)) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            return iData.reply(if(service.toggle(iData.gid)) K18n_EmbedResults.Enabled else K18n_EmbedResults.Disabled)
+        }
+    }
 
 
 

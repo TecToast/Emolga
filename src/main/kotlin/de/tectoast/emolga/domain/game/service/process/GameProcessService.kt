@@ -5,6 +5,7 @@ import de.tectoast.emolga.discord.*
 import de.tectoast.emolga.domain.game.model.FullInputGame
 import de.tectoast.emolga.domain.game.model.GameSource
 import de.tectoast.emolga.domain.game.model.ResultMessage
+import de.tectoast.emolga.domain.game.repository.EmbedResultsRepository
 import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.doc.service.DocEntryService
@@ -19,7 +20,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.joinToTeammates
 import de.tectoast.emolga.utils.showdown.K18n_Analysis
-import de.tectoast.generic.K18n_UpdateNotice
 import de.tectoast.generic.K18n_Week
 import de.tectoast.k18n.generated.K18nLanguage
 import dev.minn.jda.ktx.messages.Embed
@@ -44,6 +44,7 @@ class GameProcessService(
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
     private val botConstants: BotConstants,
+    private val embedResultsRepo: EmbedResultsRepository,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {
 
@@ -202,7 +203,7 @@ class GameProcessService(
                 )
             )
         } else {
-            sendResultMessages(allResultMessages, finalResultChannel, matchUpData?.week, language)
+            sendResultMessages(guildId, allResultMessages, finalResultChannel, matchUpData?.week, language)
         }
         if (games.isNotEmpty() && matchUpData != null) {
             docEntryService.checkAndProcess(
@@ -216,20 +217,24 @@ class GameProcessService(
         }
     }
 
-    private suspend fun sendResultMessages(messages: List<ResultMessage>, channelId: Long, week: Int?, language: K18nLanguage) {
+    private suspend fun sendResultMessages(guild: Long, messages: List<ResultMessage>, channelId: Long, week: Int?, language: K18nLanguage) {
         val resultSender = channelInterface.createSingleChannel(channelId)
+        val embedResults = embedResultsRepo.hasEmbedResults(guild)
         for (message in messages) {
             when (message) {
                 is ResultMessage.Game -> {
                     resultSender.sendMessage(
-                        MessageCreate(
+                        if(embedResults) MessageCreate(
                             embeds = Embed(
                                 description = message.description,
-                                authorName = K18n_UpdateNotice.translateTo(language),
-                                authorUrl = "${botConstants.webBaseUrl}/${language.name.lowercase()}/update",
                                 title = week?.let { "${K18n_Week.translateTo(language)} $it" }
                             ).into()
-                        )
+                        ) else MessageCreate(content = buildString {
+                            if(week != null) {
+                                append("${K18n_Week.translateTo(language)} $week\n")
+                            }
+                            append(message.description)
+                        })
                     )
                 }
 

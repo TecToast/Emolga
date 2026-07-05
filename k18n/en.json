@@ -363,6 +363,11 @@
                 "Help": "Has no effect if the global language of the server is English",
                 "German": "On this server, Pokemon in Showdown results are now **displayed in German**!",
                 "English": "On this server, Pokemon in Showdown results are now **displayed in English**!"
+              },
+              "EmbedResults_nested": {
+                "Help": "Configures if the results of games should be display inside of an embed (server-wide)",
+                "Enabled": "Results will now be displayed inside of an embed!",
+                "Disabled": "Results won't be displayed inside of an embed!"
               }
             }
           },

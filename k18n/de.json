@@ -363,6 +363,11 @@
                 "Help": "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
                 "Enabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!",
                 "Disabled": "Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!"
+              },
+              "EmbedResults_nested": {
+                "Help": "Stellt ein, ob die Ergebnisse als Embed angezeigt werden sollen (serverweit)",
+                "Enabled": "Auf diesem Server werden die Ergebnisse jetzt als Embed angezeigt!",
+                "Disabled": "Auf diesem Server werden die Ergebnisse nicht mehr als Embed angezeigt!"
               }
             }
           },

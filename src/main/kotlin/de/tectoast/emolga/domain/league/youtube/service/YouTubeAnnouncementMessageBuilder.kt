@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.league.youtube.service
 
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.schedule.repository.LeagueScheduleRepository
@@ -13,7 +13,7 @@ import org.koin.core.annotation.Single
 class YouTubeAnnouncementMessageBuilder(
     private val leagueScheduleRepo: LeagueScheduleRepository,
     private val leagueMemberRepo: LeagueMemberRepository,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val leagueCoreRepo: LeagueCoreRepository
 ) {
     suspend fun buildMessage(

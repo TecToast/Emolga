@@ -1,7 +1,7 @@
 package de.tectoast.emolga.domain.league.gamedata.service
 
 import de.tectoast.emolga.discord.DMSender
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.gamedata.repository.GameDataRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
@@ -22,7 +22,7 @@ class GameReminderService(
     private val leagueMemberRepo: LeagueMemberRepository,
     private val dmSender: DMSender,
     private val leagueCoreRepo: LeagueCoreRepository,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val botConstants: BotConstants
 ) {
     suspend fun sendReminder(leagueName: String, week: Int, battleIndex: Int) {

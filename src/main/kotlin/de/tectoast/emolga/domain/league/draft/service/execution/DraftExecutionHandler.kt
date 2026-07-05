@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.league.draft.service.execution
 
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.draft.model.core.DraftRunContext
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftActionResult
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftExecution
@@ -14,7 +14,7 @@ import org.koin.core.annotation.Single
 
 @Single
 class DraftExecutionHandler(
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val snipeNotificationService: SnipeNotificationService,
     private val draftLogRepository: DraftLogRepository,
     private val spreadsheetService: SpreadsheetService,

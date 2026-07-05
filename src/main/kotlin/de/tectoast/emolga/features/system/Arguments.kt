@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.system
 
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.util.autocomplete.PokemonAutocompleteService
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
@@ -37,7 +37,7 @@ open class Arguments : KoinComponent {
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
 
     private val typesRepository by inject<PokemonTypesRepository>()
-    val languageRepository by inject<GuildLanguageRepository>()
+    val languageRepository by inject<GuildConfigRepository>()
     val autocompleteService by inject<PokemonAutocompleteService>()
 
     inline fun string(

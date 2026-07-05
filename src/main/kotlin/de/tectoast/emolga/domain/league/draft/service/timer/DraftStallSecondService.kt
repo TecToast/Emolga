@@ -3,7 +3,7 @@ package de.tectoast.emolga.domain.league.draft.service.timer
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.discord.sendMessage
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.service.LeagueMentionService
 import de.tectoast.emolga.league.K18n_League
@@ -21,7 +21,7 @@ class DraftStallSecondService(
     private val leagueMentionService: LeagueMentionService,
     private val timerService: DraftTimerService,
     private val channelSender: ChannelInterface,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {
     private val scope = createCoroutineScope("DraftStallSecondService", dispatcher)

@@ -2,11 +2,11 @@ package de.tectoast.emolga.domain.game.service.process
 
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.discord.*
+import de.tectoast.emolga.domain.config.model.GuildConfigType
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.game.model.FullInputGame
 import de.tectoast.emolga.domain.game.model.GameSource
 import de.tectoast.emolga.domain.game.model.ResultMessage
-import de.tectoast.emolga.domain.game.repository.EmbedResultsRepository
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.doc.service.DocEntryService
 import de.tectoast.emolga.domain.league.doc.service.HideGamesInsertFlow
@@ -39,12 +39,12 @@ class GameProcessService(
     private val leagueMemberRepo: LeagueMemberRepository,
     private val resultMessageBuilder: ResultMessageBuilder,
     private val docEntryService: DocEntryService,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val hideGamesInsertFlow: HideGamesInsertFlow,
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
     private val botConstants: BotConstants,
-    private val embedResultsRepo: EmbedResultsRepository,
+    private val guildConfigRepo: GuildConfigRepository,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {
 
@@ -219,7 +219,7 @@ class GameProcessService(
 
     private suspend fun sendResultMessages(guild: Long, messages: List<ResultMessage>, channelId: Long, week: Int?, language: K18nLanguage) {
         val resultSender = channelInterface.createSingleChannel(channelId)
-        val embedResults = embedResultsRepo.hasEmbedResults(guild)
+        val embedResults = guildConfigRepo.query(guild, GuildConfigType.EmbedResults)
         for (message in messages) {
             when (message) {
                 is ResultMessage.Game -> {

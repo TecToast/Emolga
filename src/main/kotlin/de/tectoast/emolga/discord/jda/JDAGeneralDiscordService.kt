@@ -5,8 +5,8 @@ import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.discord.OptionalJDA
 import de.tectoast.emolga.discord.jdaOrNull
 import de.tectoast.emolga.domain.config.repository.GlobalConfigRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.discord.service.GeneralDiscordService
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
 import de.tectoast.emolga.domain.statistics.repository.StatisticsRepository
 import de.tectoast.emolga.features.system.FeatureEventHandler
 import de.tectoast.emolga.utils.BotConstants
@@ -29,7 +29,7 @@ class JDAGeneralDiscordService(
     @Named("flegmon") private val flegmonjda: OptionalJDA,
     private val statisticsRepository: StatisticsRepository,
     private val globalConfigRepository: GlobalConfigRepository,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val botConstants: BotConstants,
     private val discordReadyTasks: List<DiscordReadyTask>
 ) : GeneralDiscordService, StartupTask, KoinComponent {

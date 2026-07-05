@@ -1,9 +1,9 @@
 package de.tectoast.emolga.features.various
 
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.game.service.EmbedResultsService
 import de.tectoast.emolga.domain.game.service.EnglishResultsService
 import de.tectoast.emolga.domain.game.service.SpoilerTagsService
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
 import de.tectoast.emolga.features.interaction.InteractionData
 import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.CommandSpec
@@ -37,7 +37,7 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
     }
 
     @Single
-    class SetLanguage(private val languageRepo: GuildLanguageRepository) : CommandFeature<Args>(::Args, CommandSpec("setlanguage", K18n_SetLanguage.Help)) {
+    class SetLanguage(private val languageRepo: GuildConfigRepository) : CommandFeature<Args>(::Args, CommandSpec("setlanguage", K18n_SetLanguage.Help)) {
 
         class Args : Arguments() {
             var language by enumBasic<K18nLanguage>("language", K18n_SetLanguage.ArgLanguage)
@@ -54,7 +54,7 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
     class EmbedResults(private val service: EmbedResultsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("embedresults", K18n_EmbedResults.Help)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            return iData.reply(if(service.toggle(iData.gid)) K18n_EmbedResults.Enabled else K18n_EmbedResults.Disabled)
+            return iData.reply(service.toggle(iData.gid))
         }
     }
 

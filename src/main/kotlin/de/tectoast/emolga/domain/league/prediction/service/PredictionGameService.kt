@@ -1,6 +1,6 @@
 package de.tectoast.emolga.domain.league.prediction.service
 
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
@@ -34,7 +34,7 @@ class PredictionGameService(
     private val leagueConfigRepo: LeagueConfigRepository,
     private val leagueMemberRepo: LeagueMemberRepository,
     private val leagueScheduleRepo: LeagueScheduleRepository,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val ui: PredictionGameUI,
     dispatcher: CoroutineDispatcher
 ) {

@@ -5,7 +5,7 @@ import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.discord.GuildMemberRepository
 import de.tectoast.emolga.discord.editMessage
 import de.tectoast.emolga.discord.sendMessage
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.showdownnames.service.ShowdownNameInsertService
 import de.tectoast.emolga.domain.league.signup.model.*
 import de.tectoast.emolga.domain.league.signup.model.form.*
@@ -41,7 +41,7 @@ import org.koin.core.component.get
 @Single
 class SignupService(
     private val signupRepo: SignupRepository,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     private val tx: TransactionRunner,
     private val channelInterface: ChannelInterface,
     private val guildMemberRepo: GuildMemberRepository,

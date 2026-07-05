@@ -1,10 +1,10 @@
 package de.tectoast.emolga.domain.game.service.process
 
 import de.tectoast.emolga.discord.GeneralMessageSender
+import de.tectoast.emolga.domain.config.model.GuildConfigType
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.game.model.KDWithName
 import de.tectoast.emolga.domain.game.model.ResultMessage
-import de.tectoast.emolga.domain.game.repository.EnglishResultsRepository
-import de.tectoast.emolga.domain.game.repository.SpoilerTagsRepository
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
@@ -19,8 +19,7 @@ import org.koin.core.annotation.Single
 class ResultMessageBuilder(
     private val displayService: PokemonDisplayService,
     private val generalMessageSender: GeneralMessageSender,
-    private val englishResultsRepo: EnglishResultsRepository,
-    private val spoilerTagsRepo: SpoilerTagsRepository,
+    private val configRepo: GuildConfigRepository,
     private val botConstants: BotConstants,
     private val tierlistRepo: TierlistRepository
 ) {
@@ -35,11 +34,11 @@ class ResultMessageBuilder(
         defaultNameLookup: Map<ShowdownID, String> = emptyMap(),
         urlIfPresent: String? = null,
     ): List<ResultMessage> {
-        val isEnglishResults = englishResultsRepo.contains(gid) || tierlistRepo.getAllMetasForGuild(gid)
+        val isEnglishResults = language == K18nLanguage.EN || configRepo.query(gid, GuildConfigType.EnglishResults) || tierlistRepo.getAllMetasForGuild(gid)
             .any { it.language == Language.ENGLISH }
         val pokemonLang =
             if (dontTranslateFromReplayServer) null else if (isEnglishResults) Language.ENGLISH else Language.GERMAN
-        val spoiler = spoilerTagsRepo.contains(gid)
+        val spoiler = configRepo.query(gid, GuildConfigType.SpoilerTags)
         val description = generateDescription(
             game = game,
             spoiler = spoiler,

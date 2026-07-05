@@ -2,7 +2,7 @@ package de.tectoast.emolga.features.league.signup
 
 import de.tectoast.emolga.discord.jda.features.JDAInteractionData
 import de.tectoast.emolga.discord.toFileSubmission
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.signup.model.SignupInput
 import de.tectoast.emolga.domain.league.signup.model.form.FileSubmission
 import de.tectoast.emolga.domain.league.signup.model.form.SignupSubmissionRequest
@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class])
-class SignupModalHandler(private val signupService: SignupService, private val languageRepo: GuildLanguageRepository) :
+class SignupModalHandler(private val signupService: SignupService, private val languageRepo: GuildConfigRepository) :
     ListenerProvider() {
     init {
         registerListener<ModalInteractionEvent> {

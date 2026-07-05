@@ -2,7 +2,7 @@ package de.tectoast.emolga.discord.jda
 
 import de.tectoast.emolga.K18n_FeatureManager
 import de.tectoast.emolga.discord.jda.features.JDAInteractionData
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.FeatureEventHandler
 import de.tectoast.emolga.features.system.FeatureRegistry
@@ -30,7 +30,7 @@ import kotlin.time.TimeSource
 @Suppress("UNCHECKED_CAST")
 @Single
 class JDAFeatureEventHandler(
-    private val guildLanguageRepo: GuildLanguageRepository,
+    private val guildLanguageRepo: GuildConfigRepository,
     private val botConstants: BotConstants,
     featureRegistry: FeatureRegistry,
 ) : FeatureEventHandler {

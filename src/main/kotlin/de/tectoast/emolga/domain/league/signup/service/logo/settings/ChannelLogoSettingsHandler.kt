@@ -2,7 +2,7 @@ package de.tectoast.emolga.domain.league.signup.service.logo.settings
 
 import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.discord.editMessage
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.signup.model.LeagueSignup
 import de.tectoast.emolga.domain.league.signup.model.LogoInputData
 import de.tectoast.emolga.domain.league.signup.model.LogoSettings
@@ -18,7 +18,7 @@ import org.koin.core.annotation.Single
 @Single
 class ChannelLogoSettingsHandler(
     private val channelInterface: ChannelInterface,
-    private val languageRepo: GuildLanguageRepository
+    private val languageRepo: GuildConfigRepository
 ) :
     LogoSettingsHandler<LogoSettings.Channel> {
     override val targetClass = LogoSettings.Channel::class

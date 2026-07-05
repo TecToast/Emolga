@@ -1,7 +1,7 @@
 package de.tectoast.emolga.features.system.types
 
 import de.tectoast.emolga.discord.jda.features.JDAInteractionData
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.features.interaction.InteractionData
 import de.tectoast.emolga.features.system.ArgSpec
 import de.tectoast.emolga.features.system.Arguments
@@ -32,7 +32,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
     val botConstants by inject<BotConstants>()
 
     init {
-        val languageRepo: GuildLanguageRepository by inject()
+        val languageRepo: GuildConfigRepository by inject()
         registerListener<CommandAutoCompleteInteractionEvent> {
             if (it.name != spec.name && it.name != it.subcommandName) return@registerListener
             permissionCheck(JDAInteractionData(it), botConstants.botOwnerId).let { result ->

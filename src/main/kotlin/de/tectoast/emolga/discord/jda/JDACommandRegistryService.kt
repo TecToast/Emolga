@@ -5,7 +5,7 @@ import de.tectoast.emolga.discord.jda.provider.JDAProvider
 import de.tectoast.emolga.domain.cmdmanage.model.AddRemove
 import de.tectoast.emolga.domain.cmdmanage.repository.CommandManagementRepository
 import de.tectoast.emolga.domain.cmdmanage.service.CommandManagementService
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.features.system.CommandRegistryService
 import de.tectoast.emolga.features.system.FeatureRegistry
 import de.tectoast.emolga.features.system.model.ArgumentPresence
@@ -27,7 +27,7 @@ class JDACommandRegistryService(
     private val cmdManagementService: CommandManagementService,
     private val cmdManagementRepo: CommandManagementRepository,
     private val jdaProvider: JDAProvider,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
 ) : CommandRegistryService, StartupTask, KoinComponent {
     private val logger = KotlinLogging.logger {}
 

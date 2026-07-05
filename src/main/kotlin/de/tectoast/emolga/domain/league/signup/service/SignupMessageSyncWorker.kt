@@ -4,7 +4,7 @@ import de.tectoast.emolga.di.DiscordReadyTask
 import de.tectoast.emolga.di.TransactionRunner
 import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.discord.editMessage
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.signup.model.LeagueSignupConfig
 import de.tectoast.emolga.domain.league.signup.repository.SignupRepository
 import de.tectoast.emolga.features.league.K18n_Signup
@@ -23,7 +23,7 @@ class SignupMessageSyncWorker(
     private val signupRepo: SignupRepository,
     private val channelInterface: ChannelInterface,
     private val tx: TransactionRunner,
-    private val languageRepo: GuildLanguageRepository,
+    private val languageRepo: GuildConfigRepository,
     dispatcher: CoroutineDispatcher
 ) : DiscordReadyTask {
     private val scope = createCoroutineScope("SignupMessageSyncWorker", dispatcher)

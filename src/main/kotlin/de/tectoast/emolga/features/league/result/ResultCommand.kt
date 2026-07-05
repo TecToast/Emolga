@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.league.result
 
-import de.tectoast.emolga.domain.language.repository.GuildLanguageRepository
+import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.model.LeagueWithParticipants
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.result.service.ResultCacheService
@@ -32,7 +32,7 @@ class ResultCommand(
 
         val leagueCoreRepo: LeagueCoreRepository by inject()
         private val resultCacheService: ResultCacheService by inject()
-        val languageRepo: GuildLanguageRepository by inject()
+        val languageRepo: GuildConfigRepository by inject()
 
         var opponent by fromListCommand("Opponent", K18n_EnterResult.ResultArgOpponent, {
             val gid = it.guild!!.idLong

@@ -3,7 +3,6 @@ package de.tectoast.emolga.features.league.draft
 import de.tectoast.emolga.domain.league.draft.model.permission.DraftMention
 import de.tectoast.emolga.domain.league.draft.service.permission.DraftPermissionManagementService
 import de.tectoast.emolga.domain.league.member.model.LeagueParticipant
-import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.features.interaction.InteractionData
 import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.CommandSpec
@@ -26,8 +25,7 @@ class DraftPermissionCommand(allow: Allow, deny: Deny) :
 
     @Single
     class Allow(
-        private val service: DraftPermissionManagementService,
-        private val leagueMemberRepo: LeagueMemberRepository
+        private val service: DraftPermissionManagementService
     ) :
         CommandFeature<Allow.Args>(::Args, CommandSpec("allow", K18n_DraftPermission.AllowHelp)) {
         class Args : Arguments() {
@@ -50,8 +48,7 @@ class DraftPermissionCommand(allow: Allow, deny: Deny) :
 
     @Single
     class Deny(
-        private val service: DraftPermissionManagementService,
-        private val leagueMemberRepo: LeagueMemberRepository
+        private val service: DraftPermissionManagementService
     ) :
         CommandFeature<Deny.Args>(::Args, CommandSpec("deny", K18n_DraftPermission.DenyHelp)) {
         class Args : Arguments() {

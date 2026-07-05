@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features.league.laddertournament
 
-import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.domain.guildspecific.laddertournament.repository.LadderTournamentRepository
 import de.tectoast.emolga.domain.guildspecific.laddertournament.service.LadderTournamentService
 import de.tectoast.emolga.features.interaction.InteractionData
@@ -18,7 +17,6 @@ import org.koin.core.component.inject
 @Single(binds = [ListenerProvider::class])
 class LadderTournamentModal(
     private val service: LadderTournamentService,
-    private val channelInterface: ChannelInterface,
     private val approveBtn: LadderTournamentApproveButton
 ) :
     ModalFeature<LadderTournamentModal.Args>(::Args, ModalSpec("laddertournamentmodal")) {

@@ -2,14 +2,13 @@ package de.tectoast.emolga.features.flo
 
 import de.tectoast.emolga.features.system.types.ListenerProvider
 import de.tectoast.emolga.utils.BotConstants
-import io.ktor.client.*
 import net.dv8tion.jda.api.entities.User
 import org.koin.core.annotation.Single
 
 private const val EMOLGA_PN = 828044461379682314
 
 @Single(binds = [ListenerProvider::class])
-class DMRelay(private val httpClient: HttpClient, private val botConstants: BotConstants) : ListenerProvider() {
+class DMRelay(private val botConstants: BotConstants) : ListenerProvider() {
 
     init {
         registerDMListener { e ->

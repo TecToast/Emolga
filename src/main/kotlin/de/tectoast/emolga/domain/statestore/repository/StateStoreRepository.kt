@@ -10,13 +10,14 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 
 
 @Single
 class StateStoreRepository(private val db: R2dbcDatabase) {
-    suspend fun save(uid: Long, state: StateStore) {
+    suspend fun save(uid: Long, state: StateStore) = suspendTransaction(db) {
         StateStoreTable.upsert {
             it[StateStoreTable.uid] = uid
             it[StateStoreTable.type] = state::class.simpleName!!
@@ -24,14 +25,14 @@ class StateStoreRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend fun delete(uid: Long, state: StateStore) {
+    suspend fun delete(uid: Long, state: StateStore) = suspendTransaction(db) {
         StateStoreTable.deleteWhere {
             (StateStoreTable.uid eq uid) and (StateStoreTable.type eq state::class.simpleName!!)
         }
     }
 
-    suspend fun get(uid: Long, type: String): StateStore? {
-        return StateStoreTable.selectAll().where { (StateStoreTable.uid eq uid) and (StateStoreTable.type eq type) }
+    suspend fun get(uid: Long, type: String): StateStore? = suspendTransaction(db) {
+        StateStoreTable.selectAll().where { (StateStoreTable.uid eq uid) and (StateStoreTable.type eq type) }
             .map { it[StateStoreTable.data] }.firstOrNull()
     }
 }

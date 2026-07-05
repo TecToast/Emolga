@@ -9,7 +9,6 @@ import org.koin.core.annotation.Single
 
 @Single
 class StateStoreDispatcher(val repository: StateStoreRepository, handlers: List<StateStoreHandler<StateStore>>) {
-    val handlerMap = handlers.associateBy { it.targetClass }
     val registry = HandlerRegistry(handlers)
 
     @Suppress("UNCHECKED_CAST")

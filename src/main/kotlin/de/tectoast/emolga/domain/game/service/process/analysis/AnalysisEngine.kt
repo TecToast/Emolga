@@ -623,23 +623,7 @@ class SDPlayer(
     var winnerOfGame: Boolean = false,
     var teamSize: Int = 6,
     private val playerSaves: MutableMap<PlayerSaveKey, SDPokemon> = mutableMapOf()
-) : MutableMap<PlayerSaveKey, SDPokemon> by playerSaves {
-    val allMonsDead: Boolean
-        get() = pokemon.all { it.isDead }
-
-    val totalKDCount: Pair<Int, Int>
-        get() {
-            var kills = 0
-            var deaths = 0
-            pokemon.forEach {
-                kills += it.kills
-                deaths += it.deadCount
-            }
-            return kills to deaths
-        }
-
-    fun containsZoro() = pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }
-}
+) : MutableMap<PlayerSaveKey, SDPokemon> by playerSaves
 
 fun String.cleanSplit() = this.split("|").drop(1)
 

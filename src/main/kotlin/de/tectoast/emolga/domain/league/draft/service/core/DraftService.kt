@@ -18,7 +18,6 @@ import de.tectoast.emolga.domain.league.draft.service.execution.DraftExecutionHa
 import de.tectoast.emolga.domain.league.draft.service.random.RandomPickService
 import de.tectoast.emolga.domain.league.draft.service.timer.DraftTimerService
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
-import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.features.league.draft.K18n_FinishDraft
 import de.tectoast.emolga.features.league.draft.K18n_RandomPick
 import de.tectoast.emolga.league.K18n_League
@@ -44,7 +43,6 @@ class DraftService(
     private val draftTimerService: DraftTimerService,
     private val draftRunContextBuilder: DraftRunContextBuilder,
     private val randomPickService: RandomPickService,
-    private val pokemonDisplayService: PokemonDisplayService,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {
     override val priority = -10

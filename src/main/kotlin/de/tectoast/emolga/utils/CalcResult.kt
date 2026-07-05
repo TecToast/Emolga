@@ -81,12 +81,5 @@ fun <T> CalcResult<T>.isSuccess(): Boolean {
     return this is Success<T>
 }
 
-fun <T> CalcResult<T>.unwrap(): T {
-    return when (this) {
-        is Success -> this.value
-        is CalcResult.Error -> error("Tried to unwrap an error CalcResult: $message")
-    }
-}
-
 typealias ErrorOrNull = K18nMessage?
 typealias K18nMessageOrError = CalcResult<K18nMessage>

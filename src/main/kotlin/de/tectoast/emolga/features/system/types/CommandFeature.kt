@@ -66,10 +66,6 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
         }
     }
 
-    protected fun slashPrivate() {
-        slashPermissions = DefaultMemberPermissions.DISABLED
-    }
-
     companion object {
         val eventToName: (SlashCommandInteractionEvent) -> String = { it.name }
     }

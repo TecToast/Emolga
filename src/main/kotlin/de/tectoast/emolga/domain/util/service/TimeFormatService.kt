@@ -131,7 +131,6 @@ class TimeFormatService(private val clock: Clock) {
             "s" to (K18n_TimeUtils.SecondSingular to K18n_TimeUtils.SecondPlural)
         )
         private val DURATION_PATTERN = Regex("(\\d{1,8})([${STRING_TO_SECONDS.keys.joinToString("")}])")
-        private val DURATION_SPLITTER = Regex("[.|:]")
     }
 }
 

@@ -1,6 +1,5 @@
 package de.tectoast.emolga.domain.league.tierlist.service.core
 
-import de.tectoast.emolga.domain.league.teamgraphic.repository.PokemonCropRepository
 import de.tectoast.emolga.domain.league.tierlist.model.TierData
 import de.tectoast.emolga.domain.league.tierlist.model.TierlistMeta
 import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
@@ -23,7 +22,6 @@ import org.koin.core.annotation.Single
 class TierDataService(
     private val repo: TierlistRepository,
     private val dispatcher: TierlistActionDispatcher,
-    private val cropRepo: PokemonCropRepository
 ) {
     suspend fun getTierData(
         meta: TierlistMeta,

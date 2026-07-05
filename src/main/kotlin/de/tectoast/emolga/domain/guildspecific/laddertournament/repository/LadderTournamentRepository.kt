@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.*
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
@@ -65,7 +66,7 @@ class LadderTournamentRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getValidConfigs(now: Instant) = suspendTransaction(db, LadderTournamentConfigTable) {
-        select(guild, data)/*.where { lastExecution greaterEq now }*/.map { it[guild] to it[data] }.toList()
+        select(guild, data).where { lastExecution greaterEq now }.map { it[guild] to it[data] }.toList()
     }
 }
 

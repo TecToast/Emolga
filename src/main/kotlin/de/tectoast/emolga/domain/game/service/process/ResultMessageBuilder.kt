@@ -1,6 +1,5 @@
 package de.tectoast.emolga.domain.game.service.process
 
-import de.tectoast.emolga.discord.GeneralMessageSender
 import de.tectoast.emolga.domain.config.model.GuildConfigType
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.game.model.KDWithName
@@ -18,7 +17,6 @@ import org.koin.core.annotation.Single
 @Single
 class ResultMessageBuilder(
     private val displayService: PokemonDisplayService,
-    private val generalMessageSender: GeneralMessageSender,
     private val configRepo: GuildConfigRepository,
     private val botConstants: BotConstants,
     private val tierlistRepo: TierlistRepository

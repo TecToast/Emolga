@@ -15,7 +15,6 @@ import de.tectoast.emolga.domain.league.gamedata.model.GameData
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.schedule.repository.LeagueScheduleRepository
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoWritePermissionInChannel
-import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.joinToTeammates
@@ -43,7 +42,6 @@ class GameProcessService(
     private val hideGamesInsertFlow: HideGamesInsertFlow,
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
-    private val botConstants: BotConstants,
     private val guildConfigRepo: GuildConfigRepository,
     dispatcher: CoroutineDispatcher
 ) : StartupTask {

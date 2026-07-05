@@ -8,7 +8,6 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
-import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
@@ -23,11 +22,6 @@ class YouTubeChannelsRepository(private val db: R2dbcDatabase) {
             .toList()
     }
 
-    suspend fun getChannelsOfUser(userId: Long) = suspendTransaction(db) {
-        YTChannelsTable.select(YTChannelsTable.channelId).where { YTChannelsTable.user eq userId }
-            .map { it[YTChannelsTable.channelId] }
-            .toList()
-    }
 
     suspend fun getAllChannelIds(users: Iterable<Long>) =
         suspendTransaction(db) {
@@ -46,15 +40,6 @@ class YouTubeChannelsRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend fun insertAll(data: List<Triple<Long, String, String?>>) {
-        suspendTransaction(db) {
-            YTChannelsTable.batchInsert(data, ignore = true, shouldReturnGeneratedValues = false) {
-                this[YTChannelsTable.user] = it.first
-                this[YTChannelsTable.channelId] = it.second
-                this[YTChannelsTable.handle] = it.third
-            }
-        }
-    }
 }
 
 object YTChannelsTable : Table("ytchannels") {

@@ -3,18 +3,10 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.utils.dsl.Coord
 import kotlin.math.pow
 
-fun String.toCoord() = this.replace("=", "").split("!").let {
-    val sheet = it[0].removeSurrounding("'")
-    val x = it[1].replace(Regex("[^A-Z]"), "")
-    val y = it[1].replace(Regex("[^0-9]"), "").toInt()
-    Coord(sheet, x, y)
-}
-
 infix fun String.x(x: Int) = Coord(this, x, 0)
 infix fun String.x(x: String) = Coord(this, x, 0)
 infix fun Coord.y(y: Int) = Coord(sheet, x, y)
 
-infix fun String.xy(xy: Pair<Int, Int>) = Coord(this, xy.first, xy.second)
 
 fun Int.coordXMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
     Coord(sheet, this % num * xFactor + xSummand, this / num * yFactor + ySummand)
@@ -32,8 +24,6 @@ fun Int.coordXModShift(
     return baseToUse.coordXMod(sheet, num, xFactor, xSummand, yFactor, ySummand)
 }
 
-fun Int.coordYMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
-    Coord(sheet, this / num * xFactor + xSummand, this % num * yFactor + ySummand)
 
 /**
  * Converts an integer to a column name in Google Sheets.

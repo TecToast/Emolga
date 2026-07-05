@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
-import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.koin.core.annotation.Single
@@ -14,16 +13,6 @@ import org.koin.core.annotation.Single
 
 @Single
 class YouTubeNotificationsRepository(private val db: R2dbcDatabase) {
-
-    suspend fun addData(id: Long, dm: Boolean, data: Iterable<String>) {
-        suspendTransaction(db) {
-            YTNotificationsTable.batchInsert(data, ignore = true, shouldReturnGeneratedValues = false) {
-                this[YTNotificationsTable.ytChannel] = it
-                this[YTNotificationsTable.discordChannel] = id
-                this[YTNotificationsTable.dm] = dm
-            }
-        }
-    }
 
     suspend fun getAllYTChannels() = suspendTransaction(db) {
         YTNotificationsTable.select(YTNotificationsTable.ytChannel).withDistinct(true)

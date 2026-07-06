@@ -9,6 +9,7 @@ import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.serialization.json.Json
@@ -74,6 +75,7 @@ class KtorService(private val controllers: List<WebController>, @Named("web") pr
         }
         install(CallLogging) {
             level = Level.INFO
+            filter { call -> call.request.path() != "/api/emolga/me" }
         }
         install(CachingHeaders) {}
         install(SSE)

@@ -182,7 +182,9 @@ class SignupService(
                 label = options.label,
                 inputRequired = options.required,
                 placeholder = options.placeholder,
-                value = oldData?.data?.get(structure.id)
+                value = oldData?.data?.get(structure.id)?.let {
+                    signUpInputDispatcher.mapValueForDisplay(structure, it)
+                }
             )
             fields.add(state)
         }

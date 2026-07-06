@@ -50,7 +50,7 @@ class SignupMessageSyncWorker(
                 languageRepo.getLanguage(signup.guild)
             )
         }
-        signupRepo.markSyncCompleted(dirtySignups.map { it.id })
+        signupRepo.setNewDocumentedCount(dirtySignups.associate { it.id to it.userCount })
     }
 
     fun notifySignupChange() {
@@ -60,7 +60,7 @@ class SignupMessageSyncWorker(
     private suspend fun updateSignupMessage(
         config: LeagueSignupConfig,
         announceMessageId: Long,
-        userCount: Int,
+        userCount: Long,
         language: K18nLanguage,
         setMaxUsersToCurrentUsers: Boolean = false
     ) {

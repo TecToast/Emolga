@@ -43,24 +43,29 @@ class SignupRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getDirtySignups() = suspendTransaction(db) {
-        val count = wrapAsExpression<Int>(SignupEntryTable.select(SignupEntryTable.id.count()).where { SignupEntryTable.signupId eq LeagueSignupTable.id }).alias("user_count")
+        val countExpr = wrapAsExpression<Long>(
+            SignupEntryTable.select(SignupEntryTable.id.count())
+                .where { SignupEntryTable.signupId eq LeagueSignupTable.id })
+        val countExprLabeled = countExpr.alias("user_count")
         LeagueSignupTable
-            .select(LeagueSignupTable.id, LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, count)
-            .where { LeagueSignupTable.needsMessageSync eq true }
+            .select(LeagueSignupTable.id, LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, countExprLabeled)
+            .where { LeagueSignupTable.lastDocumentedEntryCount neq countExpr }
             .map {
                 DirtySignup(
                     id = it[LeagueSignupTable.id],
                     config = it[LeagueSignupTable.config],
                     guild = it[LeagueSignupTable.guild],
                     announceMessageId = it[LeagueSignupTable.announceMessageId],
-                    userCount = it[count] ?: 0
+                    userCount = it[countExprLabeled] ?: 0
                 )
             }.toList()
     }
 
-    suspend fun markSyncCompleted(signupIds: Iterable<Int>) = suspendTransaction(db) {
-        LeagueSignupTable.update({ LeagueSignupTable.id inList signupIds }) {
-            it[LeagueSignupTable.needsMessageSync] = false
+    suspend fun setNewDocumentedCount(data: Map<Int, Long>) = suspendTransaction(db) {
+        for ((signupId, documentedCount) in data) {
+            LeagueSignupTable.update({ LeagueSignupTable.id eq signupId }) {
+                it[LeagueSignupTable.lastDocumentedEntryCount] = documentedCount
+            }
         }
     }
 
@@ -97,7 +102,6 @@ class SignupRepository(private val db: R2dbcDatabase) {
             this[SignupUserTable.entryId] = entryId
             this[SignupUserTable.userId] = userId
         }
-        markSignupDirty(signupId)
         entryId
     }
 
@@ -198,7 +202,6 @@ class SignupRepository(private val db: R2dbcDatabase) {
         val remainingUserCount = SignupUserTable.selectAll().where { SignupUserTable.entryId eq entryId }.count()
         if (remainingUserCount == 0L) {
             SignupEntryTable.deleteWhere { SignupEntryTable.id eq entryId }
-            markSignupDirty(signupId)
             SignupRemoveUserResult.Removed(signupId, entry, deletedEntry = true)
         } else {
             SignupRemoveUserResult.Removed(signupId, entry, deletedEntry = false)
@@ -232,12 +235,6 @@ class SignupRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    private suspend fun markSignupDirty(signupId: Int) {
-        LeagueSignupTable.update({ LeagueSignupTable.id eq signupId }) {
-            it[LeagueSignupTable.needsMessageSync] = true
-        }
-    }
-
 
 }
 
@@ -250,7 +247,7 @@ object LeagueSignupTable : Table("league_signup") {
     val announceMessageId = long("announce_message_id")
     val conferences = array<String>("conferences").default(emptyList())
     val conferenceRoleIds = jsonb<Map<String, Long>>("conference_role_ids").default(emptyMap())
-    val needsMessageSync = bool("needs_message_sync").default(false)
+    val lastDocumentedEntryCount = long("last_documented_entry_count").default(0)
 
     override val primaryKey = PrimaryKey(id)
 

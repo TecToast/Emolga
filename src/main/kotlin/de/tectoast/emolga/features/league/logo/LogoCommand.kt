@@ -25,6 +25,7 @@ class LogoCommand(private val signupService: SignupService) : CommandFeature<Log
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
+        iData.deferReply(true)
         iData.reply(signupService.insertLogo(iData.gid, iData.user, e.logo.toFileSubmission()).msg(), ephemeral = true)
     }
 

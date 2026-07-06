@@ -47,7 +47,7 @@ class StaticCloud(
                     append(HttpHeaders.ContentType, mimeType)
                     append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
                 })
-                append("hash_length", credentials.hashLength)
+                append("path", name)
             }) {
                 header("Authorization", "Bearer ${credentials.token}")
             }.bodyAsText().trim('"')
@@ -59,7 +59,7 @@ class StaticCloud(
         val fileName = data.fileName
         if (!logoNameRepository.fileNameExists(data.fileName)) {
             uploadFileToCloud(
-                data.fileName, "image/${data.fileExtension}", data.bytes
+                fileName, "image/${data.fileExtension}", data.bytes
             )
         }
         logoNameRepository.insertFileName(fileName, data.teamName)

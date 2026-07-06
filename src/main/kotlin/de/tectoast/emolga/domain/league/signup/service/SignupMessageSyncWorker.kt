@@ -40,8 +40,9 @@ class SignupMessageSyncWorker(
         }
     }
 
-    private suspend fun syncDirtySignups() = tx(serializableIsolation = true) {
-        signupRepo.getDirtySignups().forEach { signup ->
+    private suspend fun syncDirtySignups() = tx {
+        val dirtySignups = signupRepo.getDirtySignups()
+        dirtySignups.forEach { signup ->
             updateSignupMessage(
                 signup.config,
                 signup.announceMessageId,
@@ -49,7 +50,7 @@ class SignupMessageSyncWorker(
                 languageRepo.getLanguage(signup.guild)
             )
         }
-        signupRepo.markSyncCompleted()
+        signupRepo.markSyncCompleted(dirtySignups.map { it.id })
     }
 
     fun notifySignupChange() {

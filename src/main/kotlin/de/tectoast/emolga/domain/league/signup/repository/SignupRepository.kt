@@ -45,10 +45,11 @@ class SignupRepository(private val db: R2dbcDatabase) {
     suspend fun getDirtySignups() = suspendTransaction(db) {
         val count = wrapAsExpression<Int>(SignupEntryTable.select(SignupEntryTable.id.count()).where { SignupEntryTable.signupId eq LeagueSignupTable.id }).alias("user_count")
         LeagueSignupTable
-            .select(LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, count)
+            .select(LeagueSignupTable.id, LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, count)
             .where { LeagueSignupTable.needsMessageSync eq true }
             .map {
                 DirtySignup(
+                    id = it[LeagueSignupTable.id],
                     config = it[LeagueSignupTable.config],
                     guild = it[LeagueSignupTable.guild],
                     announceMessageId = it[LeagueSignupTable.announceMessageId],
@@ -57,8 +58,8 @@ class SignupRepository(private val db: R2dbcDatabase) {
             }.toList()
     }
 
-    suspend fun markSyncCompleted() = suspendTransaction(db) {
-        LeagueSignupTable.update({ LeagueSignupTable.needsMessageSync eq true }) {
+    suspend fun markSyncCompleted(signupIds: Iterable<Int>) = suspendTransaction(db) {
+        LeagueSignupTable.update({ LeagueSignupTable.id inList signupIds }) {
             it[LeagueSignupTable.needsMessageSync] = false
         }
     }

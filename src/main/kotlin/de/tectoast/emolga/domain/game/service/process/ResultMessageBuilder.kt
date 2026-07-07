@@ -111,19 +111,14 @@ class ResultMessageBuilder(
         val allDead = K18n_Analysis.AllDead.translateTo(kLang)
         val description = buildString {
             game.mapIndexed { index, sdPlayer ->
-                val number = sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0)
-                if (index % 2 > 0) {
-                    append(number)
-                    if (spoiler) append("||")
-                    append(" ")
-                    append(playerNames[index])
-                } else {
-                    append(playerNames[index])
-                    append(" ")
-                    if (spoiler) append("||")
-                    append(number)
+                val list = buildList {
+                    add(playerNames[index])
+                    add(" ")
+                    if (spoiler) add("||")
+                    add(sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0))
                 }
-                if(index != game.lastIndex) append(":")
+                for (item in if (index % 2 > 0) list.reversed() else list) append(item)
+                if (index != game.lastIndex) append(":")
             }
             if (is4v4) append("\n(4v4)")
             append("\n\n")

@@ -32,7 +32,10 @@ class ResultMessageBuilder(
         defaultNameLookup: Map<ShowdownID, String> = emptyMap(),
         urlIfPresent: String? = null,
     ): List<ResultMessage> {
-        val isEnglishResults = language == K18nLanguage.EN || configRepo.query(gid, GuildConfigType.EnglishResults) || tierlistRepo.getAllMetasForGuild(gid)
+        val isEnglishResults = language == K18nLanguage.EN || configRepo.query(
+            gid,
+            GuildConfigType.EnglishResults
+        ) || tierlistRepo.getAllMetasForGuild(gid)
             .any { it.language == Language.ENGLISH }
         val pokemonLang =
             if (dontTranslateFromReplayServer) null else if (isEnglishResults) Language.ENGLISH else Language.GERMAN
@@ -107,15 +110,21 @@ class ResultMessageBuilder(
         }
         val allDead = K18n_Analysis.AllDead.translateTo(kLang)
         val description = buildString {
-            append(game.mapIndexed { index, sdPlayer ->
-                mutableListOf<Any>(
-                    playerNames[index], sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0)
-                ).apply {
-                    if (spoiler) add(1, "||")
-                }.let {
-                    if (index % 2 > 0) it.asReversed() else it
+            game.mapIndexed { index, sdPlayer ->
+                val number = sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0)
+                if (index % 2 > 0) {
+                    append(number)
+                    if (spoiler) append("||")
+                    append(" ")
+                    append(playerNames[index])
+                } else {
+                    append(playerNames[index])
+                    append(" ")
+                    if (spoiler) append("||")
+                    append(number)
                 }
-            }.joinToString(":") { it.joinToString(" ") })
+                if(index != game.lastIndex) append(":")
+            }
             if (is4v4) append("\n(4v4)")
             append("\n\n")
             game.forEachIndexed { index, player ->

@@ -15,6 +15,7 @@ import de.tectoast.emolga.domain.util.service.TimeFormatService
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dsl.AstEnvironment
+import de.tectoast.emolga.utils.dsl.ValidVariableProvider
 import de.tectoast.emolga.utils.sheetupdate.applySheetTemplate
 import org.koin.core.annotation.Single
 import kotlin.reflect.KClass
@@ -437,12 +438,12 @@ private abstract class DraftData(
 ) : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
-            "USER_INDEX" -> userIndex
-            "PICK_INDEX" -> pickIndex
-            "POKEMON" -> tlName
-            "SHOWDOWN_ID" -> showdownId
-            "TIER" -> tier
-            "ROUND_INDEX" -> roundIndex
+            USER_INDEX -> userIndex
+            PICK_INDEX -> pickIndex
+            POKEMON -> tlName
+            SHOWDOWN_ID -> showdownId
+            TIER -> tier
+            ROUND_INDEX -> roundIndex
             else -> resolveSpecific(variable)
         }
         require(clazz.isInstance(result)) { "Resolved value $result is not of the expected type ${clazz.simpleName}" }
@@ -450,6 +451,15 @@ private abstract class DraftData(
     }
 
     abstract fun resolveSpecific(variable: String): Any
+
+    companion object {
+        const val USER_INDEX = "USER_INDEX"
+        const val PICK_INDEX = "PICK_INDEX"
+        const val POKEMON = "POKEMON"
+        const val SHOWDOWN_ID = "SHOWDOWN_ID"
+        const val TIER = "TIER"
+        const val ROUND_INDEX = "ROUND_INDEX"
+    }
 }
 
 private class PickData(
@@ -473,6 +483,18 @@ private class PickData(
             else -> throw IllegalArgumentException("Unknown variable: $variable")
         }
     }
+
+    companion object : ValidVariableProvider {
+        override val validVariables = setOf(
+            FREE, UPDRAFTED, TERA, POINTS,
+            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+        )
+        const val FREE = "FREE"
+        const val UPDRAFTED = "UPDRAFTED"
+        const val TERA = "TERA"
+        const val POINTS = "POINTS"
+
+    }
 }
 
 private class SwitchData(
@@ -487,10 +509,20 @@ private class SwitchData(
 ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex) {
     override fun resolveSpecific(variable: String): Any {
         return when (variable) {
-            "OLD_TL_NAME" -> oldTlName
-            "OLD_SHOWDOWN_ID" -> oldShowdownId
+            OLD_TL_NAME -> oldTlName
+            OLD_SHOWDOWN_ID -> oldShowdownId
             else -> throw IllegalArgumentException("Unknown variable: $variable")
         }
+    }
+
+    companion object : ValidVariableProvider {
+        override val validVariables = setOf(
+            OLD_TL_NAME, OLD_SHOWDOWN_ID,
+            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+        )
+
+        const val OLD_TL_NAME = "OLD_TL_NAME"
+        const val OLD_SHOWDOWN_ID = "OLD_SHOWDOWN_ID"
     }
 }
 
@@ -499,5 +531,11 @@ private class BanData(
 ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex) {
     override fun resolveSpecific(variable: String): Any {
         throw IllegalArgumentException("No specific variables for BanData (trying $variable)")
+    }
+
+    companion object : ValidVariableProvider {
+        override val validVariables = setOf(
+            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+        )
     }
 }

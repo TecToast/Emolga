@@ -117,8 +117,9 @@ class ResultMessageBuilder(
                     if (spoiler) add("||")
                     add(sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0))
                 }
-                for (item in if (index % 2 > 0) list.reversed() else list) append(item)
-                if (index != game.lastIndex) append(":")
+                val isOddIndex = index % 2 > 0
+                for (item in if (isOddIndex) list.reversed() else list) append(item)
+                if (!isOddIndex) append(":")
             }
             if (is4v4) append("\n(4v4)")
             append("\n\n")

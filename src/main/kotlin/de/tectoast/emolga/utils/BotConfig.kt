@@ -32,6 +32,7 @@ data class BotConfig(
         val username: String
         val password: String
         val database: String
+        val statisticDatabase: String
 
         @Serializable
         @SerialName("Network")
@@ -39,6 +40,7 @@ data class BotConfig(
             override val username: String,
             override val password: String,
             override val database: String = "emolga",
+            override val statisticDatabase: String = "emolga_stats",
             val host: String,
             val port: Int,
         ) : Database
@@ -49,6 +51,7 @@ data class BotConfig(
             override val username: String,
             override val password: String,
             override val database: String = "emolga",
+            override val statisticDatabase: String = "emolga_stats",
             val path: String,
         ) : Database
     }

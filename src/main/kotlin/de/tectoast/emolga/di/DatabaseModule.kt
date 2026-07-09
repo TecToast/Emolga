@@ -8,19 +8,26 @@ import org.jetbrains.exposed.v1.core.exposedLogger
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.koin.core.annotation.Module
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
 @Module(includes = [ConfigModule::class])
 class DatabaseModule {
 
     @Single
-    fun postgres(cred: BotConfig.Database): R2dbcDatabase = R2dbcDatabase.connect {
+    fun postgres(cred: BotConfig.Database): R2dbcDatabase = setupDatabase(cred, false)
+
+    @Single
+    @Named("stats")
+    fun postgresStats(cred: BotConfig.Database) = setupDatabase(cred, true)
+
+    private fun setupDatabase(cred: BotConfig.Database, statistics: Boolean) = R2dbcDatabase.connect {
         connectionFactoryOptions {
             option(DRIVER, "pool")
             option(PROTOCOL, "postgresql")
             option(USER, cred.username)
             option(PASSWORD, cred.password)
-            option(DATABASE, cred.database)
+            option(DATABASE, if(statistics) cred.statisticDatabase else cred.database)
             when (cred) {
                 is BotConfig.Database.Network -> {
                     option(HOST, cred.host)

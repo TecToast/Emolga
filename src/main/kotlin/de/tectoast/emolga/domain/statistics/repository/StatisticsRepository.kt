@@ -21,6 +21,7 @@ import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -28,7 +29,7 @@ import kotlin.time.Instant
 private val logger = KotlinLogging.logger {}
 
 @Single
-class StatisticsRepository(private val db: R2dbcDatabase, private val httpClient: HttpClient) {
+class StatisticsRepository(@Named("stats") private val db: R2dbcDatabase, private val httpClient: HttpClient) {
 
     private val lastEventsCache = newThreadSafeCache<String, AnalysisEvents>(50)
 

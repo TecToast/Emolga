@@ -6,10 +6,11 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
 @Single
-class LeagueArchiveRepository(private val db: R2dbcDatabase) {
+class LeagueArchiveRepository(@Named("stats") private val db: R2dbcDatabase) {
     suspend fun save(leagueName: String, data: LeagueArchiveData) = suspendTransaction(db) {
         LeagueArchiveTable.insertIgnore {
             it[LeagueArchiveTable.leagueName] = leagueName

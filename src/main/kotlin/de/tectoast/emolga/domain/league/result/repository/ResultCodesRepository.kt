@@ -65,7 +65,7 @@ class ResultCodesRepository(private val db: R2dbcDatabase, val clock: Clock) : C
     }
 
     override suspend fun cleanup(now: Instant) {
-        suspendTransaction {
+        suspendTransaction(db) {
             ResultCodesTable.deleteWhere { ResultCodesTable.timestamp lessEq now.minus(1.days) }
         }
     }

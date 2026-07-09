@@ -36,7 +36,7 @@ class StatisticsRepository(@Named("stats") private val db: R2dbcDatabase, privat
 
     fun getEvents(url: String): AnalysisEvents? = lastEventsCache[url]
 
-    suspend fun getCurrentAmountOfReplays(): Long = suspendTransaction { StartTable.selectAll().count() }
+    suspend fun getCurrentAmountOfReplays(): Long = suspendTransaction(db) { StartTable.selectAll().count() }
 
     suspend fun addToStatistics(ctx: BattleContext) {
         lastEventsCache[ctx.url] = ctx.events

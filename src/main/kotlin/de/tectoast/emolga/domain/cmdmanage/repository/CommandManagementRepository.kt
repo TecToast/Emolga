@@ -57,7 +57,7 @@ class CommandManagementRepository(private val db: R2dbcDatabase) {
     }
 
 
-    suspend fun getFeaturesForGuild(gid: Long): Set<String> = suspendTransaction {
+    suspend fun getFeaturesForGuild(gid: Long): Set<String> = suspendTransaction(db) {
         GuildCommandsTable.select(GuildCommandsTable.command).where { GuildCommandsTable.guild eq gid }.union(
             GroupCommandsTable.select(
                 GroupCommandsTable.command

@@ -22,7 +22,11 @@ class YouTubeNotificationsRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getDCChannels(ytChannel: String) = suspendTransaction(db) {
-        YTNotificationsTable.select(YTNotificationsTable.discordChannel, YTNotificationsTable.dm)
+        YTNotificationsTable.select(
+            YTNotificationsTable.discordChannel,
+            YTNotificationsTable.dm,
+            YTNotificationsTable.format
+        )
             .where { YTNotificationsTable.ytChannel eq ytChannel }
             .map {
                 YTNotificationData(

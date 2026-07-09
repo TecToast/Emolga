@@ -1,5 +1,6 @@
 package de.tectoast.emolga.domain.ytgeneric.repository
 
+import de.tectoast.emolga.domain.ytgeneric.model.YTNotificationData
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
@@ -23,7 +24,13 @@ class YouTubeNotificationsRepository(private val db: R2dbcDatabase) {
     suspend fun getDCChannels(ytChannel: String) = suspendTransaction(db) {
         YTNotificationsTable.select(YTNotificationsTable.discordChannel, YTNotificationsTable.dm)
             .where { YTNotificationsTable.ytChannel eq ytChannel }
-            .map { it[YTNotificationsTable.discordChannel] to it[YTNotificationsTable.dm] }.toList()
+            .map {
+                YTNotificationData(
+                    it[YTNotificationsTable.discordChannel],
+                    it[YTNotificationsTable.dm],
+                    it[YTNotificationsTable.format]
+                )
+            }.toList()
     }
 }
 
@@ -31,6 +38,7 @@ object YTNotificationsTable : Table("ytnotifications") {
     val discordChannel = long("dcchannel")
     val ytChannel = text("ytchannel")
     val dm = bool("dm").default(false)
+    val format = text("format").default("{ytlink}")
 
     override val primaryKey = PrimaryKey(discordChannel, ytChannel)
 

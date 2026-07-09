@@ -18,8 +18,9 @@ class YouTubeNotificationService(
 
     suspend fun handleIncoming(channelId: String, videoId: String) {
         if (!duplicateVideoCache.add(videoId)) return
-        val content = "https://youtu.be/$videoId"
-        ytNotificationsRepo.getDCChannels(channelId).forEach { (mc, dm) ->
+        val ytLink = "https://youtu.be/$videoId"
+        ytNotificationsRepo.getDCChannels(channelId).forEach { (mc, dm, format) ->
+            val content = format.replace("{ytlink}", ytLink)
             if (dm) dmSender.sendDM(mc, content)
             else channelInterface.sendMessage(mc, content)
         }

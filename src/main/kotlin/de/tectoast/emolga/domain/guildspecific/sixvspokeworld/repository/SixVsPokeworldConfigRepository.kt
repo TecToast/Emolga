@@ -26,6 +26,6 @@ class SixVsPokeworldConfigRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object SixVsPokeworldConfigTable : Table("six_vs_pokeworld_config") {
+object SixVsPokeworldConfigTable : Table("six_vs_pokeworld.config") {
     val challenges = jsonb<List<SixVsPokeworldConfig.SixVsPokeworldMilestone>>("challenges")
 }

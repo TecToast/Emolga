@@ -15,7 +15,7 @@ class SixVsPokeworldAuthRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object SixVsPokeworldAuthTable : Table("six_vs_pokeworld_auth") {
+object SixVsPokeworldAuthTable : Table("six_vs_pokeworld.auth") {
     val user = long("user")
 
     override val primaryKey = PrimaryKey(user)

@@ -3,4 +3,4 @@ package de.tectoast.emolga.domain.league.signup.model.data
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ParticipantDataSet(val conferences: List<String>, val data: Map<Int, ParticipantDataSetData>)
+class ParticipantDataSetData(val conf: String?, val order: Int)

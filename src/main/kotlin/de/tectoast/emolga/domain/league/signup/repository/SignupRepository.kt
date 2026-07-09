@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.signup.repository
 
 
 import de.tectoast.emolga.domain.league.signup.model.*
+import de.tectoast.emolga.domain.league.signup.model.data.ParticipantDataSetData
 import de.tectoast.emolga.utils.arrayAgg
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.referencesCascade
@@ -213,7 +214,7 @@ class SignupRepository(private val db: R2dbcDatabase) {
         val aggregated =
             SignupUserTable.select(SignupUserTable.entryId, users).groupBy(SignupUserTable.entryId).alias("aggregated")
         SignupEntryTable.innerJoin(aggregated, { id }, { aggregated[SignupUserTable.entryId] }).selectAll()
-            .orderBy(SignupEntryTable.id)
+            .orderBy(SignupEntryTable.order to SortOrder.ASC, SignupEntryTable.id to SortOrder.ASC)
             .where { SignupEntryTable.signupId eq signupId }.associate {
                 it.entryRowToSignupEntry(
                     aggregated[users]
@@ -227,10 +228,11 @@ class SignupRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend fun setConferencesForEntries(signupId: Int, data: Map<Int, String?>) = suspendTransaction(db) {
-        for ((entryId, conference) in data) {
+    suspend fun setConferencesForEntries(signupId: Int, data: Map<Int, ParticipantDataSetData>) = suspendTransaction(db) {
+        for ((entryId, singleData) in data) {
             SignupEntryTable.update({ (SignupEntryTable.signupId eq signupId) and (SignupEntryTable.id eq entryId) }) {
-                it[SignupEntryTable.conference] = conference
+                it[SignupEntryTable.conference] = singleData.conf
+                it[SignupEntryTable.order] = singleData.order
             }
         }
     }
@@ -264,6 +266,7 @@ object SignupEntryTable : Table("signup_entry") {
     val logoMessageId = long("logo_message_id").nullable()
     val logoIdentifier = text("logo_identifier").nullable()
     val conference = text("conference").nullable()
+    val order = integer("order").default(0)
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -25,8 +25,10 @@ import de.tectoast.emolga.features.league.signup.SignupButton
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.K18n_SignupInput
 import de.tectoast.generic.K18n_SignupNoun
+import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.MessageCreate
+import dev.minn.jda.ktx.messages.MessageEdit
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
@@ -83,17 +85,21 @@ class SignupService(
                             )
                         }
                     },
-                    components = listOf(
-                        get<SignupButton>().withoutIData(
-                            language = language
-                        ) {
-                            this.identifier = identifier
-                        }, get<SignoutButton>().withoutIData(language = language)).into()
+                    components = getSignupButtons(identifier, language)
                 )
             ) ?: return false
         signupRepo.createNewSignup(gid, identifier, config, messageid)
         return true
     }
+
+    private fun getSignupButtons(identifier: String, language: K18nLanguage, disabled: Boolean = false) = listOf(
+        get<SignupButton>().withoutIData(
+            language = language,
+            disabled = disabled
+        ) {
+            this.identifier = identifier
+        }, get<SignoutButton>().withoutIData(language = language)
+    ).into()
 
     suspend fun handleSignupClick(guild: Long, identifier: String, user: Long): CalcResult<SignupButtonResult> {
         val signup = signupRepo.getLeagueSignup(guild, identifier) ?: return K18n_Signup.SignUpClosedError.error()
@@ -296,6 +302,9 @@ class SignupService(
             val signupEntry = SignupEntry(users.toMutableSet(), data.toMutableMap(), signupMessageId = messageId)
             val entryId = signupRepo.saveNewSignupEntry(signupId, signupEntry)
             isNewSignup = true
+            if (currentSignupCount + 1 >= maxUsers) {
+                closeSignup(leagueSignup)
+            }
             logoAttachment?.handleLogoOnSignup(entryId, leagueSignup)?.let { return@tx it }
             scope.launch {
                 data[SignupInput.SDNAME_ID]?.let {
@@ -316,6 +325,21 @@ class SignupService(
         }
         if (isNewSignup) messageSyncWorker.notifySignupChange()
         return signupResult
+    }
+
+    suspend fun closeSignup(leagueSignup: LeagueSignup) {
+        val messageId = leagueSignup.announceMessageId ?: return
+        val lang = languageRepo.getLanguage(leagueSignup.guild)
+        val config = leagueSignup.config
+        channelInterface.editMessage(
+            config.announceChannel,
+            messageId,
+            MessageEdit(components = getSignupButtons(leagueSignup.identifier, lang, disabled = true))
+        )
+        val msg = "_----------- ${K18n_Signup.SignupClosed.translateTo(lang)} -----------_"
+        channelInterface.sendMessage(config.announceChannel, msg)
+        if(config.announceChannel != config.signupChannel)
+            channelInterface.sendMessage(config.signupChannel, msg)
     }
 
 

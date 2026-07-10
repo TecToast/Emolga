@@ -3,7 +3,7 @@ package de.tectoast.emolga.domain.league.signup.repository
 
 import de.tectoast.emolga.domain.league.signup.model.*
 import de.tectoast.emolga.domain.league.signup.model.data.ParticipantDataSetData
-import de.tectoast.emolga.utils.arrayAgg
+import de.tectoast.emolga.utils.database.arrayAgg
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
@@ -123,6 +123,7 @@ class SignupRepository(private val db: R2dbcDatabase) {
         val users =
             alreadyFetchedUsers?.let { this[it].toMutableSet() } ?: SignupUserTable.select(SignupUserTable.userId)
                 .where { SignupUserTable.entryId eq entryId }
+                .orderBy(SignupUserTable.userId)
                 .map { row -> row[SignupUserTable.userId] }.toCollection(mutableSetOf())
         return entryId to SignupEntry(
             users,
@@ -210,7 +211,7 @@ class SignupRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getAllEntries(signupId: Int) = suspendTransaction(db) {
-        val users = arrayAgg(SignupUserTable.userId, LongColumnType()).alias("users")
+        val users = SignupUserTable.userId.arrayAgg(SignupUserTable.userId, columnType = LongColumnType()).alias("users")
         val aggregated =
             SignupUserTable.select(SignupUserTable.entryId, users).groupBy(SignupUserTable.entryId).alias("aggregated")
         SignupEntryTable.innerJoin(aggregated, { id }, { aggregated[SignupUserTable.entryId] }).selectAll()

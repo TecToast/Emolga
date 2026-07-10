@@ -88,5 +88,6 @@ data class BotConstants(
     val gpcAdminRoleId: Long = 0,
     val sdNamesChannelId: Long = 0,
     val always17User: Long = 0,
-    val webBaseUrl: String = "https://example.com"
+    val webBaseUrl: String = "https://example.com",
+    val logoBaseUrl: String = "https://example.com/images",
 )

@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.*
+import org.jetbrains.exposed.v1.r2dbc.transactions.inTopLevelSuspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.koin.core.annotation.Single
 
@@ -127,10 +128,12 @@ class SignupRepository(private val db: R2dbcDatabase) {
     private suspend fun ResultRow.entryRowToSignupEntry(alreadyFetchedUsers: ExpressionWithColumnType<List<Long>>? = null): Pair<Int, SignupEntry> {
         val entryId = this[SignupEntryTable.id]
         val users =
-            alreadyFetchedUsers?.let { this[it].toMutableSet() } ?: SignupUserTable.select(SignupUserTable.userId)
-                .where { SignupUserTable.entryId eq entryId }
-                .orderBy(SignupUserTable.userId)
-                .map { row -> row[SignupUserTable.userId] }.toCollection(mutableSetOf())
+            alreadyFetchedUsers?.let { this[it].toMutableSet() } ?: inTopLevelSuspendTransaction(db) {
+                SignupUserTable.select(SignupUserTable.userId)
+                    .where { SignupUserTable.entryId eq entryId }
+                    .orderBy(SignupUserTable.userId)
+                    .map { row -> row[SignupUserTable.userId] }.toCollection(mutableSetOf())
+            }
         return entryId to SignupEntry(
             users,
             this[SignupEntryTable.data].toMutableMap(),

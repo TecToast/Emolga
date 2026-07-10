@@ -11,6 +11,14 @@ data class CoordLiteral(private val sheet: StringExpr, private val x: IntExpr, p
     override fun eval(env: AstEnvironment) = Coord(sheet.eval(env), x.eval(env), y.eval(env))
 }
 
+@Serializable
+@SerialName("CoordOffset")
+data class CoordOffset(private val base: CoordExpr, private val x: IntExpr = IntLiteral(0), private val y: IntExpr = IntLiteral(0)) : CoordExpr {
+    override fun eval(env: AstEnvironment): Coord {
+        val baseCoord = base.eval(env)
+        return Coord(baseCoord.sheet, baseCoord.x + x.eval(env), baseCoord.y + y.eval(env))
+    }
+}
 
 @Serializable
 @SerialName("CoordXMod")

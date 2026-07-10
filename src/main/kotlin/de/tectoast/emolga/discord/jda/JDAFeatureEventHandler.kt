@@ -14,7 +14,10 @@ import de.tectoast.emolga.features.system.types.Feature
 import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.t
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.GenericEvent
@@ -23,7 +26,9 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import org.koin.core.annotation.Single
+import org.slf4j.MDC
 import kotlin.reflect.KClass
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -32,6 +37,7 @@ import kotlin.time.TimeSource
 class JDAFeatureEventHandler(
     private val guildLanguageRepo: GuildConfigRepository,
     private val botConstants: BotConstants,
+    private val clock: Clock,
     featureRegistry: FeatureRegistry,
 ) : FeatureEventHandler {
     private val listenerScope = createCoroutineScope("FeatureManagerListener")
@@ -96,7 +102,9 @@ class JDAFeatureEventHandler(
     ) {
         val language = guildLanguageRepo.getLanguage(e.guild?.idLong)
         val data = JDAInteractionData(e, language)
-        surveillanceScope.launch {
+        val traceId = clock.now().toEpochMilliseconds().toString()
+        MDC.put("traceId", traceId)
+        surveillanceScope.launch(MDCContext()) {
             val executionStart = TimeSource.Monotonic.markNow()
             withTimeoutOrNull(10.seconds) {
                 data.acknowledged.await()
@@ -104,31 +112,45 @@ class JDAFeatureEventHandler(
             val duration = executionStart.elapsedNow()
             if (duration > 2.seconds)
                 logger.warn(
-                    "Interaction not acknowledged after 2s (needed ${executionStart.elapsedNow()}): ${buildLogMessage(e)}"
+                    "Interaction not acknowledged after 2s (needed ${executionStart.elapsedNow()})}"
                 )
         }
         with(data) {
             try {
-                logger.info(buildLogMessage(e))
-                when (val result = feature.permissionCheck(data, botConstants.botOwnerId)) {
-                    Allowed -> {
-                        val args = feature.argsFun()
-                        try {
-                            feature.populateArgs(data, e, args)
-                        } catch (ex: ArgumentException) {
-                            data.replyRaw(
-                                ex.msg.t() + "\n" + K18n_FeatureManager.IfErrorContact(botConstants.botOwnerTag).t(),
-                                ephemeral = true
-                            )
-                            return
-                        }
-                        feature.exec(args)
-                    }
+                logger.atDebug()
+                    .setMessage("Invocation")
+                    .addKeyValue("guild", e.guild?.idLong ?: 0)
+                    .addKeyValue("channel", e.channel?.idLong ?: 0)
+                    .addKeyValue("user", e.user.idLong)
+                    .addKeyValue("interaction", e.stringify())
+                    .log()
 
-                    is NotAllowed -> {
-                        reply(result.reason, ephemeral = true)
+                withContext(MDCContext()) {
+                    when (val result = feature.permissionCheck(data, botConstants.botOwnerId)) {
+                        Allowed -> {
+                            val args = feature.argsFun()
+                            try {
+                                feature.populateArgs(data, e, args)
+                            } catch (ex: ArgumentException) {
+                                data.replyRaw(
+                                    ex.msg.t() + "\n" + K18n_FeatureManager.IfErrorContact(botConstants.botOwnerTag)
+                                        .t(),
+                                    ephemeral = true
+                                )
+                                return@withContext
+                            }
+                            logger.atInfo().setMessage("Feature").addKeyValue("feature", feature.spec.name)
+                                .addKeyValue("args", args.toMap()).log()
+                            feature.exec(args)
+                        }
+
+                        is NotAllowed -> {
+                            reply(result.reason, ephemeral = true)
+                        }
                     }
                 }
+            } catch (ex: CancellationException) {
+                throw ex
             } catch (ex: Exception) {
                 reply(
                     K18n_FeatureManager.InteractionError,

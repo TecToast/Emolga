@@ -286,6 +286,8 @@ open class Arguments : KoinComponent {
         else -> listOf(K18n_TooManyResults.translateTo(language))
     }
 
+    fun toMap() = _args.associate { it.name to it.getValueOrNull() }
+
 }
 
 class MessageContextArgs : Arguments() {

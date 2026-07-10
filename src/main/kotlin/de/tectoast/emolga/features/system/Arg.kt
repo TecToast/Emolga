@@ -95,6 +95,13 @@ class Arg<DiscordType, ParsedType>(
         throw IllegalStateException("No value set for $property")
     }
 
+    fun getValueOrNull() : ParsedType? {
+        if (success) return parsed as ParsedType
+        if (defaultValueSet) return default as ParsedType
+        defaultFunction?.let { return it() }
+        return null
+    }
+
     override fun setValue(thisRef: Arguments, property: KProperty<*>, value: ParsedType) {
         parsed = value
         success = true

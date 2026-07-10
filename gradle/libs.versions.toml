@@ -21,6 +21,7 @@ r2dbc-postgresql = "1.1.2.RELEASE"
 r2dbc-spi = "1.0.0.RELEASE"
 serialization-json = "1.11.0"
 slf4j = "2.0.18"
+loki-logback-appender = "2.0.3"
 
 [plugins]
 gradleversions = "nl.littlerobots.version-catalog-update:1.1.0"
@@ -51,6 +52,7 @@ kotlin-logging-jvm = { module = "io.github.microutils:kotlin-logging-jvm", versi
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -68,6 +70,7 @@ ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-sessions = { module = "io.ktor:ktor-server-sessions", version.ref = "ktor" }
 ktor-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+loki-logback-appender = { module = "com.github.loki4j:loki-logback-appender", version.ref="loki-logback-appender"}
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
@@ -116,6 +119,8 @@ logging = [
     "kotlin-logging-jvm",
     "logback-classic",
     "slf4j-api",
+    "kotlinx-coroutines-slf4j",
+    "loki-logback-appender"
 ]
 testing = [
     "kotest-assertions-core",

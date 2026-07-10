@@ -49,7 +49,13 @@ class SignupRepository(private val db: R2dbcDatabase) {
                 .where { SignupEntryTable.signupId eq LeagueSignupTable.id })
         val countExprLabeled = countExpr.alias("user_count")
         LeagueSignupTable
-            .select(LeagueSignupTable.id, LeagueSignupTable.config, LeagueSignupTable.guild, LeagueSignupTable.announceMessageId, countExprLabeled)
+            .select(
+                LeagueSignupTable.id,
+                LeagueSignupTable.config,
+                LeagueSignupTable.guild,
+                LeagueSignupTable.announceMessageId,
+                countExprLabeled
+            )
             .where { LeagueSignupTable.lastDocumentedEntryCount neq countExpr }
             .map {
                 DirtySignup(
@@ -229,13 +235,23 @@ class SignupRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend fun setConferencesForEntries(signupId: Int, data: Map<Int, ParticipantDataSetData>) = suspendTransaction(db) {
-        for ((entryId, singleData) in data) {
-            SignupEntryTable.update({ (SignupEntryTable.signupId eq signupId) and (SignupEntryTable.id eq entryId) }) {
-                it[SignupEntryTable.conference] = singleData.conf
-                it[SignupEntryTable.order] = singleData.order
+    suspend fun setConferencesForEntries(signupId: Int, data: Map<Int, ParticipantDataSetData>) =
+        suspendTransaction(db) {
+            for ((entryId, singleData) in data) {
+                SignupEntryTable.update({ (SignupEntryTable.signupId eq signupId) and (SignupEntryTable.id eq entryId) }) {
+                    it[SignupEntryTable.conference] = singleData.conf
+                    it[SignupEntryTable.order] = singleData.order
+                }
             }
         }
+
+    suspend fun getSignupEntries(signupId: Int, conference: String?) = suspendTransaction(db) {
+        SignupEntryTable.selectAll()
+            .where { (SignupEntryTable.signupId eq signupId) and (SignupEntryTable.conference eq conference) }
+            .orderBy(SignupEntryTable.order)
+            .map {
+                it.entryRowToSignupEntry().second
+            }.toList()
     }
 
 

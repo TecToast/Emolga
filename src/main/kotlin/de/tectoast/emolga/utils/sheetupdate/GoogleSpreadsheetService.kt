@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
+import java.net.SocketTimeoutException
 import kotlin.time.Duration.Companion.seconds
 
 @Single
@@ -85,12 +86,15 @@ class GoogleSpreadsheetService(
                 }
                 return
             } catch (e: GoogleJsonResponseException) {
-                if ((e.statusCode == 503 || e.statusCode == 429 || e.statusCode == 401) && attempt <= maxRetries) {
+                if ((e.statusCode == 503 || e.statusCode == 429 || e.statusCode == 401) && attempt < maxRetries - 1) {
                     delay(currentDelay)
                     currentDelay *= 2
                 } else {
                     throw e
                 }
+            } catch (e: SocketTimeoutException) {
+                if (attempt >= maxRetries - 1) throw e
+                delay(10.seconds)
             }
         }
     }

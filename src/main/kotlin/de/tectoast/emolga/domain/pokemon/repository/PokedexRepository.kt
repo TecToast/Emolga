@@ -22,6 +22,7 @@ import org.koin.core.annotation.Single
 @Single
 class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
     private val pokedex = mutableMapOf<ShowdownID, Pokemon>()
+    private val cosmeticLookup = mutableMapOf<ShowdownID, Pokemon>()
     private val lock = Mutex()
 
     override suspend fun onStartup() {
@@ -35,9 +36,17 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
                     PokedexTable.selectAll().map { it[PokedexTable.id] to it[PokedexTable.data] }
                         .associateTo(pokedex) { it }
                 }
+                for (pokemon in pokedex.values) {
+                    val formes = pokemon.cosmeticFormes ?: continue
+                    for (forme in formes) {
+                        cosmeticLookup[forme.toShowdownID()] = pokemon
+                    }
+                }
             }
         }
     }
+
+    private fun lookup(id: ShowdownID): Pokemon? = cosmeticLookup[id] ?: pokedex[id]
 
     private suspend inline fun <T> withReady(block: suspend () -> T): T {
         setupCacheIfRequired()
@@ -45,25 +54,25 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
     }
 
     suspend fun getPokedexNumber(showdownId: ShowdownID): Int? = withReady {
-        pokedex[showdownId]?.num
+        lookup(showdownId)?.num
     }
 
     suspend fun getPokedexNumbers(showdownIds: Iterable<ShowdownID>): Map<ShowdownID, Int> = withReady {
         val destination = mutableMapOf<ShowdownID, Int>()
         for (id in showdownIds) {
-            pokedex[id]?.num?.let { destination[id] = it }
+            lookup(id)?.num?.let { destination[id] = it }
         }
         destination
     }
 
     suspend fun get(id: ShowdownID): Pokemon? = withReady {
-        pokedex[id]
+        lookup(id)
     }
 
     suspend fun getAll(ids: Iterable<ShowdownID>): Map<ShowdownID, Pokemon> = withReady {
         val destination = mutableMapOf<ShowdownID, Pokemon>()
         for (id in ids) {
-            pokedex[id]?.let { destination[id] = it }
+            lookup(id)?.let { destination[id] = it }
         }
         destination
     }
@@ -71,11 +80,12 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
     suspend fun getAllPossibleForms(ids: Iterable<ShowdownID>): Map<ShowdownID, Set<ShowdownID>> = withReady {
         val destination = mutableMapOf<ShowdownID, Set<ShowdownID>>()
         for (id in ids) {
-            pokedex[id]?.let { pokemon ->
+            lookup(id)?.let { pokemon ->
                 val formes = pokemon.otherFormes
                 val baseSpecies = pokemon.baseSpecies
                 destination[id] = buildSet {
                     add(id)
+                    add(pokemon.name.toShowdownID())
                     if (formes != null) addAll(formes.map(String::toShowdownID))
                     if (baseSpecies != null) {
                         val baseId = baseSpecies.toShowdownID()

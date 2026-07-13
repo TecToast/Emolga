@@ -31,7 +31,6 @@ class ActionDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEn
             buildString {
                 append(actionText)
                 showTier?.let { append(" ($it)") }
-                append(" ($userRef)")
                 if (forRound != null) append(" [${K18n_DraftUtils.PickedForRound(forRound)()}]")
                 when (origin) {
                     DraftActionOrigin.REGULAR -> {}
@@ -51,6 +50,7 @@ class ActionDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEn
                         append(" [Reroll]")
                     }
                 }
+                append(" ($userRef)")
             }
         }
     }

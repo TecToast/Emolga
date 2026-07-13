@@ -3,8 +3,6 @@ package de.tectoast.emolga.domain.league.draft.service.core
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.di.TransactionRunner
 import de.tectoast.emolga.domain.league.core.model.DraftRelevantLeagueData
-import de.tectoast.emolga.domain.league.core.model.DraftState
-import de.tectoast.emolga.domain.league.core.model.ResettableLeagueData
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.draft.model.core.*
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftActionResult
@@ -80,7 +78,6 @@ class DraftService(
         val leagueData =
             leagueCoreRepo.getDraftRelevantData(tcId) ?: return@tx K18n_League.NoDraftInChannel.error<Unit>()
         leaguePicksRepo.deleteFromLeague(leagueName)
-        leagueData.draftData = ResettableLeagueData(draftState = DraftState.ON)
         val draftRunContext =
             draftRunContextBuilder.build(leagueData).getOrReturn<DraftRunContext, Unit> { return@tx it }
         val result =

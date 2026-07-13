@@ -9,6 +9,7 @@ import de.tectoast.emolga.utils.referencesCascade
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.andWhere
@@ -19,6 +20,7 @@ import org.koin.core.annotation.Single
 
 @Single
 class GameDataRepository(private val db: R2dbcDatabase) {
+    val scheduleGameInnerJoin = LeagueScheduleTable.innerJoin(GameDataTable, { this.id }, { this.scheduleId })
     suspend fun storeFullGameData(leagueName: String, data: FullGameData) {
         suspendTransaction(db) {
             val scheduleId = getScheduleIdForGame(leagueName, data.week, data.battleIndex) ?: return@suspendTransaction
@@ -70,7 +72,7 @@ class GameDataRepository(private val db: R2dbcDatabase) {
         }
 
     suspend fun getAllFullGameDatas(leagueName: String): List<FullGameData> = suspendTransaction(db) {
-        LeagueScheduleTable.innerJoin(GameDataTable, { this.id }, { this.scheduleId })
+        scheduleGameInnerJoin
             .select(
                 GameDataTable.data,
                 LeagueScheduleTable.week,
@@ -121,6 +123,11 @@ class GameDataRepository(private val db: R2dbcDatabase) {
             }.map { it[id] to listOf(it[p1], it[p2]) }.firstOrNull()
         }
 
+    suspend fun getPlayedGames(leagueName: String, week: Int) = suspendTransaction(db) {
+        scheduleGameInnerJoin.select(LeagueScheduleTable.battleIndex)
+            .where { LeagueScheduleTable.leagueName eq leagueName and (LeagueScheduleTable.week eq week) }
+            .map { it[LeagueScheduleTable.battleIndex] }.toSet()
+    }
 }
 
 object GameDataTable : Table("game_data") {

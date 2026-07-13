@@ -3,6 +3,7 @@ package de.tectoast.emolga.domain.league.prediction.service
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
+import de.tectoast.emolga.domain.league.gamedata.repository.GameDataRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.prediction.model.PredictionMatchViewState
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameConfig
@@ -35,6 +36,7 @@ class PredictionGameService(
     private val leagueMemberRepo: LeagueMemberRepository,
     private val leagueScheduleRepo: LeagueScheduleRepository,
     private val languageRepo: GuildConfigRepository,
+    private val gameDataRepo: GameDataRepository,
     private val ui: PredictionGameUI,
     dispatcher: CoroutineDispatcher
 ) {
@@ -114,6 +116,7 @@ class PredictionGameService(
             val names = discordUserService.getNames(guildId, users.values.flatten())
             val channel = channelId ?: config.channel
             val language = languageRepo.getLanguage(guildId)
+            val playedGames = gameDataRepo.getPlayedGames(leagueName, week)
             val titleEmbedColor = config.customEmbedColor ?: Color.YELLOW.rgb
             ui.sendInitialMessage(
                 channel,
@@ -138,7 +141,7 @@ class PredictionGameService(
                     users = users,
                     names = names,
                     config = config,
-                    isLocked = false,
+                    isLocked = matchUp.battleIndex in playedGames,
                     description = if (config.currentState == PredictionGameCurrentStateType.ALWAYS) K18n_PredictionGame.VotesUntilNow(
                         "0:0"
                     ).translateTo(language) else null

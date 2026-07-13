@@ -276,12 +276,21 @@ class DraftExecutionService(
 
     private fun DraftRelevantLeagueData.nextUser() {
         if (draftData.round > totalRounds) return
-        while (draftOrder[round]?.getOrNull(draftData.indexInRound)?.let { it in draftData.finishedDraft } == true) {
+        fun progress() {
             if (indexInRound == draftOrder[round]!!.lastIndex) {
                 draftData.round++
                 draftData.indexInRound = 0
             } else {
                 draftData.indexInRound++
+            }
+        }
+        progress()
+        while (true) {
+            val current = draftOrder[round]?.getOrNull(draftData.indexInRound) ?: break
+            if(current in draftData.finishedDraft) {
+                progress()
+            } else {
+                break
             }
         }
     }

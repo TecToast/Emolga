@@ -2,7 +2,6 @@ package de.tectoast.emolga.domain.league.core.repository
 
 import de.tectoast.emolga.domain.league.config.model.LeagueConfigOverride
 import de.tectoast.emolga.domain.league.core.model.*
-import de.tectoast.emolga.domain.league.draft.model.timer.TimerSkipMode
 import de.tectoast.emolga.domain.league.member.repository.LeagueUserTable
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.referencesCascade
@@ -112,13 +111,13 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
     suspend fun getLeagueFromDraftChannelOrUser(channel: Long, guild: Long, user: Long) = suspendTransaction(db) {
         LeagueCoreTable.innerJoin(LeagueUserTable, { leagueName }, { leagueName }).select(
             LeagueCoreTable.leagueName,
-            LeagueUserTable.idx
+            LeagueCoreTable.guild
         )
             .where {
                 (LeagueCoreTable.draftChannel eq channel) or
                         ((LeagueUserTable.userId eq user) and (LeagueCoreTable.guild eq guild))
             }.orderBy(LeagueCoreTable.draftChannel eq channel, SortOrder.DESC)
-            .map { it[LeagueCoreTable.leagueName] to it[LeagueUserTable.idx] }.firstOrNull()
+            .map { it[LeagueCoreTable.leagueName] to it[LeagueCoreTable.guild] }.firstOrNull()
     }
 
     suspend fun getLeagueWithParticipants(guild: Long, user: Long) =

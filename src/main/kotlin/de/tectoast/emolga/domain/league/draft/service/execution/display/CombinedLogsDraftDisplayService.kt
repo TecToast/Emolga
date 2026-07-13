@@ -15,6 +15,7 @@ import de.tectoast.emolga.domain.league.draft.util.getDisplayName
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
+import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.generic.K18n_Round
 import de.tectoast.k18n.generated.K18nLanguage
@@ -68,7 +69,7 @@ class CombinedLogsDraftDisplayService(
         val pokemonDisplayFn: suspend (ShowdownID) -> String = { pokemonDisplayService.getDisplayName(it, ctx) }
         logEntriesForRounds.entries.sortedBy { it.key }.forEach { (round, logEntries) ->
             val logContent = logEntries.map { it.toMessage(primaryIds, language, pokemonDisplayFn) }.joinToString("\n")
-            val fullMessage = "$roundBase $round:\n$logContent"
+            val fullMessage = "# $roundBase $round\n$logContent"
             val messageId = messageIds[round]
             if (messageId != null) {
                 channelInterface.editMessage(draftChannel, messageId, fullMessage)
@@ -79,7 +80,7 @@ class CombinedLogsDraftDisplayService(
             }
         }
         if (currentRound !in logEntriesForRounds) {
-            channelInterface.sendMessage(draftChannel, "$roundBase $currentRound")?.let {
+            channelInterface.sendMessage(draftChannel, "# $roundBase $currentRound")?.let {
                 draftLogMessageIdRepository.setMessageId(leagueName, session, currentRound, it)
             }
         }
@@ -89,7 +90,12 @@ class CombinedLogsDraftDisplayService(
                     channelInterface.deleteMessage(draftChannel, it)
                 }
                 val announceData = displayHelper.buildAnnounceData(idx, withTimerAnnounce = true)
-                channelInterface.sendMessage(draftChannel, announceData.translateTo(language))?.let {
+                val currentMention = displayHelper.getPingForUser(idx)
+                channelInterface.sendMessage(draftChannel,
+                    "-------------------------------\n" + K18n_League.AnnouncePlayer(currentMention.content, announceData.translateTo(language))
+                        .translateTo(language),
+                    mentionUsers = currentMention.enabledMentions
+                )?.let {
                     draftLastAnnounceRepository.setLastAnnounceId(leagueName, session, it)
                 }
             }

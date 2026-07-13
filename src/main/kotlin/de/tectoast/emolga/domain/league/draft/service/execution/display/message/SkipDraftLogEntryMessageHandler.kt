@@ -20,7 +20,7 @@ class SkipDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEntr
         pokemonDisplayFn: suspend (ShowdownID) -> String
     ): K18nMessage = with(entry) {
         val skippedBy = (reason as? SkipReason.Skip)?.skippedByExternal
-        val base = "N/A" + (skippedBy?.let { " <- <@$skippedBy>" } ?: "") + " ($userRef)"
+        val base = "_skipped_" + (skippedBy?.let { " <- <@$skippedBy>" } ?: "") + " ($userRef)"
         if (madeUpRound == null) return base.k18n
         b {
             "$base [${K18n_DraftUtils.MadeUpInRound(madeUpRound)()}]"

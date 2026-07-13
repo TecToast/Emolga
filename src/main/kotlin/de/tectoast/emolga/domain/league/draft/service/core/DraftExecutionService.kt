@@ -1,7 +1,6 @@
 package de.tectoast.emolga.domain.league.draft.service.core
 
 import de.tectoast.emolga.domain.league.core.model.DraftRelevantLeagueData
-import de.tectoast.emolga.domain.league.doc.repository.SheetTemplateRepository
 import de.tectoast.emolga.domain.league.draft.model.core.*
 import de.tectoast.emolga.domain.league.draft.model.execution.*
 import de.tectoast.emolga.domain.league.draft.repository.LeaguePickRepository
@@ -27,7 +26,6 @@ import kotlin.time.Clock
 class DraftExecutionService(
     private val picksRepo: LeaguePickRepository,
     private val validationService: DraftValidationService,
-    private val sheetTemplateRepo: SheetTemplateRepository,
     private val timerSkipModeDispatcher: TimerSkipModeDispatcher,
     private val queuedPicksRepo: QueuedPicksRepository,
     private val displayService: PokemonDisplayService,
@@ -328,13 +326,15 @@ class DraftExecutionService(
                     input.noCost,
                     input.tera
                 )
+                val forRound = timerSkipModeDispatcher.getPickRound(ctx)
                 val data = PickData(
                     userIndex = idx,
                     pickIndex = pickIndex,
                     tlName = displayService.getDisplayName(input.pokemon, ctx),
                     showdownId = input.pokemon,
                     tier = validatedData.saveTier,
-                    roundIndex = ctx.league.round - 1,
+                    roundIndex = forRound - 1,
+                    indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
                     free = validatedData.freePick,
                     updrafted = validatedData.updrafted,
                     tera = input.tera,
@@ -342,7 +342,7 @@ class DraftExecutionService(
                 )
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
-                    forRound = timerSkipModeDispatcher.getPickRound(ctx),
+                    forRound = forRound,
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
@@ -366,19 +366,21 @@ class DraftExecutionService(
                     validatedData.saveTier,
                     replace = config.triggers.replaceOnSwitch
                 )
+                val forRound = timerSkipModeDispatcher.getPickRound(ctx)
                 val data = SwitchData(
                     userIndex = idx,
                     pickIndex = index,
                     tlName = displayService.getDisplayName(input.pokemon, ctx),
                     showdownId = input.pokemon,
                     tier = validatedData.saveTier,
-                    roundIndex = ctx.league.round - 1,
+                    roundIndex = forRound - 1,
+                    indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
                     oldTlName = displayService.getDisplayName(input.oldmon, ctx),
                     oldShowdownId = input.oldmon
                 )
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
-                    forRound = timerSkipModeDispatcher.getPickRound(ctx),
+                    forRound = forRound,
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
@@ -393,13 +395,15 @@ class DraftExecutionService(
             }
 
             is BanInput -> {
+                val forRound = timerSkipModeDispatcher.getPickRound(ctx)
                 val data = BanData(
                     userIndex = idx,
                     pickIndex = -1,
                     tlName = displayService.getDisplayName(input.pokemon, ctx),
                     showdownId = input.pokemon,
                     tier = validatedData.saveTier,
-                    roundIndex = ctx.league.round - 1
+                    roundIndex = forRound - 1,
+                    indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
                 )
                 leagueData.draftData.draftBan.bannedMons.getOrPut(leagueData.round) { mutableSetOf() }.add(
                     DraftPokemon(
@@ -409,7 +413,7 @@ class DraftExecutionService(
                 )
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
-                    forRound = timerSkipModeDispatcher.getPickRound(ctx),
+                    forRound = forRound,
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
@@ -444,6 +448,7 @@ private abstract class DraftData(
     val showdownId: ShowdownID,
     val tier: String,
     private val roundIndex: Int,
+    private val indexInRound: Int,
 ) : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
@@ -453,6 +458,7 @@ private abstract class DraftData(
             SHOWDOWN_ID -> showdownId
             TIER -> tier
             ROUND_INDEX -> roundIndex
+            INDEX_IN_ROUND -> indexInRound
             else -> resolveSpecific(variable)
         }
         require(clazz.isInstance(result)) { "Resolved value $result is not of the expected type ${clazz.simpleName}" }
@@ -468,6 +474,7 @@ private abstract class DraftData(
         const val SHOWDOWN_ID = "SHOWDOWN_ID"
         const val TIER = "TIER"
         const val ROUND_INDEX = "ROUND_INDEX"
+        const val INDEX_IN_ROUND = "INDEX_IN_ROUND"
     }
 }
 
@@ -478,11 +485,12 @@ private class PickData(
     showdownId: ShowdownID,
     tier: String,
     roundIndex: Int,
+    indexInRound: Int,
     val free: Boolean,
     val updrafted: Boolean,
     val tera: Boolean,
     val points: Int?
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex) {
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
     override fun resolveSpecific(variable: String): Any {
         return when (variable) {
             "FREE" -> free
@@ -513,9 +521,10 @@ private class SwitchData(
     showdownId: ShowdownID,
     tier: String,
     roundIndex: Int,
+    indexInRound: Int,
     val oldTlName: String,
     val oldShowdownId: ShowdownID
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex) {
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
     override fun resolveSpecific(variable: String): Any {
         return when (variable) {
             OLD_TL_NAME -> oldTlName
@@ -536,8 +545,14 @@ private class SwitchData(
 }
 
 private class BanData(
-    userIndex: Int, pickIndex: Int, tlName: String, showdownId: ShowdownID, tier: String, roundIndex: Int
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex) {
+    userIndex: Int,
+    pickIndex: Int,
+    tlName: String,
+    showdownId: ShowdownID,
+    tier: String,
+    roundIndex: Int,
+    indexInRound: Int
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
     override fun resolveSpecific(variable: String): Any {
         throw IllegalArgumentException("No specific variables for BanData (trying $variable)")
     }

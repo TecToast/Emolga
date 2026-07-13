@@ -6,6 +6,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
@@ -14,10 +15,13 @@ import org.koin.core.annotation.Single
 
 @Single
 class DraftLastAnnounceRepository(private val db: R2dbcDatabase) {
-    suspend fun getLastAnnounceId(leagueName: String, session: Int) = suspendTransaction(db) {
-        DraftLastAnnounceIdTable.select(DraftLastAnnounceIdTable.lastAnnounceId)
-            .where { (DraftLastAnnounceIdTable.leagueName eq leagueName) and (DraftLastAnnounceIdTable.session eq session) }
+    suspend fun deleteAndGetLastAnnounceId(leagueName: String, session: Int) = suspendTransaction(db) {
+        val query = (DraftLastAnnounceIdTable.leagueName eq leagueName) and (DraftLastAnnounceIdTable.session eq session)
+        val id = DraftLastAnnounceIdTable.select(DraftLastAnnounceIdTable.lastAnnounceId)
+            .where { query }
             .firstOrNull()?.get(DraftLastAnnounceIdTable.lastAnnounceId)
+        DraftLastAnnounceIdTable.deleteWhere { query }
+        id
     }
 
     suspend fun setLastAnnounceId(leagueName: String, session: Int, id: Long) = suspendTransaction(db) {

@@ -33,7 +33,7 @@ class DraftLogRepository(private val db: R2dbcDatabase) {
 
     suspend fun setMadeUpRound(leagueName: String, session: Int, round: Int, idx: Int, madeUpRound: Int) =
         suspendTransaction(db) {
-            val (logId, data) = DraftLogTable.select(DraftLogTable.data)
+            val (logId, data) = DraftLogTable.select(DraftLogTable.id, DraftLogTable.data)
                 .where { (DraftLogTable.leagueName eq leagueName) and (DraftLogTable.session eq session) and (DraftLogTable.round eq round) and (DraftLogTable.idx eq idx) }
                 .orderBy(DraftLogTable.id).mapNotNull {
                     val id = it[DraftLogTable.id]

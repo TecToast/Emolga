@@ -23,9 +23,15 @@ class DraftPermissionService(
         league: DraftRelevantLeagueData, uid: Long, roleIds: Collection<Long>
     ): CalcResult<PickContext> = with(league) {
         val context = draftCurrentService.getCurrentUser(league, uid).getOrReturn { return it }
-        if (leagueMemberRepo.isAuthorizedFor(leagueName, currentIdx, uid)) return context.success()
-        if (draftAdminRepo.isAdmin(guild, uid, roleIds)) return context.success()
-        return K18n_League.NotYourTurn.error()
+        return when (context) {
+            is PickContext.AfterDraftUnordered, is PickContext.InBetweenPick -> context.success()
+            else -> {
+                if (leagueMemberRepo.isAuthorizedFor(leagueName, currentIdx, uid)
+                    || draftAdminRepo.isAdmin(guild, uid, roleIds)
+                ) context.success()
+                else K18n_League.NotYourTurn.error()
+            }
+        }
     }
 }
 

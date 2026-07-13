@@ -3,6 +3,7 @@ package de.tectoast.emolga.domain.league.draft.service.core
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.di.TransactionRunner
 import de.tectoast.emolga.domain.league.core.model.DraftRelevantLeagueData
+import de.tectoast.emolga.domain.league.core.model.DraftState
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.draft.model.core.*
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftActionResult
@@ -56,6 +57,7 @@ class DraftService(
             }
         }
         leagueCoreRepo.getAllRunningDraftLeagueData().forEach { leagueData ->
+            if(leagueData.draftData.draftState != DraftState.ON) return@forEach
             tx {
                 continueDraft(leagueData)
             }
@@ -235,7 +237,7 @@ class DraftService(
         }
         validationCompleteCallback()
         val ctx = draftRunContextBuilder.build(leagueData).getOrReturn<DraftRunContext, Unit> { return@tx it }
-        val result = if (leagueData.currentIdx == idx) {
+        val result = if (leagueData.currentIdxOrNull == idx) {
             draftExecutionService.processSkip(ctx, SkipReason.Skip(), fromUserFinish = true)
         } else {
             DraftExecution(
@@ -254,6 +256,9 @@ class DraftService(
             TimerOption.RESTART -> draftTimerService.startRegularTimer(ctx)
             TimerOption.CANCEL -> draftTimerService.cancelTimer(ctx.league.leagueName)
             TimerOption.KEEP -> {}
+        }
+        if(result.results.any { it is DraftActionResult.DraftFinished }) {
+            ctx.league.draftData.draftState = DraftState.OFF
         }
         leagueCoreRepo.updateDraftData(ctx.league.leagueName, ctx.league.draftData)
         draftExecutionHandler.handleDraftExecution(result, ctx)

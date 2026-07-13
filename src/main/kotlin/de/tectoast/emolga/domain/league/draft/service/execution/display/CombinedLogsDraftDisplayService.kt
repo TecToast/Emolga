@@ -4,8 +4,10 @@ import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.discord.editMessage
 import de.tectoast.emolga.discord.sendMessage
 import de.tectoast.emolga.domain.league.draft.model.core.DraftRunContext
+import de.tectoast.emolga.domain.league.draft.model.execution.DraftActionResult
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftExecution
 import de.tectoast.emolga.domain.league.draft.model.execution.PreparedDraftLogEntry
+import de.tectoast.emolga.domain.league.draft.model.execution.TimerOption
 import de.tectoast.emolga.domain.league.draft.repository.DraftLastAnnounceRepository
 import de.tectoast.emolga.domain.league.draft.repository.DraftLogMessageIdRepository
 import de.tectoast.emolga.domain.league.draft.repository.DraftLogRepository
@@ -17,6 +19,7 @@ import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.generic.K18n_MadeUpFor
 import de.tectoast.generic.K18n_Round
 import de.tectoast.k18n.generated.K18nLanguage
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,18 +48,7 @@ class CombinedLogsDraftDisplayService(
     ) {
         val displayHelper = displayHelperFactory.create(ctx)
         val draftChannel = ctx.league.draftChannel
-        execution.results.forEach { result ->
-            result.editsMessage.forEach { messageEdit ->
-                channelInterface.editMessage(
-                    draftChannel,
-                    messageEdit.first,
-                    messageEdit.second(displayHelper).translateTo(language)
-                )
-            }
-            result.sendsMessage.forEach { messageSend ->
-                channelInterface.sendMessage(draftChannel, messageSend(displayHelper).translateTo(language))
-            }
-        }
+        var isDraftFinished = false
         val currentRound = ctx.league.round
         val session = ctx.league.draftData.draftSessionNum
         val leagueName = ctx.league.leagueName
@@ -66,10 +58,15 @@ class CombinedLogsDraftDisplayService(
         val messageIds = draftLogMessageIdRepository.getMessageIds(leagueName, session, modifiedRounds)
         val primaryIds = leagueMemberRepository.getPrimaryIds(leagueName)
         val roundBase = K18n_Round.translateTo(language)
-        val pokemonDisplayFn: suspend (ShowdownID) -> String = { pokemonDisplayService.getDisplayName(it, ctx) }
+        val pokemonDisplayFn: suspend (ShowdownID) -> String = { pokemonDisplayService.getDisplayName(it, ctx, withAdditionalEnglish = true) }
+        val maxRound = ctx.league.draftOrder.size
         logEntriesForRounds.entries.sortedBy { it.key }.forEach { (round, logEntries) ->
-            val logContent = logEntries.map { it.toMessage(primaryIds, language, pokemonDisplayFn) }.joinToString("\n")
-            val fullMessage = "# $roundBase $round\n$logContent"
+            val logContent =
+                logEntries.map { it.toMessage(primaryIds, language, pokemonDisplayFn) }.joinToString("\n") {
+                    "- $it"
+                }
+            val roundMessage = if(round <= maxRound) "$roundBase $round" else K18n_MadeUpFor.translateTo(language)
+            val fullMessage = "# $roundMessage\n$logContent"
             val messageId = messageIds[round]
             if (messageId != null) {
                 channelInterface.editMessage(draftChannel, messageId, fullMessage)
@@ -79,26 +76,50 @@ class CombinedLogsDraftDisplayService(
                 }
             }
         }
-        if (currentRound !in logEntriesForRounds) {
+
+        if (currentRound !in logEntriesForRounds && currentRound <= maxRound) {
             channelInterface.sendMessage(draftChannel, "# $roundBase $currentRound")?.let {
                 draftLogMessageIdRepository.setMessageId(leagueName, session, currentRound, it)
             }
         }
-        scope.launch {
-            execution.idxToAnnounce?.let { idx ->
-                draftLastAnnounceRepository.getLastAnnounceId(leagueName, session)?.let {
-                    channelInterface.deleteMessage(draftChannel, it)
-                }
-                val announceData = displayHelper.buildAnnounceData(idx, withTimerAnnounce = true)
-                val currentMention = displayHelper.getPingForUser(idx)
-                channelInterface.sendMessage(draftChannel,
-                    "-------------------------------\n" + K18n_League.AnnouncePlayer(currentMention.content, announceData.translateTo(language))
-                        .translateTo(language),
-                    mentionUsers = currentMention.enabledMentions
-                )?.let {
-                    draftLastAnnounceRepository.setLastAnnounceId(leagueName, session, it)
+        execution.results.forEach { result ->
+            result.deletesMessage.forEach {
+                channelInterface.deleteMessage(draftChannel, it)
+            }
+            result.sendsMessage.forEach { messageSend ->
+                channelInterface.sendMessage(draftChannel, messageSend(displayHelper).translateTo(language))
+            }
+            if (result is DraftActionResult.DraftFinished) {
+                isDraftFinished = true
+            }
+        }
+        if (isDraftFinished || execution.timerOption == TimerOption.CANCEL) {
+            deleteLastAnnounceMessage(leagueName, session, draftChannel)
+        } else {
+            scope.launch {
+                execution.idxToAnnounce?.let { idx ->
+                    deleteLastAnnounceMessage(leagueName, session, draftChannel)
+                    val announceData = displayHelper.buildAnnounceData(idx, withTimerAnnounce = true)
+                    val currentMention = displayHelper.getPingForUser(idx)
+                    channelInterface.sendMessage(
+                        draftChannel,
+                        "-------------------------------\n" + K18n_League.AnnouncePlayer(
+                            currentMention.content,
+                            announceData.translateTo(language)
+                        )
+                            .translateTo(language),
+                        mentionUsers = currentMention.enabledMentions
+                    )?.let {
+                        draftLastAnnounceRepository.setLastAnnounceId(leagueName, session, it)
+                    }
                 }
             }
+        }
+    }
+
+    private suspend fun deleteLastAnnounceMessage(leagueName: String, session: Int, draftChannel: Long) {
+        draftLastAnnounceRepository.deleteAndGetLastAnnounceId(leagueName, session)?.let {
+            channelInterface.deleteMessage(draftChannel, it)
         }
     }
 

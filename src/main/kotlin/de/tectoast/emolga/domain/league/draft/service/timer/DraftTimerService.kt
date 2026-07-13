@@ -64,7 +64,7 @@ class DraftTimerService(
     fun startRegularTimer(ctx: DraftRunContext) {
         val now = clock.now()
         val leagueName = ctx.league.leagueName
-        val currentIdx = ctx.league.currentIdx
+        val currentIdx = ctx.activeIdx
         val timerRelated = ctx.league.draftData.timer
         val timerConfig = ctx.config.timer
 

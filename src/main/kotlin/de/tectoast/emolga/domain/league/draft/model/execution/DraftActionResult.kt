@@ -9,7 +9,7 @@ import de.tectoast.k18n.generated.K18nMessage
 
 sealed class DraftActionResult {
     open var sheetUpdate: (suspend SheetUpdateContext.() -> Unit)? = null
-    val editsMessage: MutableList<Pair<Long, suspend (DisplayHelper) -> K18nMessage>> = mutableListOf()
+    val deletesMessage: MutableSet<Long> = mutableSetOf()
     val sendsMessage: MutableList<suspend (DisplayHelper) -> K18nMessage> = mutableListOf()
 
     abstract val round: Int

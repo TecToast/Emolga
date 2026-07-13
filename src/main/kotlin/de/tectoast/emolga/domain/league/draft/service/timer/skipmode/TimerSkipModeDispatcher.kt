@@ -1,5 +1,7 @@
 package de.tectoast.emolga.domain.league.draft.service.timer.skipmode
 
+import de.tectoast.emolga.domain.league.config.model.LeagueConfig
+import de.tectoast.emolga.domain.league.core.model.DraftState
 import de.tectoast.emolga.domain.league.draft.model.core.DraftRunContext
 import de.tectoast.emolga.domain.league.draft.model.core.NextPlayerData
 import de.tectoast.emolga.domain.league.draft.model.execution.TimerSkipData
@@ -18,16 +20,26 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
     ): TimerSkipData {
         val league = ctx.league
         val config = ctx.config
+        if(league.draftData.draftState == DraftState.PSEUDOEND) {
+            return afterDraftHandler(config, ctx, data)
+        }
         if (league.draftWouldEnd) {
             config.duringTimerSkipMode?.let {
                 val duringResult = registry.getHandler(it).afterPick(it, ctx, data)
                 if (duringResult.result == TimerSkipResult.SAME) return duringResult
             }
-            return registry.getHandler(config.afterTimerSkipMode).afterPick(config.afterTimerSkipMode, ctx, data)
+            return afterDraftHandler(config, ctx, data)
         }
         return config.duringTimerSkipMode?.let { registry.getHandler(it).afterPick(it, ctx, data) }
             ?: TimerSkipResult.NEXT.defaultData()
     }
+
+    private suspend fun afterDraftHandler(
+        config: LeagueConfig,
+        ctx: DraftRunContext,
+        data: NextPlayerData
+    ): TimerSkipData = registry.getHandler(config.afterTimerSkipMode).afterPick(config.afterTimerSkipMode, ctx, data)
+
 
     suspend fun getPickRound(
         ctx: DraftRunContext
@@ -37,5 +49,5 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
     }
 
     private fun DraftRunContext.getCurrentTimerSkipMode() =
-        config.duringTimerSkipMode?.takeUnless { league.draftWouldEnd } ?: config.afterTimerSkipMode
+        config.duringTimerSkipMode?.takeUnless { league.draftWouldEnd || league.draftData.draftState == DraftState.PSEUDOEND } ?: config.afterTimerSkipMode
 }

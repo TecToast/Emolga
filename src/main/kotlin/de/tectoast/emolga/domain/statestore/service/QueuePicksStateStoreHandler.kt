@@ -31,7 +31,7 @@ class QueuePicksStateStoreHandler(
 
     context(state: QueuePicksState)
     private suspend fun display(showdownId: ShowdownID) =
-        displayService.getDisplayName(showdownId, state.guild, state.tlLanguage)
+        displayService.getDisplayName(showdownId, state.guild, state.tlLanguage, withAdditionalEnglish = true)
 
     context(state: QueuePicksState)
     private suspend fun QueuedAction.toContent() = buildString {
@@ -63,6 +63,11 @@ class QueuePicksStateStoreHandler(
                         append(" -> ")
                     }
                     append(display(action.g.id))
+                    if (action.g.tierSpecified) {
+                        append(" (")
+                        append(action.g.tier)
+                        append(")")
+                    }
                 }
             }
                 .joinToString("\n"),

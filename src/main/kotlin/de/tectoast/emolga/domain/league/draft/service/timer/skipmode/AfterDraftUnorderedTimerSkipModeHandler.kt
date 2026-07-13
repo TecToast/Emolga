@@ -35,7 +35,7 @@ class AfterDraftUnorderedTimerSkipModeHandler : TimerSkipModeHandler<TimerSkipMo
                         }
                     b {
                         K18n_League.AfterDraftUnordered(entriesWithMessages.joinToString("\n") { (turnCount, ping, message) ->
-                            "$ping: $turnCount${message()}"
+                            "${ping.content}: $turnCount${message()}"
                         })()
                     }
                 }

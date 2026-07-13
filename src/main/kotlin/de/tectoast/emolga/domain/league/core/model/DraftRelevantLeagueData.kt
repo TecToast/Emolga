@@ -19,7 +19,8 @@ data class DraftRelevantLeagueData(
     private val isLastRound get() = round == totalRounds
     val draftWouldEnd get() = isLastRound && indexInRound == draftOrder[round]!!.lastIndex
     val indexInRound get() = draftData.indexInRound
-    val currentIdx get() = draftOrder[round]!![indexInRound]
+    val currentIdxOrNull get() = draftOrder[round]?.getOrNull(indexInRound)
+    val currentIdx get() = currentIdxOrNull!!
     val alreadyBannedMonsThisRound get() = draftData.draftBan.bannedMons[round].orEmpty()
 
     fun hasMovedTurns(idx: Int) = movedTurns(idx).isNotEmpty()

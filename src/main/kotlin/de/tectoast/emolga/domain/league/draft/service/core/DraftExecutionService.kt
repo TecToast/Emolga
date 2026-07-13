@@ -8,18 +8,23 @@ import de.tectoast.emolga.domain.league.draft.service.timer.skipmode.TimerSkipMo
 import de.tectoast.emolga.domain.league.draft.util.getDisplayName
 import de.tectoast.emolga.domain.league.queue.model.QueuePicksUserData
 import de.tectoast.emolga.domain.league.queue.repository.QueuedPicksRepository
+import de.tectoast.emolga.domain.league.queue.service.QueuedPicksProvider
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.domain.util.service.TimeFormatService
 import de.tectoast.emolga.league.K18n_League
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.CalcResult
+import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.dsl.AstEnvironment
 import de.tectoast.emolga.utils.dsl.ValidVariableProvider
+import de.tectoast.emolga.utils.isError
 import de.tectoast.emolga.utils.sheetupdate.applySheetTemplate
+import de.tectoast.emolga.utils.success
 import org.koin.core.annotation.Single
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 @Single
@@ -82,7 +87,7 @@ class DraftExecutionService(
             state.allResults,
             state.snipeMap,
             timerOption,
-            if ((ctx.pickContext as? PickContext.InBetweenPick)?.isActualCurrent == false) null else league.currentIdx
+            if ((ctx.pickContext as? PickContext.InBetweenPick)?.isActualCurrent == false) null else league.currentIdxOrNull
         ).success()
     }
 
@@ -95,14 +100,14 @@ class DraftExecutionService(
         val state = buildDraftExecutionState(ctx)
         val skipResult = if (fromUserFinish) DraftActionResult.UserFinished(
             league.round,
-            league.currentIdx
-        ) else DraftActionResult.Skip(league.round, league.currentIdx, reason)
+            ctx.activeIdx
+        ) else DraftActionResult.Skip(league.round, ctx.activeIdx, reason)
         state.allResults += skipResult
         var afterActionResult = continueAfterAction(
             ctx,
             state,
             skipResult,
-            NextPlayerData.Moved(reason, league.currentIdx),
+            NextPlayerData.Moved(reason, ctx.activeIdx),
             null
         )
         var timerOption = afterActionResult.timerOption
@@ -120,7 +125,7 @@ class DraftExecutionService(
         queuedPicksRepo.updateForLeague(
             league.leagueName,
             state.allQueuedPicks.filter { it.key in state.modifiedQueue })
-        return DraftExecution(state.allResults, state.snipeMap, timerOption, league.currentIdx)
+        return DraftExecution(state.allResults, state.snipeMap, timerOption, league.currentIdxOrNull)
     }
 
     suspend fun processDraftStart(ctx: DraftRunContext): CalcResult<DraftExecution> {
@@ -173,11 +178,12 @@ class DraftExecutionService(
                 it.pokemon
             )
         }
+        val now = clock.now()
         if (nextPlayerData is NextPlayerData.Moved) {
             league.addToMoved(ctx.activeIdx)
             val timerConfig = ctx.config.timer
             if (timerConfig != null) {
-                if (clock.now() > timerConfig.startPunishSkipsTime) {
+                if (now > timerConfig.startPunishSkipsTime) {
                     val isPunishable = when (val reason = nextPlayerData.reason) {
                         SkipReason.RealTimer -> true
                         is SkipReason.Skip -> reason.skippedByExternal != null
@@ -190,23 +196,26 @@ class DraftExecutionService(
         }
         val timerSkipData = timerSkipModeDispatcher.afterPick(ctx, nextPlayerData)
         timerSkipData.message?.let { actionResult.sendsMessage += it }
-        val defaultTimerOption = if (timerSkipData.cancelTimer) TimerOption.CANCEL else TimerOption.RESTART
-        var currentIdx = league.currentIdx
+        val defaultTimerOption = when {
+            timerSkipData.cancelTimer -> TimerOption.CANCEL
+            timerSkipData.result == TimerSkipResult.SAME -> TimerOption.KEEP
+            else -> TimerOption.RESTART
+        }
+        var currentIdx = ctx.activeIdx
+        if (timerSkipData.result != TimerSkipResult.SAME) {
+            ctx.config.timer?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
+                val timerRelated = draftData.timer
+                if (timerRelated.cooldown > Instant.DISTANT_PAST) {
+                    val usedSeconds = (now - timerRelated.lastPick - timerRelated.lastRegularDelay).inWholeSeconds.toInt()
+                    if(usedSeconds > 0) {
+                        timerRelated.usedStallSeconds.add(currentIdx, usedSeconds.coerceAtMost(maxStallSeconds))
+                    }
+                }
+            }
+        }
         if (timerSkipData.result == TimerSkipResult.NEXT) {
             draftData.timer.lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
-                actionResult.editsMessage += it to { helper ->
-                    if (nextPlayerData.isNormalPick()) {
-                        val timeStr = timeFormatService.durationToPrettyLong(
-                            draftData.timer.cooldown - clock.now()
-                        )
-                        val currentMention = helper.getPingForUser(league.currentIdx)
-                        b {
-                            K18n_League.StallSecondsRemaining(
-                                currentMention.content, timeStr()
-                            )()
-                        }
-                    } else K18n_League.StallSecondsUsedUp(helper.getPingForUser(league.currentIdx).content)
-                }
+                actionResult.deletesMessage += it
             }
             draftData.timer.lastStallSecondUsedMid = null
             league.nextUser()
@@ -278,7 +287,7 @@ class DraftExecutionService(
         progress()
         while (true) {
             val current = draftOrder[round]?.getOrNull(draftData.indexInRound) ?: break
-            if(current in draftData.finishedDraft) {
+            if (current in draftData.finishedDraft) {
                 progress()
             } else {
                 break
@@ -336,7 +345,7 @@ class DraftExecutionService(
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
                     forRound = forRound,
-                    idx = ctx.league.currentIdx,
+                    idx = ctx.activeIdx,
                     origin = type,
                     sheetUpdate = {
                         config.draftDoc?.pick?.let { template ->
@@ -374,7 +383,7 @@ class DraftExecutionService(
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
                     forRound = forRound,
-                    idx = ctx.league.currentIdx,
+                    idx = ctx.activeIdx,
                     origin = type,
                     sheetUpdate = {
                         config.draftDoc?.switch?.let { template ->
@@ -407,7 +416,7 @@ class DraftExecutionService(
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
                     forRound = forRound,
-                    idx = ctx.league.currentIdx,
+                    idx = ctx.activeIdx,
                     origin = type,
                     sheetUpdate = {
                         config.draftDoc?.ban?.let { template ->

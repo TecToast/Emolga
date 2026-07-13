@@ -18,9 +18,9 @@ class NextPickTimerSkipModeHandler : TimerSkipModeHandler<TimerSkipMode.During.N
     ): TimerSkipData {
         return (if (data.isNormalPick()) {
             val league = ctx.league
-            if (league.pseudoEnd && league.hasMovedTurns(ctx.activeIdx)) {
+            if (league.hasMovedTurns(ctx.activeIdx)) {
                 league.movedTurns(ctx.activeIdx).removeFirstOrNull()
-                if (league.pseudoEnd && !league.hasMovedTurns(ctx.activeIdx)) TimerSkipResult.NEXT else TimerSkipResult.SAME
+                TimerSkipResult.SAME
             } else TimerSkipResult.NEXT
         } else TimerSkipResult.NEXT).defaultData()
     }

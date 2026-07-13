@@ -473,10 +473,7 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` wurde bereits gepickt oder gebannt!",
               "BanRegular": "{pokemonName} ({tier}) gebannt!",
               "BanQueue": "{user:Mention} hat {pokemonName} ({tier}) gebannt! [Queue]",
-              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!",
-              "PickedForRound": "nachgeholt aus Runde {round:Int}",
-              "MadeUpInRound": "nachgeholt in Runde {round:Int}"
-
+              "BanRandom": "Timer ausgelaufen: Ich habe {pokemonName} ({tier}) für {user:Mention} gebannt!"
             }
           },
           "json": {
@@ -565,7 +562,7 @@
         "SelectLanguage": "Sprache auswählen",
         "Round": "Runde",
         "Finished": "Beendet",
-        "UpdateNotice": "Update-Hinweis"
+        "MadeUpFor": "Nachgeholt"
       }
     }
   }

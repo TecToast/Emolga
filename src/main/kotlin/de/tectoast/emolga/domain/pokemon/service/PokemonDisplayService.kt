@@ -15,13 +15,16 @@ class PokemonDisplayService(
     suspend fun getDisplayNames(
         showdownIds: Iterable<ShowdownID>,
         guildId: Long,
-        language: Language
+        language: Language,
+        withAdditionalEnglish: Boolean = false
     ): Map<ShowdownID, String> {
         val rawDataList = repository.getRawNames(showdownIds, guildId)
         val result = mutableMapOf<ShowdownID, String>()
         for (data in rawDataList) {
             val officialName = if (language == Language.GERMAN) data.nameDe else data.nameEn
-            result[data.showdownId] = data.customGuildName ?: officialName
+            val base = data.customGuildName ?: officialName
+            result[data.showdownId] =
+                if (withAdditionalEnglish && language != Language.ENGLISH && base != data.nameEn) "$base/${data.nameEn}" else base
         }
         return result
     }
@@ -35,8 +38,8 @@ class PokemonDisplayService(
         return result
     }
 
-    suspend fun getDisplayName(showdownId: ShowdownID, guildId: Long, language: Language): String {
-        return getDisplayNames(listOf(showdownId), guildId, language)[showdownId] ?: showdownId.value
+    suspend fun getDisplayName(showdownId: ShowdownID, guildId: Long, language: Language, withAdditionalEnglish: Boolean = false): String {
+        return getDisplayNames(listOf(showdownId), guildId, language, withAdditionalEnglish)[showdownId] ?: showdownId.value
     }
 
     suspend fun getDisplayNamesOfReplay(

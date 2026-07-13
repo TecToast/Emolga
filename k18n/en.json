@@ -471,9 +471,7 @@
               "PokemonAlreadyPickedOrBanned": "`{pokemon}` has already been picked or banned!",
               "BanRegular": "{pokemonName} ({tier}) banned!",
               "BanQueue": "{user:Mention} banned {pokemonName} ({tier})! [Queue]",
-              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!",
-              "PickedForRound": "made up from round {round:Int}",
-              "MadeUpInRound": "made up in round {round:Int}"
+              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!"
             }
           },
           "json": {
@@ -562,7 +560,7 @@
         "SelectLanguage": "Select language",
         "Round": "Round",
         "Finished": "Finished",
-        "UpdateNotice": "Update Notice"
+        "MadeUpFor": "Made up for"
       }
     }
   }

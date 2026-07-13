@@ -17,14 +17,15 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
         ctx: DraftRunContext, data: NextPlayerData
     ): TimerSkipData {
         val league = ctx.league
+        val config = ctx.config
         if (league.draftWouldEnd) {
-            league.duringTimerSkipMode?.let {
+            config.duringTimerSkipMode?.let {
                 val duringResult = registry.getHandler(it).afterPick(it, ctx, data)
                 if (duringResult.result == TimerSkipResult.SAME) return duringResult
             }
-            return registry.getHandler(league.afterTimerSkipMode).afterPick(league.afterTimerSkipMode, ctx, data)
+            return registry.getHandler(config.afterTimerSkipMode).afterPick(config.afterTimerSkipMode, ctx, data)
         }
-        return league.duringTimerSkipMode?.let { registry.getHandler(it).afterPick(it, ctx, data) }
+        return config.duringTimerSkipMode?.let { registry.getHandler(it).afterPick(it, ctx, data) }
             ?: TimerSkipResult.NEXT.defaultData()
     }
 
@@ -36,5 +37,5 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
     }
 
     private fun DraftRunContext.getCurrentTimerSkipMode() =
-        league.duringTimerSkipMode?.takeUnless { league.draftWouldEnd } ?: league.afterTimerSkipMode
+        config.duringTimerSkipMode?.takeUnless { league.draftWouldEnd } ?: config.afterTimerSkipMode
 }

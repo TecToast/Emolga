@@ -9,6 +9,7 @@ import de.tectoast.emolga.domain.league.draft.model.config.TeraPickConfig
 import de.tectoast.emolga.domain.league.draft.model.random.RandomPickConfig
 import de.tectoast.emolga.domain.league.draft.model.random.RandomPickConfigOverride
 import de.tectoast.emolga.domain.league.draft.model.timer.DraftTimerConfig
+import de.tectoast.emolga.domain.league.draft.model.timer.TimerSkipMode
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameConfig
 import de.tectoast.emolga.domain.league.signup.model.CustomSignupConfig
 import de.tectoast.emolga.domain.league.teamgraphic.model.TeamGraphicLeagueConfig
@@ -39,6 +40,8 @@ data class LeagueConfig(
     val resultChannel: Long? = null,
     val monsDocOrder: MonsDocOrderConfig = MonsDocOrderConfig.PickOrder,
     val statProcessors: Set<StatProcessor> = emptySet(),
+    val afterTimerSkipMode: TimerSkipMode.After = TimerSkipMode.After.AfterDraftUnordered,
+    val duringTimerSkipMode: TimerSkipMode.During? = null,
 ) {
     val tlIdentifier get() = customTierlist?.identifier ?: ""
 
@@ -64,6 +67,8 @@ data class LeagueConfig(
             resultChannel = other.resultChannel ?: resultChannel,
             monsDocOrder = other.monsDocOrder ?: monsDocOrder,
             statProcessors = other.statProcessors ?: statProcessors,
+            afterTimerSkipMode = other.afterTimerSkipMode ?: afterTimerSkipMode,
+            duringTimerSkipMode = other.duringTimerSkipMode ?: duringTimerSkipMode,
         )
     }
 }
@@ -89,6 +94,8 @@ data class LeagueConfigOverride(
     val resultChannel: Long? = null,
     val monsDocOrder: MonsDocOrderConfig? = null,
     val statProcessors: Set<StatProcessor>? = null,
+    val afterTimerSkipMode: TimerSkipMode.After? = null,
+    val duringTimerSkipMode: TimerSkipMode.During? = null,
 )
 
 

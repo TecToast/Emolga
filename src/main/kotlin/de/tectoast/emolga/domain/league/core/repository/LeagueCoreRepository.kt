@@ -153,8 +153,6 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
                 guild,
                 sheetId,
                 draftChannel,
-                afterTimerSkipMode,
-                duringTimerSkipMode,
                 draftOrder,
                 isSwitchDraft,
                 draftData
@@ -170,8 +168,6 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
                         guild = it[guild],
                         sheetId = it[sheetId],
                         draftChannel = it[draftChannel]!!,
-                        afterTimerSkipMode = it[afterTimerSkipMode],
-                        duringTimerSkipMode = it[duringTimerSkipMode],
                         draftOrder = it[draftOrder],
                         isSwitchDraft = it[isSwitchDraft],
                         draftData = it[draftData]
@@ -225,9 +221,6 @@ object LeagueCoreTable : Table("league_core") {
     val guild = long("guild")
     val prettyName = text("pretty_name").nullable()
     val sheetId = text("sheet_id").default("")
-    val afterTimerSkipMode =
-        jsonb<TimerSkipMode.After>("after_timer_skip_mode").default(TimerSkipMode.After.AfterDraftUnordered)
-    val duringTimerSkipMode = jsonb<TimerSkipMode.During>("during_timer_skip_mode").nullable()
     val draftOrder = jsonb<Map<Int, List<Int>>>("draft_order").default(emptyMap())
     val draftChannel = long("draft_channel").nullable()
     val isSwitchDraft = bool("is_switch_draft").default(false)

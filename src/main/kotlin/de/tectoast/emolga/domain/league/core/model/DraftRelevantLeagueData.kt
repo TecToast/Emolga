@@ -1,6 +1,5 @@
 package de.tectoast.emolga.domain.league.core.model
 
-import de.tectoast.emolga.domain.league.draft.model.timer.TimerSkipMode
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,8 +9,6 @@ data class DraftRelevantLeagueData(
     val guild: Long,
     val sheetId: String,
     val draftChannel: Long,
-    val afterTimerSkipMode: TimerSkipMode.After,
-    val duringTimerSkipMode: TimerSkipMode.During?,
     val draftOrder: Map<Int, List<Int>>,
     val isSwitchDraft: Boolean,
     var draftData: ResettableLeagueData
@@ -23,7 +20,6 @@ data class DraftRelevantLeagueData(
     val draftWouldEnd get() = isLastRound && indexInRound == draftOrder[round]!!.lastIndex
     val indexInRound get() = draftData.indexInRound
     val currentIdx get() = draftOrder[round]!![indexInRound]
-    val potentialBetweenPick get() = !pseudoEnd && duringTimerSkipMode == TimerSkipMode.During.Always
     val alreadyBannedMonsThisRound get() = draftData.draftBan.bannedMons[round].orEmpty()
 
     fun hasMovedTurns(idx: Int) = movedTurns(idx).isNotEmpty()

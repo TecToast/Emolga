@@ -117,7 +117,7 @@ class JDAFeatureEventHandler(
         }
         with(data) {
             try {
-                logger.atDebug()
+                logger.atInfo()
                     .setMessage("Invocation")
                     .addKeyValue("guild", e.guild?.idLong ?: 0)
                     .addKeyValue("channel", e.channel?.idLong ?: 0)

@@ -400,7 +400,7 @@
             "PossibleTiersToBan": "Mögliche Tiers zum Bannen: {data}",
             "PossibleTiers": "Mögliche Tiers: {data}",
             "PossiblePoints": "Mögliche Punkte: {data:Int}",
-            "TimeUntil": "Zeit bis: **{time}**",
+            "TimeUntil": "Zeit bis: {time}",
             "TimeUntilStallSeconds": " (mit ausgereiztem Timer-Zuschlag bis {time})",
             "LegalRandomPickObligatory": "In diesem Draft sind nur Randompicks erlaubt!",
             "RandomPickDisabled": "RandomPick ist in dieser Liga deaktiviert!",

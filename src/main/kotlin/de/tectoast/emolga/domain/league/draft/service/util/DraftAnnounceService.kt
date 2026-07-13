@@ -43,7 +43,8 @@ class DraftAnnounceService(
             snippets.joinToString(prefix = " (", postfix = ")") { it() }
         }
         if (!withTimerAnnounce) return if (snippets.isEmpty()) EmptyMessage else basePart
-        val timerPart = timerService.getCurrentTimerMessage(ctx.config.timer, ctx.league.draftData.timer)
+        val timerConfig = ctx.config.timer ?: return basePart
+        val timerPart = timerService.getCurrentTimerMessage(timerConfig, ctx.league.draftData.timer)
         return b {
             "${basePart()} — ${timerPart()}"
         }

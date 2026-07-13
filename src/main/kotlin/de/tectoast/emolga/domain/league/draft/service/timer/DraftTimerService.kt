@@ -16,9 +16,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import org.koin.core.annotation.Single
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.*
+import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+import kotlin.time.isDistantPast
 
 private val dayTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
 private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
@@ -118,13 +121,13 @@ class DraftTimerService(
         cancelTimer(leagueName)
     }
 
-    fun getCurrentTimerMessage(timerConfig: DraftTimerConfig?, timerData: TimerRelated): K18nMessage {
+    fun getCurrentTimerMessage(timerConfig: DraftTimerConfig, timerData: TimerRelated): K18nMessage {
         return b {
             buildString {
                 append(
                     K18n_League.TimeUntil(
                         formatTimeFormatBasedOnDistance(
-                            timerData.regularCooldown, timerConfig?.stallSeconds
+                            timerData.regularCooldown, timerConfig.stallSeconds
                         )
                     )()
                 )
@@ -132,7 +135,7 @@ class DraftTimerService(
                     append(
                         K18n_League.TimeUntilStallSeconds(
                             formatTimeFormatBasedOnDistance(
-                                timerData.cooldown, timerConfig?.stallSeconds
+                                timerData.cooldown, timerConfig.stallSeconds
                             )
                         )()
                     )
@@ -142,17 +145,13 @@ class DraftTimerService(
         }
     }
 
-    private fun formatTimeFormatBasedOnDistance(cooldown: Instant, stallSeconds: Int?) = buildString {
+    private fun formatTimeFormatBasedOnDistance(cooldown: Instant, stallSeconds: Int?): String {
         val delay = cooldown - clock.now()
-        if (delay >= 1.days) append(
-            dayTimeFormat.format(
-                cooldown.toJavaInstant()
-            )
-        ).append(" ")
-        append(
-            (if (stallSeconds == 0 && delay > SECONDS_THRESHOLD) timeFormat else timeFormatSecs).format(
-                cooldown.toJavaInstant()
-            )
-        )
+        val formatType = when {
+            delay >= 1.days -> "f"
+            stallSeconds != null -> "T"
+            else -> "t"
+        }
+        return "<t:${cooldown.epochSeconds}:$formatType>"
     }
 }

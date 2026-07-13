@@ -400,7 +400,7 @@
             "PossibleTiersToBan": "Possible tiers to ban: {data}",
             "PossibleTiers": "Possible tiers: {data}",
             "PossiblePoints": "Possible points: {data:Int}",
-            "TimeUntil": "Time until: **{time}**",
+            "TimeUntil": "Time until: {time}",
             "TimeUntilStallSeconds": " (with maxed timer allowance until {time})",
             "LegalRandomPickObligatory": "Only random picks are allowed in this draft!",
             "RandomPickDisabled": "RandomPick is disabled in this league!",

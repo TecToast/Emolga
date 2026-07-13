@@ -36,7 +36,7 @@ class QueuePicksCommand(
 ) {
     override val children = listOf(manage, add, enable, disable)
 
-    @Single(binds = [ListenerProvider::class])
+    @Single
     class Manage(
         private val stateStore: StateStoreDispatcher,
         private val leagueQueryService: LeagueQueryService,
@@ -73,7 +73,7 @@ class QueuePicksCommand(
         }
     }
 
-    @Single(binds = [ListenerProvider::class])
+    @Single
     class Add(
         private val leagueQueryService: LeagueQueryService,
         private val queuePicksService: QueuePicksService,
@@ -118,7 +118,7 @@ class QueuePicksCommand(
         }
     }
 
-    @Single(binds = [ListenerProvider::class])
+    @Single
     class Enable(private val helper: QueueActivationHelper) :
         CommandFeature<NoArgs>(NoArgs(), CommandSpec("enable", K18n_QueuePicks.EnableHelp)) {
         context(iData: InteractionData)
@@ -127,7 +127,7 @@ class QueuePicksCommand(
         }
     }
 
-    @Single(binds = [ListenerProvider::class])
+    @Single
     class Disable(private val helper: QueueActivationHelper) :
         CommandFeature<NoArgs>(NoArgs(), CommandSpec("disable", K18n_QueuePicks.DisableHelp)) {
         context(iData: InteractionData)

@@ -14,9 +14,7 @@ import de.tectoast.emolga.features.system.model.Nameable
 import de.tectoast.emolga.features.system.types.ModalArgOption
 import de.tectoast.emolga.features.system.types.SelectMenuArgSpec
 import de.tectoast.emolga.utils.*
-import de.tectoast.generic.K18n_NoResults
 import de.tectoast.generic.K18n_TooManyResults
-import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
 import net.dv8tion.jda.api.components.selections.SelectOption
 import net.dv8tion.jda.api.entities.Member
@@ -280,11 +278,7 @@ open class Arguments : KoinComponent {
     }
 
 
-    fun List<String>?.convertListToAutoCompleteReply(language: K18nLanguage) = when (this?.size) {
-        0, null -> listOf(K18n_NoResults.translateTo(language))
-        in 1..25 -> this
-        else -> listOf(K18n_TooManyResults.translateTo(language))
-    }
+   
 
     fun toMap() = _args.associate { it.name to it.getValueOrNull() }
 

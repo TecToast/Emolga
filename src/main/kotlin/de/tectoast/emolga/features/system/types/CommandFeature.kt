@@ -3,14 +3,10 @@ package de.tectoast.emolga.features.system.types
 import de.tectoast.emolga.discord.jda.features.JDAInteractionData
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.features.interaction.InteractionData
-import de.tectoast.emolga.features.system.ArgSpec
-import de.tectoast.emolga.features.system.Arguments
-import de.tectoast.emolga.features.system.CommandSpec
+import de.tectoast.emolga.features.system.*
 import de.tectoast.emolga.features.system.model.GuildChecker
 import de.tectoast.emolga.features.system.model.NotAllowed
-import de.tectoast.emolga.features.system.nameToDiscordOption
 import de.tectoast.emolga.utils.BotConstants
-import de.tectoast.generic.K18n_TooManyResults
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.Command.Choice
@@ -53,7 +49,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
             options[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
                 it.replyChoiceStrings(
-                    list ?: listOf(K18n_TooManyResults.translateTo(languageRepo.getLanguage(it.guild?.idLong)))
+                    list.convertListToAutoCompleteReply(languageRepo.getLanguage(it.guild?.idLong))
                 )
                     .queue()
             }

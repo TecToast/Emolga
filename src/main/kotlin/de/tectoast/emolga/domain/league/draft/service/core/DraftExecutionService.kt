@@ -335,7 +335,7 @@ class DraftExecutionService(
                     round = ctx.league.round,
                     forRound = timerSkipModeDispatcher.getPickRound(ctx),
                     idx = ctx.league.currentIdx,
-                    type = type,
+                    origin = type,
                     sheetUpdate = {
                         sheetTemplateRepo.getPickTemplate(config.sheetTemplateId)?.let { template ->
                             applySheetTemplate(template, data)
@@ -371,7 +371,7 @@ class DraftExecutionService(
                     round = ctx.league.round,
                     forRound = timerSkipModeDispatcher.getPickRound(ctx),
                     idx = ctx.league.currentIdx,
-                    type = type,
+                    origin = type,
                     sheetUpdate = {
                         sheetTemplateRepo.getSwitchTemplate(config.sheetTemplateId)?.let { template ->
                             applySheetTemplate(template, data)
@@ -402,7 +402,7 @@ class DraftExecutionService(
                     round = ctx.league.round,
                     forRound = timerSkipModeDispatcher.getPickRound(ctx),
                     idx = ctx.league.currentIdx,
-                    type = type,
+                    origin = type,
                     sheetUpdate = {
                         sheetTemplateRepo.getBanTemplate(config.sheetTemplateId)?.let { template ->
                             applySheetTemplate(template, data)

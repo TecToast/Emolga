@@ -20,7 +20,7 @@ sealed class DraftActionResult {
         override val round: Int,
         override val idx: Int,
         val forRound: Int,
-        val type: DraftActionOrigin,
+        val origin: DraftActionOrigin,
         val input: DraftInput,
         val byUser: Long?,
         val showTier: String?,

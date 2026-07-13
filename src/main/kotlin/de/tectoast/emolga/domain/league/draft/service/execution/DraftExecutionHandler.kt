@@ -62,7 +62,7 @@ class DraftExecutionHandler(
 }
 
 private fun DraftActionResult.UserAction.toLogEntry() =
-    DraftLogEntry.Action(input = input, type = type, forRound = forRound, byUser = byUser, showTier = showTier)
+    DraftLogEntry.Action(input = input, origin = origin, forRound = forRound.takeIf { it != round }, byUser = byUser, showTier = showTier)
 
 private fun DraftActionResult.Skip.toLogEntry() =
     DraftLogEntry.Skip(reason = reason, madeUpRound = null)

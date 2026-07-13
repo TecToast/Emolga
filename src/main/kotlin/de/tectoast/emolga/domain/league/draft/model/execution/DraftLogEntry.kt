@@ -13,7 +13,7 @@ sealed interface DraftLogEntry {
     @SerialName("Action")
     data class Action(
         val input: DraftInput,
-        val type: DraftActionOrigin,
+        val origin: DraftActionOrigin,
         val showTier: String?,
         val forRound: Int?,
         val byUser: Long?

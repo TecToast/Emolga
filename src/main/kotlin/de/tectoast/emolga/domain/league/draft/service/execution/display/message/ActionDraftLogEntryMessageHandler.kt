@@ -33,7 +33,7 @@ class ActionDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEn
                 showTier?.let { append(" ($it)") }
                 append(" ($userRef)")
                 if (forRound != null) append(" [${K18n_DraftUtils.PickedForRound(forRound)()}]")
-                when (type) {
+                when (origin) {
                     DraftActionOrigin.REGULAR -> {}
                     DraftActionOrigin.QUEUE -> {
                         append(" [Queue]")

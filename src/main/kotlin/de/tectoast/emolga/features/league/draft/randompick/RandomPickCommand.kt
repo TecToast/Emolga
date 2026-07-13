@@ -47,7 +47,7 @@ class RandomPickCommand(private val draftService: DraftService, private val btn:
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        iData.deferReply()
+        iData.deferReply(true)
         val result = draftService.handleRandomPickRequest(
             input = RandomPickUserInput(
                 tier = e.tier,

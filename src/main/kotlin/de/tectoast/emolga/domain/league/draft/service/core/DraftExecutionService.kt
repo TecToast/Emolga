@@ -30,6 +30,7 @@ class DraftExecutionService(
     private val queuedPicksRepo: QueuedPicksRepository,
     private val displayService: PokemonDisplayService,
     private val timeFormatService: TimeFormatService,
+    private val queuedPicksProvider: QueuedPicksProvider,
     private val clock: Clock
 ) {
     suspend fun processDraftInput(
@@ -125,7 +126,7 @@ class DraftExecutionService(
     suspend fun processDraftStart(ctx: DraftRunContext): CalcResult<DraftExecution> {
         val state = buildDraftExecutionState(ctx)
         val queuedInput =
-            ctx.getQueuedPickForUser(ctx.league.currentIdx, state.allQueuedPicks) ?: return DraftExecution(
+            queuedPicksProvider.getQueuedPickForUser(ctx, ctx.league.currentIdx, state.allQueuedPicks) ?: return DraftExecution(
                 emptyList(), emptyMap(),
                 TimerOption.RESTART, ctx.league.currentIdx
             ).success()
@@ -234,19 +235,11 @@ class DraftExecutionService(
                 .firstOrNull { state.allQueuedPicks[it]?.let { qp -> qp.enabled && qp.queued.isNotEmpty() } == true }
                 ?: return AfterActionResult(timerOption = defaultTimerOption)
         } else league.currentIdx
-        val nextQueuedPick = ctx.getQueuedPickForUser(nextIdx, state.allQueuedPicks) ?: return AfterActionResult(
+        val nextQueuedPick = queuedPicksProvider.getQueuedPickForUser(ctx, nextIdx, state.allQueuedPicks) ?: return AfterActionResult(
             timerOption = defaultTimerOption
         )
         ctx.pickContext = PickContext.RegularTurn(nextIdx)
         return AfterActionResult(nextInput = nextQueuedPick, timerOption = defaultTimerOption)
-    }
-
-    private fun DraftRunContext.getQueuedPickForUser(
-        idx: Int,
-        allQueuedPicks: Map<Int, QueuePicksUserData>
-    ): DraftInput? {
-        config.draftBan?.banRounds[league.round]?.let { return null }
-        return allQueuedPicks[idx]?.takeIf { it.enabled }?.queued?.firstOrNull()?.buildDraftInput()
     }
 
     private fun checkForSnipes(

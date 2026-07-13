@@ -337,7 +337,7 @@ class DraftExecutionService(
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
-                        sheetTemplateRepo.getPickTemplate(config.sheetTemplateId)?.let { template ->
+                        config.draftDoc?.pick?.let { template ->
                             applySheetTemplate(template, data)
                         }
                     },
@@ -373,7 +373,7 @@ class DraftExecutionService(
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
-                        sheetTemplateRepo.getSwitchTemplate(config.sheetTemplateId)?.let { template ->
+                        config.draftDoc?.switch?.let { template ->
                             applySheetTemplate(template, data)
                         }
                     },
@@ -404,7 +404,7 @@ class DraftExecutionService(
                     idx = ctx.league.currentIdx,
                     origin = type,
                     sheetUpdate = {
-                        sheetTemplateRepo.getBanTemplate(config.sheetTemplateId)?.let { template ->
+                        config.draftDoc?.ban?.let { template ->
                             applySheetTemplate(template, data)
                         }
                     },

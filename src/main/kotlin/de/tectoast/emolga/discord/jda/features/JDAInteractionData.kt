@@ -3,6 +3,7 @@ package de.tectoast.emolga.discord.jda.features
 import de.tectoast.emolga.features.interaction.AdditionalDeliveredData
 import de.tectoast.emolga.features.interaction.CommandResponse
 import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.system.debug.TestOverride
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import de.tectoast.k18n.generated.K18nLanguage
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
@@ -15,13 +16,14 @@ import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.modals.Modal
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import net.dv8tion.jda.api.utils.messages.MessageEditData
+import org.koin.mp.KoinPlatformTools
 
 class JDAInteractionData(
     val e: GenericInteractionCreateEvent, override val language: K18nLanguage = K18N_DEFAULT_LANGUAGE
 ) : InteractionData(
-    user = e.user.idLong,
-    tc = e.channel!!.idLong,
-    gid = e.guild?.idLong ?: -1,
+    user = testOverride.user ?: e.user.idLong,
+    tc = testOverride.tc ?: e.channel!!.idLong,
+    gid = testOverride.gid ?: e.guild?.idLong ?: -1,
     data = AdditionalDeliveredData(memberRoles = e.member?.roles?.map { it.idLong } ?: emptyList(),
         messageId = (e as? GenericComponentInteractionCreateEvent)?.message?.idLong
             ?: (e as? ModalInteractionEvent)?.message?.idLong),
@@ -83,3 +85,5 @@ class JDAInteractionData(
         responseDeferred.complete(response)
     }
 }
+
+private val testOverride: TestOverride by KoinPlatformTools.defaultContext().get().inject()

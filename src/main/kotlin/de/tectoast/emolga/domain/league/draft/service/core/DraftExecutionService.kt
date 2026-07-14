@@ -454,7 +454,7 @@ private abstract class DraftData(
 ) : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
-            USER_INDEX -> userIndex
+            IDX -> userIndex
             PICK_INDEX -> pickIndex
             POKEMON -> tlName
             SHOWDOWN_ID -> showdownId
@@ -470,7 +470,7 @@ private abstract class DraftData(
     abstract fun resolveSpecific(variable: String): Any
 
     companion object {
-        const val USER_INDEX = "USER_INDEX"
+        const val IDX = "IDX"
         const val PICK_INDEX = "PICK_INDEX"
         const val POKEMON = "POKEMON"
         const val SHOWDOWN_ID = "SHOWDOWN_ID"
@@ -506,7 +506,7 @@ private class PickData(
     companion object : ValidVariableProvider {
         override val validVariables = setOf(
             FREE, UPDRAFTED, TERA, POINTS,
-            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+            IDX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
         )
         const val FREE = "FREE"
         const val UPDRAFTED = "UPDRAFTED"
@@ -538,7 +538,7 @@ private class SwitchData(
     companion object : ValidVariableProvider {
         override val validVariables = setOf(
             OLD_TL_NAME, OLD_SHOWDOWN_ID,
-            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+            IDX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
         )
 
         const val OLD_TL_NAME = "OLD_TL_NAME"
@@ -561,7 +561,7 @@ private class BanData(
 
     companion object : ValidVariableProvider {
         override val validVariables = setOf(
-            USER_INDEX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
+            IDX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
         )
     }
 }

@@ -16,6 +16,6 @@ class QueueActivationHelper(
     suspend fun changeActivation(enable: Boolean) {
         val (leagueName, config, idx) = leagueQueryService.byCommand() ?: return iData.reply(K18n_NoLeagueForGuildFound)
         val result = queuePicksService.changeActivation(enable, iData.gid, leagueName, idx, config)
-        iData.reply(result.msg())
+        iData.reply(result.msg(), ephemeral = true)
     }
 }

@@ -8,9 +8,9 @@ import kotlin.time.Instant
 
 @Serializable
 sealed class DraftTimerConfig {
-    val timerStart: Instant? = null
+    var timerStart: Instant? = null
     var stallSeconds: Int = 0
-    val oneTimerForAllPicks: Boolean = false
+    var oneTimerForAllPicks: Boolean = false
     var startPunishSkipsTime: Instant = Instant.DISTANT_PAST
 
     @Serializable

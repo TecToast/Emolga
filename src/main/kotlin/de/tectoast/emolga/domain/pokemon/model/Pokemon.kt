@@ -8,7 +8,7 @@ data class Pokemon(
     val name: String,
     val num: Int = -1,
     val types: List<String> = listOf(),
-    private val baseStats: Map<String, Int> = mapOf(),
+    val baseStats: Map<String, Int> = mapOf(),
     val formeOrder: List<String>? = null,
     val forme: String? = null,
     val baseSpecies: String? = null,

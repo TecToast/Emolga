@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 
@@ -23,7 +22,7 @@ class DBMigrationCommand(
     private val channelInterface: ChannelInterface
 ) :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("dbmigration", "DB Migration".k18n)), DiscordReadyTask {
-    private val initialMigrationScope = createCoroutineScope("InitialMigration", Dispatchers.IO)
+    private val initialMigrationScope = createCoroutineScope("InitialMigration")
 
     override suspend fun onDiscordReady() {
         initialMigrationScope.launch {

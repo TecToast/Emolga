@@ -7,9 +7,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
@@ -39,11 +37,9 @@ class AnalysisService(val httpClient: HttpClient) {
         for (unused in 0..1) {
             var statusCode: HttpStatusCode? = null
             val retrieved = runCatching {
-                withContext(Dispatchers.IO) {
-                    logger.info("Reading URL... {}", url)
-                    val text = httpClient.get(mappedURL).also { statusCode = it.status }.bodyAsText()
-                    mode.getLogFromWebsiteText(text).split("\n")
-                }
+                logger.info("Reading URL... {}", url)
+                val text = httpClient.get(mappedURL).also { statusCode = it.status }.bodyAsText()
+                mode.getLogFromWebsiteText(text).split("\n")
             }.getOrDefault(listOf(""))
             gameNullable = retrieved.takeIf { it.size > 1 }
             if (gameNullable == null) {

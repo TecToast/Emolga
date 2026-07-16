@@ -72,7 +72,7 @@ class DiscordAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
             start()
         })
         addFilter(UnknownInteractionFilter)
-        scope = CoroutineScope(Dispatchers.IO + CoroutineName("DiscordAppender"))
+        scope = CoroutineScope(CoroutineName("DiscordAppender"))
         client = HttpClient(CIO)
         channel = Channel(Channel.BUFFERED)
         timeoutMillis = timeout.toLong()

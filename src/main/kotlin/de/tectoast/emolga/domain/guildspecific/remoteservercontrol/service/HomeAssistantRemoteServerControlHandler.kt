@@ -5,8 +5,6 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
@@ -18,14 +16,12 @@ class HomeAssistantRemoteServerControlHandler(private val httpClient: HttpClient
 
     private val logger = KotlinLogging.logger {}
 
-    override suspend fun startServer(config: RemoteServerControlConfig.HomeAssistant): Unit =
-        withContext(Dispatchers.IO) {
+    override suspend fun startServer(config: RemoteServerControlConfig.HomeAssistant) =
             logger.debug(httpClient.post("http://${config.url}/api/webhook/${config.webhookIdOn}").bodyAsText())
-        }
 
-    override suspend fun powerOff(config: RemoteServerControlConfig.HomeAssistant): Unit = withContext(Dispatchers.IO) {
+    override suspend fun powerOff(config: RemoteServerControlConfig.HomeAssistant) =
         logger.debug(httpClient.post("http://${config.url}/api/webhook/${config.webhookIdOff}").bodyAsText())
-    }
+
 
     override suspend fun isOn(config: RemoteServerControlConfig.HomeAssistant): Boolean {
         return when (val res = httpClient.get("http://${config.url}/api/states/${config.entityId}") {

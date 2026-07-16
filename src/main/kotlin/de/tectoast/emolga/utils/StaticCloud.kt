@@ -8,8 +8,6 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
@@ -40,8 +38,7 @@ class StaticCloud(
      * @param data The data of the file
      * @return The ID of the file
      */
-    private suspend fun uploadFileToCloud(name: String, mimeType: String, data: ByteArray): String =
-        withContext(Dispatchers.IO) {
+    private suspend fun uploadFileToCloud(name: String, mimeType: String, data: ByteArray) =
             httpClient.submitFormWithBinaryData(url = "${credentials.baseUrl}/upload", formData = formData {
                 append("file", data, Headers.build {
                     append(HttpHeaders.ContentType, mimeType)
@@ -51,11 +48,10 @@ class StaticCloud(
             }) {
                 header("Authorization", "Bearer ${credentials.token}")
             }.bodyAsText().trim('"')
-        }
 
     override suspend fun uploadLogoToCloud(
         data: LogoInputData
-    ) = withContext(Dispatchers.IO) {
+    ): String {
         val fileName = data.fileName
         if (!logoNameRepository.fileNameExists(data.fileName)) {
             uploadFileToCloud(
@@ -63,6 +59,6 @@ class StaticCloud(
             )
         }
         logoNameRepository.insertFileName(fileName, data.teamName)
-        fileName
+        return fileName
     }
 }

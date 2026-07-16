@@ -4,8 +4,6 @@ import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteS
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 
 
@@ -21,16 +19,12 @@ class HttpRemoteServerControlHandler(private val httpClient: HttpClient) :
     override suspend fun powerOff(config: RemoteServerControlConfig.Http) = push(config, POWER_OFF)
 
     private suspend fun push(config: RemoteServerControlConfig.Http, delay: Int) {
-        withContext(Dispatchers.IO) {
             httpClient.post("${config.url}/push/${config.writePin}") {
                 setBody("$delay")
             }
-        }
     }
 
-    override suspend fun isOn(config: RemoteServerControlConfig.Http) = withContext(Dispatchers.IO) {
-        httpClient.get("${config.url}/status/${config.readPin}").bodyAsText().contains("level=0")
-    }
+    override suspend fun isOn(config: RemoteServerControlConfig.Http) = httpClient.get("${config.url}/status/${config.readPin}").bodyAsText().contains("level=0")
 
     companion object {
         private const val TURN_ON_TIME = 500

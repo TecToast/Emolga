@@ -16,8 +16,8 @@ sealed interface DraftLogEntry {
     data class Action(
         val input: DraftInput,
         val origin: DraftActionOrigin,
-        val showTier: String?,
-        val forRound: Int?,
+        val showTier: String? = null,
+        val forRound: Int? = null,
         val byUser: Long?,
         override val timestamp: Instant
     ) :

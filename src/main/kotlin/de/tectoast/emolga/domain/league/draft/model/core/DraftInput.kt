@@ -14,8 +14,8 @@ sealed interface DraftInput {
 @SerialName("Pick")
 data class PickInput(
     override val pokemon: ShowdownID,
-    val tier: String?,
-    val free: Boolean,
+    val tier: String? = null,
+    val free: Boolean = false,
     val tera: Boolean = false,
     val noCost: Boolean = false
 ) : DraftInput {

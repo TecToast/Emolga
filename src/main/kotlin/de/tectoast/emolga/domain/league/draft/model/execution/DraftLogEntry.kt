@@ -5,10 +5,12 @@ import de.tectoast.emolga.domain.league.draft.model.core.DraftInput
 import de.tectoast.emolga.domain.league.draft.model.core.SkipReason
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 
 @Serializable
 sealed interface DraftLogEntry {
+    val timestamp: Instant
     @Serializable
     @SerialName("Action")
     data class Action(
@@ -16,16 +18,17 @@ sealed interface DraftLogEntry {
         val origin: DraftActionOrigin,
         val showTier: String?,
         val forRound: Int?,
-        val byUser: Long?
+        val byUser: Long?,
+        override val timestamp: Instant
     ) :
         DraftLogEntry
 
     @Serializable
     @SerialName("Skip")
-    data class Skip(val madeUpRound: Int?, val reason: SkipReason) : DraftLogEntry
+    data class Skip(val madeUpRound: Int?, val reason: SkipReason, override val timestamp: Instant) : DraftLogEntry
 
     @Serializable
     @SerialName("UserFinished")
-    data object UserFinished : DraftLogEntry
+    data class UserFinished(override val timestamp: Instant) : DraftLogEntry
 
 }

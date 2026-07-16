@@ -3,11 +3,7 @@ package de.tectoast.emolga.domain.scheduling.repeat.service
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTask
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTaskType
 import de.tectoast.emolga.domain.scheduling.repeat.service.instanttomidnight.InstantToMidnightConverter
-import de.tectoast.emolga.utils.createCoroutineScope
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
@@ -23,9 +19,9 @@ import kotlin.time.Instant
 class RepeatTaskSchedulerService(
     private val clock: Clock,
     private val instantToMidnightConverter: InstantToMidnightConverter,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : RepeatTaskScheduler {
-    private val scope = createCoroutineScope("TaskSchedulerService", dispatcher)
+    private val scope = baseScope + CoroutineName("TaskSchedulerService")
     private val tasks = ConcurrentHashMap<RepeatTaskType, RepeatTask>()
     private val logger = KotlinLogging.logger {}
 

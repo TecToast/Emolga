@@ -6,9 +6,9 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -16,8 +16,13 @@ import kotlin.time.Clock
 
 @Module(includes = [JsonModule::class])
 class PlatformModule {
+    private val defaultCoroutineLogger = KotlinLogging.logger("DefaultCoroutineLogger")
     @Single
-    fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+    fun defaultScope(): CoroutineScope =
+        CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { ctx, t ->
+            val name = ctx[CoroutineName]?.name ?: "Unknown"
+            defaultCoroutineLogger.error(t) { "Error in $name" }
+        })
 
     @Single
     fun defaultClock(): Clock = Clock.System

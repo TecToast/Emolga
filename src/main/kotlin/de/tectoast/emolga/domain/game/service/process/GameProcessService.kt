@@ -16,7 +16,6 @@ import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.schedule.repository.LeagueScheduleRepository
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoWritePermissionInChannel
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.joinToTeammates
 import de.tectoast.emolga.utils.showdown.K18n_Analysis
 import de.tectoast.generic.K18n_Week
@@ -24,9 +23,7 @@ import de.tectoast.k18n.generated.K18nLanguage
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
@@ -43,10 +40,10 @@ class GameProcessService(
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
     private val guildConfigRepo: GuildConfigRepository,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : StartupTask {
 
-    private val scope = createCoroutineScope("GameProcessService", dispatcher)
+    private val scope = baseScope + CoroutineName("GameProcessService")
     private val logger = KotlinLogging.logger {}
 
     override suspend fun onStartup() {

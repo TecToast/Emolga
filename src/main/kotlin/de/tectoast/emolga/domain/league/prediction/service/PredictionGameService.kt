@@ -15,12 +15,9 @@ import de.tectoast.emolga.domain.league.schedule.repository.LeagueScheduleReposi
 import de.tectoast.emolga.domain.userdata.service.DiscordUserService
 import de.tectoast.emolga.features.league.K18n_PredictionGame
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.generic.K18n_Week
 import de.tectoast.k18n.generated.K18nMessage
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.koin.core.annotation.Single
 import java.awt.Color
 import kotlin.time.Duration.Companion.seconds
@@ -38,9 +35,9 @@ class PredictionGameService(
     private val languageRepo: GuildConfigRepository,
     private val gameDataRepo: GameDataRepository,
     private val ui: PredictionGameUI,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) {
-    val scope = createCoroutineScope("PredictionGame", dispatcher)
+    val scope = baseScope + CoroutineName("PredictionGame")
 
     fun updateCorrectBattles(leagueName: String, week: Int, battleIndex: Int, winnerIdx: Int) {
         scope.launch {

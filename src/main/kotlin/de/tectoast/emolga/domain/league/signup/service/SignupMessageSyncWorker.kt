@@ -8,13 +8,9 @@ import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.signup.model.LeagueSignupConfig
 import de.tectoast.emolga.domain.league.signup.repository.SignupRepository
 import de.tectoast.emolga.features.league.K18n_Signup
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.k18n.generated.K18nLanguage
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
@@ -24,9 +20,9 @@ class SignupMessageSyncWorker(
     private val channelInterface: ChannelInterface,
     private val tx: TransactionRunner,
     private val languageRepo: GuildConfigRepository,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : DiscordReadyTask {
-    private val scope = createCoroutineScope("SignupMessageSyncWorker", dispatcher)
+    private val scope = baseScope + CoroutineName("SignupMessageSyncWorker")
     private val wakeupSignal = Channel<Unit>(Channel.CONFLATED)
     override suspend fun onDiscordReady() {
         scope.launch {

@@ -5,10 +5,7 @@ import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.ytgeneric.repository.YouTubeChannelsRepository
 import de.tectoast.emolga.domain.ytgeneric.repository.YouTubeNotificationsRepository
-import de.tectoast.emolga.utils.createCoroutineScope
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
@@ -21,9 +18,9 @@ class YouTubeSubscriptionStarter(
     private val leagueCoreRepo: LeagueCoreRepository,
     private val leagueConfigRepo: LeagueConfigRepository,
     private val leagueMemberRepo: LeagueMemberRepository,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) {
-    private val scope = createCoroutineScope("YouTubeSubscriptionStarter", dispatcher)
+    private val scope = baseScope + CoroutineName("YouTubeSubscriptionStarter")
     private val logger = KotlinLogging.logger {}
     fun setupYTSubscriptions() {
         scope.launch {

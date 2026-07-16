@@ -7,11 +7,8 @@ import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.service.LeagueMentionService
 import de.tectoast.emolga.league.K18n_League
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.k18n.generated.K18nLanguage
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.koin.core.annotation.Single
 import kotlin.time.Instant
 
@@ -22,9 +19,9 @@ class DraftStallSecondService(
     private val timerService: DraftTimerService,
     private val channelSender: ChannelInterface,
     private val languageRepo: GuildConfigRepository,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : StartupTask {
-    private val scope = createCoroutineScope("DraftStallSecondService", dispatcher)
+    private val scope = baseScope + CoroutineName("DraftStallSecondService")
     override suspend fun onStartup() {
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             timerService.expiredStallSecondEvents.collect { leagueName ->

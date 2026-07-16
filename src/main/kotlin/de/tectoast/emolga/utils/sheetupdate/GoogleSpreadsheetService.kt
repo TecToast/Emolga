@@ -2,10 +2,8 @@ package de.tectoast.emolga.utils.sheetupdate
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.ratelimiter.RateLimiter
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -15,10 +13,11 @@ import kotlin.time.Duration.Companion.seconds
 @Single
 class GoogleSpreadsheetService(
     private val googleApi: Google,
-    @Named("GoogleRateLimiter") val rateLimiter: RateLimiter
+    @Named("GoogleRateLimiter") val rateLimiter: RateLimiter,
+    baseScope: CoroutineScope
 ) : SpreadsheetService {
 
-    val scope = createCoroutineScope("GoogleSpreadsheetService")
+    val scope = baseScope + CoroutineName("GoogleSpreadsheetService")
     private val logger = KotlinLogging.logger {}
 
     override suspend fun <T> updateSheet(

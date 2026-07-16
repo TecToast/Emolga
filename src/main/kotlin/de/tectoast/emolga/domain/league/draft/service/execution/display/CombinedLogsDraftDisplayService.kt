@@ -18,12 +18,13 @@ import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.league.K18n_League
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.generic.K18n_MadeUpFor
 import de.tectoast.generic.K18n_Round
 import de.tectoast.k18n.generated.K18nLanguage
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 
@@ -37,9 +38,9 @@ class CombinedLogsDraftDisplayService(
     private val leagueMemberRepository: LeagueMemberRepository,
     private val pokemonDisplayService: PokemonDisplayService,
     private val draftLogEntryMessageDispatcher: DraftLogEntryMessageDispatcher,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : DraftDisplayService, KoinComponent {
-    val scope = createCoroutineScope("DraftDisplayService", dispatcher)
+    val scope = baseScope + CoroutineName("DraftDisplayService")
     override suspend fun handleDraftExecution(
         ctx: DraftRunContext,
         execution: DraftExecution,

@@ -6,7 +6,6 @@ import de.tectoast.emolga.discord.MessageSender
 import de.tectoast.emolga.discord.sendMessage
 import de.tectoast.emolga.domain.guildspecific.flegmon.birthday.repository.BirthdayRepository
 import de.tectoast.emolga.domain.guildspecific.flegmon.birthday.service.datetime.DateTimeProvider
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import kotlinx.coroutines.*
 import org.koin.core.annotation.Named
@@ -17,9 +16,9 @@ class FlegmonBirthdayService(
     private val repository: BirthdayRepository,
     private val dateTimeProvider: DateTimeProvider,
     @Named("flegmonBirthdaySender") private val sender: MessageSender,
-    dispatcher: CoroutineDispatcher,
+    baseScope: CoroutineScope,
 ) : StartupTask {
-    private val scope = createCoroutineScope("FlegmonBirthdayService", dispatcher)
+    private val scope = baseScope + CoroutineName("FlegmonBirthdayService")
     private var job: Job? = null
 
     private suspend fun checkBirthdays() {

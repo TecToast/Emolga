@@ -14,10 +14,15 @@ import de.tectoast.emolga.domain.game.service.process.analysis.SDPokemon
 import de.tectoast.emolga.domain.league.showdownnames.repository.SDNamesRepository
 import de.tectoast.emolga.domain.league.util.service.LeagueQueryService
 import de.tectoast.emolga.domain.statistics.repository.StatisticsRepository
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.CalcResult
+import de.tectoast.emolga.utils.error
 import de.tectoast.emolga.utils.showdown.K18n_Analysis
-import kotlinx.coroutines.CoroutineDispatcher
+import de.tectoast.emolga.utils.success
+import de.tectoast.emolga.utils.toShowdownUserId
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 
@@ -28,10 +33,10 @@ class FullInputGameBuilder(
     private val leagueQueryService: LeagueQueryService,
     private val statisticsRepository: StatisticsRepository,
     private val generalDiscordService: GeneralDiscordService,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) {
 
-    private val scope = createCoroutineScope("Analysis", dispatcher)
+    private val scope = baseScope + CoroutineName("Analysis")
     private val logger = KotlinLogging.logger {}
 
     suspend fun fromShowdown(

@@ -7,7 +7,6 @@ import de.tectoast.emolga.domain.league.draft.model.timer.DraftTimerConfig
 import de.tectoast.emolga.domain.league.draft.model.timer.TimerRelated
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.b
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.invoke
 import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.coroutines.*
@@ -31,7 +30,9 @@ private val SECONDS_THRESHOLD = 15.minutes
 
 @Single
 class DraftTimerService(
-    private val clock: Clock, private val calcService: DraftTimerCalculationService, dispatcher: CoroutineDispatcher
+    private val calcService: DraftTimerCalculationService,
+    private val clock: Clock,
+    baseScope: CoroutineScope
 ) {
     private val allTimers = ConcurrentHashMap<String, Job>()
     private val allStallSecondTimers = ConcurrentHashMap<String, Job>()
@@ -41,7 +42,7 @@ class DraftTimerService(
     val expiredTimerEvents = _expiredTimerEvents.asSharedFlow()
     val expiredStallSecondEvents = _expiredStallSecondEvents.asSharedFlow()
 
-    private val timerScope = createCoroutineScope("DraftTimerService", dispatcher)
+    private val timerScope = baseScope + CoroutineName("DraftTimerService")
 
     fun cancelTimer(leagueName: String) {
         allTimers.remove(leagueName)?.cancel()

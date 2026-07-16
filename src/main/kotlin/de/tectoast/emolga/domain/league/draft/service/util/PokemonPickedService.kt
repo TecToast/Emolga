@@ -11,9 +11,10 @@ import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.utils.Language
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.newThreadSafeCache
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.plus
 import org.koin.core.annotation.Single
 
 @Single
@@ -25,10 +26,10 @@ class PokemonPickedService(
     private val pokemonDisplayService: PokemonDisplayService,
     private val pokedexRepo: PokedexRepository,
     private val picksModifiedFlow: PicksModifiedFlow,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : StartupTask {
     private val pickedDataCache = newThreadSafeCache<Long, List<PokemonPickedData>>()
-    private val scope = createCoroutineScope("PokemonPickedService", dispatcher)
+    private val scope = baseScope + CoroutineName("PokemonPickedService")
 
     override suspend fun onStartup() {
         picksModifiedFlow.launch(scope) { pickedDataCache.remove(it) }

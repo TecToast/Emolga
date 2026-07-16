@@ -22,7 +22,7 @@ import kotlin.time.ExperimentalTime
 
 @Single
 class Google(private val credentials: BotConfig.Google, val clock: Clock) {
-    private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
+    private val googleContext = Dispatchers.IO
 
     @OptIn(ExperimentalTime::class)
     private val accesstoken: TimedCache<String> = TimedCache(45.minutes, clock) { generateAccessToken() }

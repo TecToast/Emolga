@@ -8,21 +8,24 @@ import de.tectoast.emolga.features.system.CommandSpec
 import de.tectoast.emolga.features.system.NoArgs
 import de.tectoast.emolga.features.system.types.CommandFeature
 import de.tectoast.emolga.features.system.types.ListenerProvider
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class, DiscordReadyTask::class])
 class DBMigrationCommand(
     private val dbMigration: DatabaseMigrationService,
     private val btn: DBMigrationButton,
-    private val channelInterface: ChannelInterface
+    private val channelInterface: ChannelInterface,
+    baseScope: CoroutineScope
 ) :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("dbmigration", "DB Migration".k18n)), DiscordReadyTask {
-    private val initialMigrationScope = createCoroutineScope("InitialMigration")
+    private val initialMigrationScope = baseScope + CoroutineName("InitialMigration")
 
     override suspend fun onDiscordReady() {
         initialMigrationScope.launch {

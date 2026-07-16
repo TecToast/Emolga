@@ -3,11 +3,8 @@ package de.tectoast.emolga.domain.guildspecific.calendar.service
 import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.domain.guildspecific.calendar.repository.CalendarRepository
 import de.tectoast.emolga.domain.guildspecific.calendar.service.bridge.CalendarNotificationSender
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.format
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import java.time.ZoneId
@@ -20,10 +17,10 @@ class CalendarService(
     private val calendarRepository: CalendarRepository,
     private val clock: Clock,
     private val notificationSender: CalendarNotificationSender,
-    dispatcher: CoroutineDispatcher,
+    baseScope: CoroutineScope,
 ) : StartupTask {
     private val logger = KotlinLogging.logger {}
-    private val scope = createCoroutineScope("CalendarService", dispatcher)
+    private val scope = baseScope + CoroutineName("CalendarService")
     private val calendarFormat = DateTimeFormatter.ofPattern("dd.MM. HH:mm").withZone(ZoneId.systemDefault())
 
     override suspend fun onStartup() {

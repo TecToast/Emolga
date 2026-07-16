@@ -1,9 +1,10 @@
 package de.tectoast.emolga.domain.ytgeneric.service
 
 import de.tectoast.emolga.utils.BotConfig
-import de.tectoast.emolga.utils.createCoroutineScope
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import mu.KotlinLogging
 import org.jsoup.Jsoup
 import org.koin.core.annotation.Single
@@ -18,9 +19,9 @@ class YouTubePushProcessingService(
     private val subscriberConfig: BotConfig.Subscriber,
     private val youTubeNotificationService: YouTubeNotificationService,
     private val ytLeagueService: YouTubeLeagueService,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) {
-    private val scope = createCoroutineScope("YouTubePushNotificationService", dispatcher)
+    private val scope = baseScope + CoroutineName("YouTubePushNotificationService")
     private val logger = KotlinLogging.logger {}
     private val mac: Mac by lazy {
         Mac.getInstance("HmacSHA1").apply {

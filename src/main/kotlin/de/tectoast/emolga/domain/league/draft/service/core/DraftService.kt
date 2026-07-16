@@ -22,10 +22,8 @@ import de.tectoast.emolga.features.league.draft.K18n_RandomPick
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.*
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 
@@ -42,10 +40,10 @@ class DraftService(
     private val draftTimerService: DraftTimerService,
     private val draftRunContextBuilder: DraftRunContextBuilder,
     private val randomPickService: RandomPickService,
-    dispatcher: CoroutineDispatcher
+    baseScope: CoroutineScope
 ) : StartupTask {
     override val priority = -10
-    private val draftTimerScope = createCoroutineScope("DraftServiceTimerWorker", dispatcher)
+    private val draftTimerScope = baseScope + CoroutineName("DraftServiceTimerWorker")
     private val logger = KotlinLogging.logger {}
     override suspend fun onStartup() {
         launchCollectTask(draftTimerService.expiredTimerEvents) {

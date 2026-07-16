@@ -18,7 +18,6 @@ import de.tectoast.emolga.domain.league.transaction.repository.TransactionDataRe
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTaskType
 import de.tectoast.emolga.domain.scheduling.repeat.service.RepeatTaskScheduler
-import kotlinx.coroutines.CoroutineDispatcher
 import org.koin.core.annotation.Single
 import kotlin.uuid.Uuid
 
@@ -34,8 +33,7 @@ class TransactionService(
     private val repeatTaskScheduler: RepeatTaskScheduler,
     private val tierlistActionDispatcher: TierlistActionDispatcher,
     private val tx: TransactionRunner,
-    private val successfulTransactionHandler: SuccessfulTransactionHandler,
-    dispatcher: CoroutineDispatcher
+    private val successfulTransactionHandler: SuccessfulTransactionHandler
 ) {
     suspend fun getTransactionData(transactionId: Uuid): APITransactionData? {
         val (leagueName, idx) = codesRepo.getDataByCode(transactionId) ?: return null

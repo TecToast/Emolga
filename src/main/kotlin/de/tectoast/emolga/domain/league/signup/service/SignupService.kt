@@ -30,8 +30,10 @@ import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.MessageEdit
 import dev.minn.jda.ktx.messages.into
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.update
@@ -54,12 +56,12 @@ class SignupService(
     private val youTubeChannelsRepository: YouTubeChannelsRepository,
     private val messageSyncWorker: SignupMessageSyncWorker,
     private val ytChannelIdService: YouTubeChannelIdService,
-    dispatcher: CoroutineDispatcher,
+    baseScope: CoroutineScope,
 ) : KoinComponent {
 
     private val logger = KotlinLogging.logger {}
 
-    val scope = createCoroutineScope("SignupService", dispatcher)
+    val scope = baseScope + CoroutineName("SignupService")
 
 
     suspend fun createSignup(

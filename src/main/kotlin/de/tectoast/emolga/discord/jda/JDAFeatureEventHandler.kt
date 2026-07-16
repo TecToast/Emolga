@@ -12,13 +12,9 @@ import de.tectoast.emolga.features.system.model.NotAllowed
 import de.tectoast.emolga.features.system.types.CommandFeature
 import de.tectoast.emolga.features.system.types.Feature
 import de.tectoast.emolga.utils.BotConstants
-import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.t
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.slf4j.MDCContext
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
@@ -39,9 +35,11 @@ class JDAFeatureEventHandler(
     private val botConstants: BotConstants,
     private val clock: Clock,
     featureRegistry: FeatureRegistry,
+    baseListenerScope: CoroutineScope,
+    baseSurveillanceScope: CoroutineScope
 ) : FeatureEventHandler {
-    private val listenerScope = createCoroutineScope("FeatureManagerListener")
-    private val surveillanceScope = createCoroutineScope("FeatureManagerSurveillance")
+    private val listenerScope = baseListenerScope + CoroutineName("FeatureManagerListener")
+    private val surveillanceScope = baseSurveillanceScope + CoroutineName("FeatureManagerSurveillance")
 
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String>
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>

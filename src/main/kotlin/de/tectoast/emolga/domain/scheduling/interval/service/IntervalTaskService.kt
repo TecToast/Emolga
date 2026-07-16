@@ -5,11 +5,7 @@ import de.tectoast.emolga.domain.scheduling.interval.model.IntervalTask
 import de.tectoast.emolga.domain.scheduling.interval.model.IntervalTaskKey
 import de.tectoast.emolga.domain.scheduling.interval.repository.IntervalTaskRepository
 import de.tectoast.emolga.domain.scheduling.interval.service.provider.IntervalTaskProvider
-import de.tectoast.emolga.utils.createCoroutineScope
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.koin.core.annotation.Single
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
@@ -19,9 +15,9 @@ class IntervalTaskService(
     private val repository: IntervalTaskRepository,
     val clock: Clock,
     tasks: List<IntervalTaskProvider>,
-    dispatcher: CoroutineDispatcher,
+    baseScope: CoroutineScope,
 ) : StartupTask {
-    val scope = createCoroutineScope("IntervalTaskService", dispatcher)
+    val scope = baseScope + CoroutineName("IntervalTaskService")
     private val jobs = ConcurrentHashMap<IntervalTaskKey, Job>()
     private val tasksById = tasks.associate { it.key to it.provideTask() }
 

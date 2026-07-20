@@ -11,7 +11,6 @@ import de.tectoast.emolga.domain.league.queue.repository.QueuedPicksRepository
 import de.tectoast.emolga.domain.league.queue.service.QueuedPicksProvider
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
-import de.tectoast.emolga.domain.util.service.TimeFormatService
 import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.utils.CalcResult
 import de.tectoast.emolga.utils.add
@@ -34,7 +33,6 @@ class DraftExecutionService(
     private val timerSkipModeDispatcher: TimerSkipModeDispatcher,
     private val queuedPicksRepo: QueuedPicksRepository,
     private val displayService: PokemonDisplayService,
-    private val timeFormatService: TimeFormatService,
     private val queuedPicksProvider: QueuedPicksProvider,
     private val clock: Clock
 ) {
@@ -227,6 +225,7 @@ class DraftExecutionService(
             if (state.isOneTimerForAllPicks && nextPlayerData.isMoved()) {
                 while (league.currentIdx == currentIdx) {
                     league.addToMoved(currentIdx)
+                    state.allResults += DraftActionResult.Skip(league.round, currentIdx, SkipReason.Skip())
                     currentIdx = league.currentIdx
                     league.nextUser()
                     val draftEnded = league.checkFinish()
@@ -313,7 +312,7 @@ class DraftExecutionService(
         validatedData: ValidationSuccess,
         type: DraftActionOrigin,
         byUser: Long?
-    ): DraftActionResult {
+    ): DraftActionResult.UserAction {
         val (leagueData, config, _, _) = ctx
         val idx = ctx.activeIdx
         return when (input) {

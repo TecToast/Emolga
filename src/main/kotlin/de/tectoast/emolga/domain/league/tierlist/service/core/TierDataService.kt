@@ -5,7 +5,9 @@ import de.tectoast.emolga.domain.league.tierlist.model.TierlistMeta
 import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierlistActionDispatcher
+import de.tectoast.emolga.domain.league.util.autocomplete.PokemonAutocompleteService
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
+import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.features.league.K18n_AddToTierlist
 import de.tectoast.emolga.features.league.draft.generic.K18n_NoTierlist
 import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
@@ -22,6 +24,8 @@ import org.koin.core.annotation.Single
 class TierDataService(
     private val repo: TierlistRepository,
     private val dispatcher: TierlistActionDispatcher,
+    private val pokemonDisplayService: PokemonDisplayService,
+    private val autocompleteService: PokemonAutocompleteService
 ) {
     suspend fun getTierData(
         meta: TierlistMeta,
@@ -63,7 +67,8 @@ class TierDataService(
             }
             throw ex
         }
-        return K18n_AddToTierlist.Success(showdownId.value, tier).success()
+        autocompleteService.invalidateCache(guild, identifier)
+        return K18n_AddToTierlist.Success(pokemonDisplayService.getDisplayName(showdownId, guild, tierlist.language), tier).success()
     }
 
 

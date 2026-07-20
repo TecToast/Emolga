@@ -65,4 +65,8 @@ class PokemonAutocompleteService(
         val names = displayService.getAutocompleteNames(showdownIds, leagueData.guild)
         return showdownIds.flatMap { names[it].orEmpty() }.filter { it.contains(query, ignoreCase = true) }
     }
+
+    fun invalidateCache(guild: Long, tlIdentifier: String) {
+        cache.remove(CacheKey(guild, tlIdentifier))
+    }
 }

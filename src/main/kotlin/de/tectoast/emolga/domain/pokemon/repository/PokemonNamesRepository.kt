@@ -5,6 +5,7 @@ import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
@@ -36,13 +37,14 @@ class PokemonNamesRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getOfficialNames(query: String, limit: Int) = suspendTransaction(db) {
+        val regexExpr = stringParam("$query.*")
         PokemonDictionaryTable.selectAll()
-            .where { PokemonDictionaryTable.nameEn like "$query%" or (PokemonDictionaryTable.nameDe like "$query%") }
+            .where { RegexpOp(PokemonDictionaryTable.nameEn, regexExpr, caseSensitive = false) or RegexpOp(PokemonDictionaryTable.nameDe, regexExpr, caseSensitive = false) }
             .limit(limit)
             .transform {
                 emit(it[PokemonDictionaryTable.nameEn])
                 emit(it[PokemonDictionaryTable.nameDe])
-            }.take(limit).toList()
+            }.distinctUntilChanged().take(limit).toList()
     }
 
     suspend fun addDisplayNames(guild: Long, names: Map<String, ShowdownID>) = suspendTransaction(

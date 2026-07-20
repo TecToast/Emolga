@@ -81,7 +81,7 @@ class QueuePicksService(
                 tierDataService.getTierData(tl, mon, requestedTier).getOrReturn<_, K18nMessage> { return@tx it }
             val queuedAction =
                 QueuedAction(
-                    QueuedMon(mon, tierData.specified, tierSpecified = tierData.isTierSpecified),
+                    QueuedMon(mon, tierData.specified, tierSpecified = tierData.isTierSpecified && tierData.specified != tierData.official),
                     oldMonAsDropped
                 )
             val newlist = data.queued.toMutableList().apply { add(queuedAction) }
@@ -141,6 +141,22 @@ class QueuePicksService(
             data.enabled = enable
             queuedPicksRepository.updateSingle(leagueName, idx, data)
             (if (enable) K18n_QueuePicks.QueueEnabled else K18n_QueuePicks.QueueDisabled).success()
+        }
+    }
+
+    suspend fun toggleSuccessfulNotification(
+        guild: Long,
+        leagueName: String,
+        idx: Int,
+        config: LeagueConfig
+    ): K18nMessageOrError {
+        config.checkQueueEnabled()?.let { return it.error() }
+        return tx {
+            leagueCoreRepository.getDraftStateLocking(leagueName)
+            val data = queuedPicksRepository.getSingle(leagueName, idx)
+            data.notifyOnSuccess = !data.notifyOnSuccess
+            queuedPicksRepository.updateSingle(leagueName, idx, data)
+            (if (data.notifyOnSuccess) K18n_QueuePicks.ToggleSuccessfulPingEnable else K18n_QueuePicks.ToggleSuccessfulPingDisable).success()
         }
     }
 

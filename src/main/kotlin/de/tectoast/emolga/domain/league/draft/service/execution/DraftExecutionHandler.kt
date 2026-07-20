@@ -1,6 +1,7 @@
 package de.tectoast.emolga.domain.league.draft.service.execution
 
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
+import de.tectoast.emolga.domain.league.draft.model.core.DraftActionOrigin
 import de.tectoast.emolga.domain.league.draft.model.core.DraftRunContext
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftActionResult
 import de.tectoast.emolga.domain.league.draft.model.execution.DraftExecution
@@ -9,8 +10,10 @@ import de.tectoast.emolga.domain.league.draft.model.execution.PreparedDraftLogEn
 import de.tectoast.emolga.domain.league.draft.repository.DraftLogRepository
 import de.tectoast.emolga.domain.league.draft.service.execution.display.DraftDisplayService
 import de.tectoast.emolga.domain.league.draft.service.util.SnipeNotificationService
+import de.tectoast.emolga.domain.league.draft.service.util.SuccessfulQueueNotificationService
 import de.tectoast.emolga.utils.sheetupdate.SpreadsheetService
 import org.koin.core.annotation.Single
+import kotlin.collections.filterIsInstance
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -18,6 +21,7 @@ import kotlin.time.Instant
 class DraftExecutionHandler(
     private val languageRepo: GuildConfigRepository,
     private val snipeNotificationService: SnipeNotificationService,
+    private val successfulQueueNotificationService: SuccessfulQueueNotificationService,
     private val draftLogRepository: DraftLogRepository,
     private val spreadsheetService: SpreadsheetService,
     private val displayService: DraftDisplayService,
@@ -41,6 +45,8 @@ class DraftExecutionHandler(
             language,
             ctx.tierlistMeta.language
         )
+        successfulQueueNotificationService.notifySuccessfulQueue(ctx, execution.results.filterIsInstance<DraftActionResult.UserAction>().filter { it.origin == DraftActionOrigin.QUEUE }
+            .mapTo(mutableSetOf()) { it.idx })
         val modifiedRounds = mutableSetOf<Int>()
         val now = clock.now()
         val preparedDraftLogEntries = execution.results.mapNotNull {

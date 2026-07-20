@@ -28,13 +28,13 @@ import org.koin.core.component.inject
 
 @Single(binds = [ListenerProvider::class])
 class QueuePicksCommand(
-    manage: Manage, add: Add, enable: Enable, disable: Disable
+    manage: Manage, add: Add, enable: Enable, disable: Disable, toggleSuccessfulPing: ToggleSuccessfulPing
 ) : CommandFeature<NoArgs>(
     NoArgs(), CommandSpec(
         "queuepicks", K18n_QueuePicks.Help
     )
 ) {
-    override val children = listOf(manage, add, enable, disable)
+    override val children = listOf(manage, add, enable, disable, toggleSuccessfulPing)
 
     @Single
     class Manage(
@@ -133,6 +133,17 @@ class QueuePicksCommand(
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             helper.changeActivation(false)
+        }
+    }
+
+    @Single
+    class ToggleSuccessfulPing(private val helper: QueueActivationHelper) : CommandFeature<NoArgs>(
+        NoArgs(),
+        CommandSpec("togglesuccessfulping", K18n_QueuePicks.ToggleSuccessfulPingHelp)
+    ) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            helper.toggleSuccessfulPing()
         }
     }
 

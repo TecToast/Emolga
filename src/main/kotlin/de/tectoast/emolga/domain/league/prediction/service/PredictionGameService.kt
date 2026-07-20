@@ -191,8 +191,8 @@ class PredictionGameService(
         isLocked = isLocked,
         idx1 = matchUp[0],
         idx2 = matchUp[1],
-        player1Name = users[matchUp[0]]!!.joinToString(" & ") { names[it]!! },
-        player2Name = users[matchUp[1]]!!.joinToString(" & ") { names[it]!! },
+        player1Name = users[matchUp[0]]!!.joinToString(" & ") { names[it] ?: "N/A" },
+        player2Name = users[matchUp[1]]!!.joinToString(" & ") { names[it] ?: "N/A" },
         embedDescription = description,
         embedColor = config.customEmbedColor ?: Constants.EMBED_COLOR
     )

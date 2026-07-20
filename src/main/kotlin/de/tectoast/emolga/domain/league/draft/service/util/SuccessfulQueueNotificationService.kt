@@ -15,21 +15,24 @@ class SuccessfulQueueNotificationService(
     private val queuedPicksRepo: QueuedPicksRepository,
     private val leagueMemberRepo: LeagueMemberRepository,
     private val channelInterface: ChannelInterface,
-    private val baseScope: CoroutineScope,
+    baseScope: CoroutineScope,
 ) {
     private val scope = baseScope + CoroutineName("SuccessfulQueueNotificationService")
     fun notifySuccessfulQueue(ctx: DraftRunContext, uindices: Set<Int>) = scope.launch {
         val leagueName = ctx.league.leagueName
         val queuedData = queuedPicksRepo.getForLeague(leagueName)
-        val indicesToNotify = queuedData.entries.filter { it.key in uindices && it.value.notifyOnSuccess }.map { it.key }
-        if(indicesToNotify.isEmpty()) return@launch
+        val indicesToNotify =
+            queuedData.entries.filter { it.key in uindices && it.value.notifyOnSuccess }.map { it.key }
+        if (indicesToNotify.isEmpty()) return@launch
         val primaryIds = leagueMemberRepo.getPrimaryIds(leagueName, indicesToNotify)
         val message = indicesToNotify.joinToString { primaryIds[it]?.joinToTeammates() ?: "N/A" }
         val channelId = ctx.league.draftChannel
         val messageId = channelInterface.sendMessage(channelId, message)
         messageId?.let {
-            delay(1.seconds)
-            channelInterface.deleteMessage(channelId, messageId)
+            withContext(NonCancellable) {
+                delay(1.seconds)
+                channelInterface.deleteMessage(channelId, messageId)
+            }
         }
     }
 }

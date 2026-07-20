@@ -5,7 +5,7 @@ import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.ytgeneric.repository.YouTubeChannelsRepository
 import de.tectoast.emolga.domain.ytgeneric.repository.YouTubeNotificationsRepository
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
@@ -17,23 +17,19 @@ class YouTubeSubscriptionStarter(
     private val ytChannelsRepo: YouTubeChannelsRepository,
     private val leagueCoreRepo: LeagueCoreRepository,
     private val leagueConfigRepo: LeagueConfigRepository,
-    private val leagueMemberRepo: LeagueMemberRepository,
-    baseScope: CoroutineScope
+    private val leagueMemberRepo: LeagueMemberRepository
 ) {
-    private val scope = baseScope + CoroutineName("YouTubeSubscriptionStarter")
     private val logger = KotlinLogging.logger {}
-    fun setupYTSubscriptions() {
-        scope.launch {
-            val fromNotifications = ytNotificationsRepo.getAllYTChannels()
-            val fromYouTubeLeague = ytChannelsRepo.getAllChannelIds(findYouTubeLeagueUsers())
-            val allChannels = fromNotifications + fromYouTubeLeague
-            logger.info("Subscribing to ${allChannels.size} channels...")
-            allChannels.forEach {
-                service.subscribeToChannel(it)
-                delay(1.seconds)
-            }
-            logger.info("Done subscribing to ${allChannels.size} channels!")
+    suspend fun setupYTSubscriptions() {
+        val fromNotifications = ytNotificationsRepo.getAllYTChannels()
+        val fromYouTubeLeague = ytChannelsRepo.getAllChannelIds(findYouTubeLeagueUsers())
+        val allChannels = fromNotifications + fromYouTubeLeague
+        logger.info("Subscribing to ${allChannels.size} channels...")
+        allChannels.forEach {
+            service.subscribeToChannel(it)
+            delay(1.seconds)
         }
+        logger.info("Done subscribing to ${allChannels.size} channels!")
     }
 
     private suspend fun findYouTubeLeagueUsers() = buildSet {

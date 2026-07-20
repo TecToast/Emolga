@@ -1,7 +1,7 @@
 package de.tectoast.emolga.domain.util.service
 
-import de.tectoast.emolga.utils.*
-import de.tectoast.k18n.generated.K18nMessage
+import de.tectoast.emolga.utils.toJavaLocalDateTime
+import de.tectoast.emolga.utils.toKotlinInstant
 import org.koin.core.annotation.Single
 import java.time.LocalDateTime
 import java.util.*
@@ -34,16 +34,6 @@ class TimeFormatService(private val clock: Clock) {
             }
         }
         return map
-    }
-
-    fun durationToPrettyLong(duration: Duration) = b {
-        durationToPrettyBase(duration).entries.joinToString { (k, v) ->
-            "**$v** ${
-                pluralise(
-                    v.toLong(), shortToPretty[k]!!
-                )()
-            }"
-        }.ifEmpty { "**0** ${K18n_TimeUtils.SecondPlural()}" }
     }
 
 
@@ -96,9 +86,6 @@ class TimeFormatService(private val clock: Clock) {
         return newTime
     }
 
-    private fun pluralise(x: Long, singular: K18nMessage, plural: K18nMessage) = if (x == 1L) singular else plural
-    private fun pluralise(x: Long, pair: Pair<K18nMessage, K18nMessage>) = pluralise(x, pair.first, pair.second)
-
     companion object {
         private val SECONDS_TOSTRING = TreeMap<Int, String>(
             Comparator.reverseOrder()
@@ -122,14 +109,7 @@ class TimeFormatService(private val clock: Clock) {
             map[""] = 1
             map
         }
-        private val shortToPretty = mapOf(
-            "y" to (K18n_TimeUtils.YearSingular to K18n_TimeUtils.YearPlural),
-            "w" to (K18n_TimeUtils.WeekSingular to K18n_TimeUtils.WeekPlural),
-            "d" to (K18n_TimeUtils.DaySingular to K18n_TimeUtils.DayPlural),
-            "h" to (K18n_TimeUtils.HourSingular to K18n_TimeUtils.HourPlural),
-            "m" to (K18n_TimeUtils.MinuteSingular to K18n_TimeUtils.MinutePlural),
-            "s" to (K18n_TimeUtils.SecondSingular to K18n_TimeUtils.SecondPlural)
-        )
+
         private val DURATION_PATTERN = Regex("(\\d{1,8})([${STRING_TO_SECONDS.keys.joinToString("")}])")
     }
 }

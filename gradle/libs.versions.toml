@@ -1,33 +1,33 @@
 [versions]
 coroutines = "1.11.0"
 exposed = "1.3.1"
-google-drive = "v3-rev20260624-2.0.0"
+google-drive = "v3-rev20260712-2.0.0"
 google-sheets = "v4-rev20260610-2.0.0"
-google-youtube = "v3-rev20260608-2.0.0"
+google-youtube = "v3-rev20260709-2.0.0"
 jda = "6.5.0"
 jda-ktx = "0.15.0"
-jib = "3.5.3"
+jib = "3.5.4"
 jsoup = "1.22.2"
 k18n = "2.2.1"
 koin = "4.2.2"
-kotest = "6.2.1"
-kotlin = "2.4.0"
+kotest = "6.2.3"
+kotlin = "2.4.10"
 kotlin-logging = "3.0.5"
 ktor = "3.5.1"
-logback = "1.5.37"
+logback = "1.5.38"
+loki-logback-appender = "2.0.3"
 mockk = "1.14.11"
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.2.RELEASE"
 r2dbc-spi = "1.0.0.RELEASE"
 serialization-json = "1.11.0"
 slf4j = "2.0.18"
-loki-logback-appender = "2.0.3"
 
 [plugins]
 gradleversions = "nl.littlerobots.version-catalog-update:1.1.0"
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 k18n = { id = "de.tectoast.k18n", version.ref = "k18n" }
-koin-compiler = "io.insert-koin.compiler.plugin:1.0.1"
+koin-compiler = "io.insert-koin.compiler.plugin:1.0.2"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
@@ -51,8 +51,8 @@ kotest-runner-junit5-jvm = { module = "io.kotest:kotest-runner-junit5-jvm", vers
 kotlin-logging-jvm = { module = "io.github.microutils:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -70,7 +70,7 @@ ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-sessions = { module = "io.ktor:ktor-server-sessions", version.ref = "ktor" }
 ktor-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-loki-logback-appender = { module = "com.github.loki4j:loki-logback-appender", version.ref="loki-logback-appender"}
+loki-logback-appender = { module = "com.github.loki4j:loki-logback-appender", version.ref = "loki-logback-appender" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
@@ -117,10 +117,10 @@ ktor = [
 ]
 logging = [
     "kotlin-logging-jvm",
-    "logback-classic",
-    "slf4j-api",
     "kotlinx-coroutines-slf4j",
-    "loki-logback-appender"
+    "logback-classic",
+    "loki-logback-appender",
+    "slf4j-api",
 ]
 testing = [
     "kotest-assertions-core",

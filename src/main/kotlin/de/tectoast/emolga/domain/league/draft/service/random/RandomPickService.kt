@@ -31,7 +31,7 @@ class RandomPickService(
         val validationRelevantData = ValidationRelevantData(
             picks = leaguePickRepo.getPicksForUser(ctx.league.leagueName, ctx.activeIdx),
             idx = ctx.activeIdx,
-            teamSize = ctx.config.teamSize
+            teamSize = ctx.tierlistMeta.teamSize
         )
         val (showdownId, tier) = dispatcher.getRandomPick(config.mode, ctx, input, validationRelevantData)
             .getOrReturn { return it }

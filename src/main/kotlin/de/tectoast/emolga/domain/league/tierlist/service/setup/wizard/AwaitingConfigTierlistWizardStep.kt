@@ -22,7 +22,7 @@ class AwaitingConfigTierlistWizardStep(
         input: TierlistWizardInput.Config
     ): WizardStepResult<TierlistWizardState>? {
         val config = input.config
-        val meta = TierlistMeta(state.guild, input.identifier, input.language, config)
+        val meta = TierlistMeta(state.guild, input.identifier, input.language, input.teamSize, config)
         val pokemonList = state.pokemonList
         val columnCount = pokemonList.size
         val tierMapping = input.tierAssociation ?: buildMap {

@@ -85,7 +85,7 @@ class QueuePicksService(
                     oldMonAsDropped
                 )
             val newlist = data.queued.toMutableList().apply { add(queuedAction) }
-            queueValidationService.validateQueue(leagueName, idx, config.teamSize, tl.config, newlist)
+            queueValidationService.validateQueue(leagueName, idx, tl.teamSize, tl.config, newlist)
                 ?.let { return@tx it.error() }
             stateStore.processIgnoreMissing<_, QueuePicksStateStoreHandler>(user) {
                 addNewMon(queuedAction)
@@ -136,7 +136,7 @@ class QueuePicksService(
             leagueCoreRepository.getDraftStateLocking(leagueName)
             val data = queuedPicksRepository.getSingle(leagueName, idx)
             val tl = tierlistRepository.getMeta(guild, config.tlIdentifier) ?: return@tx K18n_NoTierlist.error()
-            queueValidationService.validateQueue(leagueName, idx, config.teamSize, tl.config, data.queued)
+            queueValidationService.validateQueue(leagueName, idx, tl.teamSize, tl.config, data.queued)
                 ?.let { return@tx it.error() }
             data.enabled = enable
             queuedPicksRepository.updateSingle(leagueName, idx, data)

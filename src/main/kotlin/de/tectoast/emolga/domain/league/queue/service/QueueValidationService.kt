@@ -19,8 +19,9 @@ class QueueValidationService(
 ) {
     suspend fun validateQueue(leagueName: String, guild: Long, idx: Int, list: List<QueuedAction>): ErrorOrNull {
         val config = leagueConfigRepo.getConfig(leagueName)
+        val meta = tierlistRepo.getMeta(guild, config.tlIdentifier)!!
         return validateQueue(
-            leagueName, idx, config.teamSize, tierlistRepo.getMeta(guild, config.tlIdentifier)!!.config, list
+            leagueName, idx, meta.teamSize, meta.config, list
         )
     }
 

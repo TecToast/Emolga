@@ -97,7 +97,8 @@ class TransactionService(
         if (newTransactionPoints < 0) return@tx null
         val dropsAsList = data.drops.toList()
         val picksAsList = data.picks.toList()
-        val tierlistConfig = tierlistRepo.getMeta(leagueData.guild, config.tlIdentifier)?.config ?: return@tx null
+        val tlMeta = tierlistRepo.getMeta(leagueData.guild, config.tlIdentifier) ?: return@tx null
+        val tierlistConfig = tlMeta.config
         dropsAsList.forEachIndexed { index, drop ->
             val old = myPicks.firstOrNull { it.showdownId == drop } ?: return@tx null
             val newName = picksAsList[index]
@@ -109,7 +110,7 @@ class TransactionService(
         myPicks.forEach {
             if (!it.quit) it.tera = data.teraUsers.contains(it.showdownId)
         }
-        with(ValidationRelevantData(myPicks, idx, config.teamSize)) {
+        with(ValidationRelevantData(myPicks, idx, tlMeta.teamSize)) {
             val error = tierlistActionDispatcher.checkLegalityOfQueue(tierlistConfig, idx, currentState = emptyList())
             if (error != null) return@tx null
         }

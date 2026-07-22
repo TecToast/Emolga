@@ -2,7 +2,6 @@ package de.tectoast.emolga.domain.league.tierlist.repository
 
 import de.tectoast.emolga.domain.league.tierlist.model.TierlistMeta
 import de.tectoast.emolga.domain.league.tierlist.model.config.TierlistConfig
-import de.tectoast.emolga.domain.league.tierlist.repository.TierlistMetaTable.config
 import de.tectoast.emolga.domain.league.transaction.model.TransactionPokemonData
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
@@ -10,6 +9,7 @@ import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.jsonb
 import de.tectoast.emolga.utils.referencesCascade
+import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.*
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
@@ -32,27 +32,29 @@ class TierlistRepository(private val db: R2dbcDatabase) {
 
     private val joinedTable = TierlistEntryTable.innerJoin(TierlistMetaTable, { this.tierlistId }, { this.id })
 
-    suspend fun getMeta(guildId: Long, identifier: String): TierlistMeta? = suspendTransaction(db) {
-        TierlistMetaTable.selectAll()
-            .where { (TierlistMetaTable.guild eq guildId) and (TierlistMetaTable.identifier eq identifier) }
+    suspend fun getMeta(guildId: Long, identifier: String): TierlistMeta? = suspendTransaction(db, TierlistMetaTable) {
+        selectAll()
+            .where { (this.guild eq guildId) and (this.identifier eq identifier) }
             .firstOrNull()?.let {
                 TierlistMeta(
-                    guild = it[TierlistMetaTable.guild],
-                    identifier = it[TierlistMetaTable.identifier],
-                    language = it[TierlistMetaTable.language],
+                    guild = it[guild],
+                    identifier = it[this.identifier],
+                    language = it[language],
+                    teamSize = it[teamSize],
                     config = it[config]
                 )
             }
     }
 
-    suspend fun getAllMetasForGuild(guildId: Long): List<TierlistMeta> = suspendTransaction(db) {
-        TierlistMetaTable.selectAll()
-            .where { TierlistMetaTable.guild eq guildId }
+    suspend fun getAllMetasForGuild(guildId: Long): List<TierlistMeta> = suspendTransaction(db, TierlistMetaTable) {
+        selectAll()
+            .where { this.guild eq guildId }
             .map {
                 TierlistMeta(
-                    guild = it[TierlistMetaTable.guild],
-                    identifier = it[TierlistMetaTable.identifier],
-                    language = it[TierlistMetaTable.language],
+                    guild = it[this.guild],
+                    identifier = it[identifier],
+                    language = it[language],
+                    teamSize = it[teamSize],
                     config = it[config]
                 )
             }.toList()
@@ -158,6 +160,7 @@ object TierlistMetaTable : Table("tierlist_meta") {
     val guild = long("guild_id")
     val identifier = text("identifier")
     val language = enumerationByName<Language>("language", 20)
+    val teamSize = integer("team_size")
 
     val config = jsonb<TierlistConfig>("config")
 

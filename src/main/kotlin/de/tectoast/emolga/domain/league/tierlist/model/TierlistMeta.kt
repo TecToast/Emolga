@@ -7,5 +7,6 @@ data class TierlistMeta(
     val guild: Long,
     val identifier: String,
     val language: Language,
+    val teamSize: Int,
     val config: TierlistConfig
 )

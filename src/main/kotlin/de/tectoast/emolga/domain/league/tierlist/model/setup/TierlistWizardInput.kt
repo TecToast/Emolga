@@ -12,6 +12,7 @@ sealed interface TierlistWizardInput {
         val identifier: String,
         val config: TierlistConfig,
         val language: Language,
+        val teamSize: Int,
         val tierAssociation: Map<Int, String>?
     ) :
         TierlistWizardInput

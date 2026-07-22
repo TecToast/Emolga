@@ -52,7 +52,7 @@ class DraftValidationService(
                 return K18n_League.LegalActionIsNotBan(leagueData.round).error()
             }
         }
-        if (picks.count { !it.quit } >= config.teamSize) return K18n_League.TeamFull.error()
+        if (picks.count { !it.quit } >= tl.teamSize) return K18n_League.TeamFull.error()
         if (leagueData.isSwitchDraft && !config.triggers.allowPickDuringSwitch) return K18n_DraftUtils.NoPickDuringSwitch.error()
         val teraConfig = config.teraPick
         val isTeraPick = input.tera && teraConfig != null
@@ -63,7 +63,7 @@ class DraftValidationService(
         val showdownId = input.pokemon
         val tierData = tierDataService.getTierData(tl, showdownId, input.tier, identifier).getOrReturn { return it }
         val context = DraftActionContext()
-        with(ValidationRelevantData(picks = picks, idx = idx, teamSize = config.teamSize)) {
+        with(ValidationRelevantData(picks = picks, idx = idx, teamSize = tl.teamSize)) {
             tierlistActionDispatcher.handleDraftActionWithGeneralChecks(
                 tl.config, DraftAction(
                     tier = tierData, showdownId = showdownId, free = input.free, tera = input.tera
@@ -99,7 +99,7 @@ class DraftValidationService(
             ).error()
         val official = input.pokemon
         val tierData = tierDataService.getTierData(tl, official, null).getOrReturn { return it }
-        with(ValidationRelevantData(picks = picks, idx = idx, teamSize = config.teamSize)) {
+        with(ValidationRelevantData(picks = picks, idx = idx, teamSize = tl.teamSize)) {
             tierlistActionDispatcher.handleDraftActionWithGeneralChecks(
                 tl.config, DraftAction(
                     tier = tierData, showdownId = official, switch = oldDraftMon

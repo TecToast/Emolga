@@ -10,7 +10,7 @@ import org.koin.core.annotation.Single
 class SimplePointBasedTierlistActionHandler : OnlyPointBasedTierlistActionHandler<TierlistConfig.SimplePointBased>() {
     override val targetClass = TierlistConfig.SimplePointBased::class
 
-    override fun getTiers(config: TierlistConfig.SimplePointBased) = config.prices.keys.toList()
+    override fun getTiers(config: TierlistConfig.SimplePointBased) = config.prices.entries.sortedByDescending { it.value }.map { it.key }
 
     override fun getPointsForTier(config: TierlistConfig.SimplePointBased, tier: String) = config.prices[tier]
 

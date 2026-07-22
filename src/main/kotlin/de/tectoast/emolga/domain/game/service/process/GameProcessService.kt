@@ -160,6 +160,8 @@ class GameProcessService(
                         gid = guildId,
                         defaultNameLookup = singleGame.defaultNameLookup
                     )
+                } else {
+                    replaySender.sendMessage(Constants.CHECKMARK)
                 }
                 games += GameData(
                     kd = singleGame.kd.reversedIf(p1IsSecond),

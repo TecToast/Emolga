@@ -28,9 +28,9 @@ class NicknameService(
         }
         nicknameCooldownsRepo.getCooldown(guild, userId)?.let {
             return K18n_Nickname.TooSoon(
-                    userId,
-                    "<t:${it.epochSeconds}:f>"
-                ).error()
+                userId,
+                "<t:${it.epochSeconds}:f>"
+            ).error()
         }
         nicknameSetter.setNickname(guild, userId, nickname)
         nicknameCooldownsRepo.setCooldown(guild, userId, clock.now() + 7.days)

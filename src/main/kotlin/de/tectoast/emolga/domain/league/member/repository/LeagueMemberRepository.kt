@@ -60,7 +60,8 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
             .map { it[userId] }.toList()
     }
 
-    suspend fun getParticipantsForIdx(leagueName: String, idx: Int) = getParticipants { (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) }
+    suspend fun getParticipantsForIdx(leagueName: String, idx: Int) =
+        getParticipants { (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) }
 
     suspend fun getAllParticipants(leagueName: String) = getParticipants { LeagueUserTable.leagueName eq leagueName }
 
@@ -76,7 +77,6 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
                 )
             }.toList()
     }
-
 
 
     suspend fun setPrimaryUsers(leagueName: String, users: List<Long>) = suspendTransaction(db, LeagueUserTable) {

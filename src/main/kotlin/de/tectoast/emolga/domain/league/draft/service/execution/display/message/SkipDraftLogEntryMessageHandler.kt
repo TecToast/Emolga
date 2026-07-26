@@ -20,7 +20,7 @@ class SkipDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEntr
         buildString {
             append("_skipped_")
             if (skippedBy != null) append(" <- <@$skippedBy>")
-            if(madeUpRound != null) append(" [-> $madeUpRound]")
+            if (madeUpRound != null) append(" [-> $madeUpRound]")
             append(" ($userRef)")
         }.k18n
     }

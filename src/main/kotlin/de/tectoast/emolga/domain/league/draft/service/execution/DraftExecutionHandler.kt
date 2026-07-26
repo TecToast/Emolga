@@ -13,7 +13,6 @@ import de.tectoast.emolga.domain.league.draft.service.util.SnipeNotificationServ
 import de.tectoast.emolga.domain.league.draft.service.util.SuccessfulQueueNotificationService
 import de.tectoast.emolga.utils.sheetupdate.SpreadsheetService
 import org.koin.core.annotation.Single
-import kotlin.collections.filterIsInstance
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -45,8 +44,11 @@ class DraftExecutionHandler(
             language,
             ctx.tierlistMeta.language
         )
-        successfulQueueNotificationService.notifySuccessfulQueue(ctx, execution.results.filterIsInstance<DraftActionResult.UserAction>().filter { it.origin == DraftActionOrigin.QUEUE }
-            .mapTo(mutableSetOf()) { it.idx })
+        successfulQueueNotificationService.notifySuccessfulQueue(
+            ctx,
+            execution.results.filterIsInstance<DraftActionResult.UserAction>()
+                .filter { it.origin == DraftActionOrigin.QUEUE }
+                .mapTo(mutableSetOf()) { it.idx })
         val modifiedRounds = mutableSetOf<Int>()
         val now = clock.now()
         val preparedDraftLogEntries = execution.results.mapNotNull {
@@ -72,7 +74,14 @@ class DraftExecutionHandler(
 }
 
 private fun DraftActionResult.UserAction.toLogEntry(now: Instant) =
-    DraftLogEntry.Action(input = input, origin = origin, forRound = forRound.takeIf { it != round }, byUser = byUser, showTier = showTier, timestamp = now)
+    DraftLogEntry.Action(
+        input = input,
+        origin = origin,
+        forRound = forRound.takeIf { it != round },
+        byUser = byUser,
+        showTier = showTier,
+        timestamp = now
+    )
 
 private fun DraftActionResult.Skip.toLogEntry(now: Instant) =
     DraftLogEntry.Skip(reason = reason, madeUpRound = null, timestamp = now)

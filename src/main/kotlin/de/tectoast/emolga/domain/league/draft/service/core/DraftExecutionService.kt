@@ -129,10 +129,11 @@ class DraftExecutionService(
     suspend fun processDraftStart(ctx: DraftRunContext): CalcResult<DraftExecution> {
         val state = buildDraftExecutionState(ctx)
         val queuedInput =
-            queuedPicksProvider.getQueuedPickForUser(ctx, ctx.league.currentIdx, state.allQueuedPicks) ?: return DraftExecution(
-                emptyList(), emptyMap(),
-                TimerOption.RESTART, ctx.league.currentIdx
-            ).success()
+            queuedPicksProvider.getQueuedPickForUser(ctx, ctx.league.currentIdx, state.allQueuedPicks)
+                ?: return DraftExecution(
+                    emptyList(), emptyMap(),
+                    TimerOption.RESTART, ctx.league.currentIdx
+                ).success()
         return processDraftInput(
             ctx,
             queuedInput,
@@ -204,8 +205,9 @@ class DraftExecutionService(
             ctx.config.timer?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
                 val timerRelated = draftData.timer
                 if (timerRelated.cooldown > Instant.DISTANT_PAST) {
-                    val usedSeconds = (now - timerRelated.lastPick - timerRelated.lastRegularDelay).inWholeSeconds.toInt()
-                    if(usedSeconds > 0) {
+                    val usedSeconds =
+                        (now - timerRelated.lastPick - timerRelated.lastRegularDelay).inWholeSeconds.toInt()
+                    if (usedSeconds > 0) {
                         timerRelated.usedStallSeconds.add(currentIdx, usedSeconds.coerceAtMost(maxStallSeconds))
                     }
                 }
@@ -243,9 +245,10 @@ class DraftExecutionService(
                 .firstOrNull { state.allQueuedPicks[it]?.let { qp -> qp.enabled && qp.queued.isNotEmpty() } == true }
                 ?: return AfterActionResult(timerOption = defaultTimerOption)
         } else league.currentIdx
-        val nextQueuedPick = queuedPicksProvider.getQueuedPickForUser(ctx, nextIdx, state.allQueuedPicks) ?: return AfterActionResult(
-            timerOption = defaultTimerOption
-        )
+        val nextQueuedPick =
+            queuedPicksProvider.getQueuedPickForUser(ctx, nextIdx, state.allQueuedPicks) ?: return AfterActionResult(
+                timerOption = defaultTimerOption
+            )
         ctx.pickContext = PickContext.RegularTurn(nextIdx)
         return AfterActionResult(nextInput = nextQueuedPick, timerOption = defaultTimerOption)
     }

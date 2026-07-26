@@ -139,9 +139,10 @@ class GameProcessService(
                                         "${source.format} replay: ${source.showdownUserNames.joinToString(" vs. ")}"
                                     this.url = source.url
                                     this.description =
-                                        "${K18n_Week.translateTo(language)} $week: " + uindices.withIndex().joinToString(" vs. ") { (index, idx) ->
-                                            mentions[idx] ?: source.showdownUserNames[index]
-                                        }
+                                        "${K18n_Week.translateTo(language)} $week: " + uindices.withIndex()
+                                            .joinToString(" vs. ") { (index, idx) ->
+                                                mentions[idx] ?: source.showdownUserNames[index]
+                                            }
                                 }.into()
                             )
                         )
@@ -214,20 +215,26 @@ class GameProcessService(
         }
     }
 
-    private suspend fun sendResultMessages(guild: Long, messages: List<ResultMessage>, channelId: Long, week: Int?, language: K18nLanguage) {
+    private suspend fun sendResultMessages(
+        guild: Long,
+        messages: List<ResultMessage>,
+        channelId: Long,
+        week: Int?,
+        language: K18nLanguage
+    ) {
         val resultSender = channelInterface.createSingleChannel(channelId)
         val embedResults = guildConfigRepo.query(guild, GuildConfigType.EmbedResults)
         for (message in messages) {
             when (message) {
                 is ResultMessage.Game -> {
                     resultSender.sendMessage(
-                        if(embedResults) MessageCreate(
+                        if (embedResults) MessageCreate(
                             embeds = Embed(
                                 description = message.description,
                                 title = week?.let { "${K18n_Week.translateTo(language)} $it" }
                             ).into()
                         ) else MessageCreate(content = buildString {
-                            if(week != null) {
+                            if (week != null) {
                                 append("${K18n_Week.translateTo(language)} $week\n")
                             }
                             append(message.description)

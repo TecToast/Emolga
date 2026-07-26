@@ -12,7 +12,10 @@ import de.tectoast.emolga.utils.success
 import org.koin.core.annotation.Single
 
 @Single
-class DraftCurrentService(private val leagueMemberRepo: LeagueMemberRepository, private val leagueConfigRepo: LeagueConfigRepository) {
+class DraftCurrentService(
+    private val leagueMemberRepo: LeagueMemberRepository,
+    private val leagueConfigRepo: LeagueConfigRepository
+) {
     suspend fun getCurrentUser(league: DraftRelevantLeagueData, uid: Long): CalcResult<PickContext> = with(league) {
         val config = leagueConfigRepo.getConfig(leagueName)
         val idxOfParticipant = leagueMemberRepo.getIdxOfParticipant(leagueName, uid)

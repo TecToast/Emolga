@@ -96,12 +96,13 @@ class PredictionGameService(
                 matchUp
             ).translateTo(language) else null
         )
-        val updateSource = when(actionSource) {
+        val updateSource = when (actionSource) {
             Direct -> {
                 val messageId =
                     predictionGameMessageRepo.getMessageIds(leagueName, week, battleIndex).firstOrNull() ?: return
                 MessageUpdateSource.MessageId(messageId)
             }
+
             is PredictionActionSource.WithInteractionData -> {
                 MessageUpdateSource.WithInteractionData(actionSource.iData)
             }
@@ -174,7 +175,14 @@ class PredictionGameService(
         })
     }
 
-    suspend fun addVote(userId: Long, leagueName: String, week: Int, index: Int, userindex: Int, actionSource: PredictionActionSource): Boolean {
+    suspend fun addVote(
+        userId: Long,
+        leagueName: String,
+        week: Int,
+        index: Int,
+        userindex: Int,
+        actionSource: PredictionActionSource
+    ): Boolean {
         val config = leagueConfigRepo.getConfig(leagueName).predictionGame ?: return false
         predictionGameVotesRepo.addVote(userId, leagueName, week, index, userindex)
         if (config.currentState == PredictionGameCurrentStateType.ALWAYS) {

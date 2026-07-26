@@ -58,7 +58,7 @@ class GuildConfigRepository(private val db: R2dbcDatabase) {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> getColumn(type: GuildConfigType<T>) : Column<T> = when(type) {
+    private fun <T> getColumn(type: GuildConfigType<T>): Column<T> = when (type) {
         GuildConfigType.SpoilerTags -> GuildConfigTable.spoilerTags
         GuildConfigType.EnglishResults -> GuildConfigTable.englishResults
         GuildConfigType.EmbedResults -> GuildConfigTable.embedResults

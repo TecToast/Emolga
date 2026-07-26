@@ -24,7 +24,14 @@ class PredictionGameVoteButton(private val service: PredictionGameService) :
     override suspend fun exec(e: Args) {
         iData.ephemeralDefault()
         iData.deferEdit()
-        val result = service.addVote(iData.user, e.leaguename, e.week, e.battleIndex, e.idx, PredictionActionSource.WithInteractionData(iData))
+        val result = service.addVote(
+            iData.user,
+            e.leaguename,
+            e.week,
+            e.battleIndex,
+            e.idx,
+            PredictionActionSource.WithInteractionData(iData)
+        )
         if (result) {
             iData.reply(K18n_PredictionGame.PredictionSaved)
         } else {

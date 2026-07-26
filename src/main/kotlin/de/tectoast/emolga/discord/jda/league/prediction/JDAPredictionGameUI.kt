@@ -41,13 +41,21 @@ class JDAPredictionGameUI(private val jda: JDA) : PredictionGameUI, KoinComponen
         ).await().idLong
     }
 
-    override suspend fun updatePredictionGameMessage(state: PredictionMatchViewState, messageUpdateSource: MessageUpdateSource) {
-        when(messageUpdateSource) {
+    override suspend fun updatePredictionGameMessage(
+        state: PredictionMatchViewState,
+        messageUpdateSource: MessageUpdateSource
+    ) {
+        when (messageUpdateSource) {
             is MessageUpdateSource.MessageId -> {
                 val channel = jda.getMessageChannel(state.channelId) ?: return
-                channel.editMessage(messageUpdateSource.id.toString(), embeds = renderEmbed(state), components = renderComponents(state))
+                channel.editMessage(
+                    messageUpdateSource.id.toString(),
+                    embeds = renderEmbed(state),
+                    components = renderComponents(state)
+                )
                     .await()
             }
+
             is MessageUpdateSource.WithInteractionData -> {
                 messageUpdateSource.iData.edit(embeds = renderEmbed(state), components = renderComponents(state))
             }

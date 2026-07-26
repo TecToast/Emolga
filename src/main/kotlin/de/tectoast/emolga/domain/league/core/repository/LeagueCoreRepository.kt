@@ -46,7 +46,10 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         getDraftRelevantData(locking = locking) { LeagueCoreTable.draftChannel eq channelId }.firstOrNull()
 
     suspend fun getDraftRelevantData(leagueName: String, locking: Boolean = true, checkRunning: Boolean = true) =
-        getDraftRelevantData(locking = locking, checkRunning = checkRunning) { LeagueCoreTable.leagueName eq leagueName }.firstOrNull()
+        getDraftRelevantData(
+            locking = locking,
+            checkRunning = checkRunning
+        ) { LeagueCoreTable.leagueName eq leagueName }.firstOrNull()
 
     suspend fun getDraftStateLocking(leagueName: String) = suspendTransaction(db) {
         LeagueCoreTable.select(LeagueCoreTable.draftData).forUpdate().where { LeagueCoreTable.leagueName eq leagueName }
@@ -183,11 +186,14 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun setDraftStartData(leagueName: String, tcId: Long, isSwitchDraft: Boolean) = suspendTransaction(db) {
-        val lastSessionNum = LeagueCoreTable.select(LeagueCoreTable.draftData).where { LeagueCoreTable.leagueName eq leagueName }.map { it[LeagueCoreTable.draftData].draftSessionNum }.firstOrNull() ?: return@suspendTransaction
+        val lastSessionNum =
+            LeagueCoreTable.select(LeagueCoreTable.draftData).where { LeagueCoreTable.leagueName eq leagueName }
+                .map { it[LeagueCoreTable.draftData].draftSessionNum }.firstOrNull() ?: return@suspendTransaction
         LeagueCoreTable.update({ LeagueCoreTable.leagueName eq leagueName }) {
             it[LeagueCoreTable.draftChannel] = tcId
             it[LeagueCoreTable.isSwitchDraft] = isSwitchDraft
-            it[LeagueCoreTable.draftData] = ResettableLeagueData(draftState = DraftState.ON, draftSessionNum = lastSessionNum + 1)
+            it[LeagueCoreTable.draftData] =
+                ResettableLeagueData(draftState = DraftState.ON, draftSessionNum = lastSessionNum + 1)
         }
     }
 

@@ -22,7 +22,7 @@ class QueueActivationHelper(
     context(iData: InteractionData)
     suspend fun toggleSuccessfulPing() {
         val (leagueName, config, idx) = leagueQueryService.byCommand() ?: return iData.reply(K18n_NoLeagueForGuildFound)
-        val result = queuePicksService.toggleSuccessfulNotification( iData.gid, leagueName, idx, config)
+        val result = queuePicksService.toggleSuccessfulNotification(iData.gid, leagueName, idx, config)
         iData.reply(result.msg(), ephemeral = true)
     }
 }

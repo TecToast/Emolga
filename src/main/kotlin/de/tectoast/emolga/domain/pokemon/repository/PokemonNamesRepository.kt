@@ -5,11 +5,7 @@ import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.batchInsert
@@ -39,7 +35,13 @@ class PokemonNamesRepository(private val db: R2dbcDatabase) {
     suspend fun getOfficialNames(query: String, limit: Int) = suspendTransaction(db) {
         val regexExpr = stringParam("$query.*")
         PokemonDictionaryTable.selectAll()
-            .where { RegexpOp(PokemonDictionaryTable.nameEn, regexExpr, caseSensitive = false) or RegexpOp(PokemonDictionaryTable.nameDe, regexExpr, caseSensitive = false) }
+            .where {
+                RegexpOp(PokemonDictionaryTable.nameEn, regexExpr, caseSensitive = false) or RegexpOp(
+                    PokemonDictionaryTable.nameDe,
+                    regexExpr,
+                    caseSensitive = false
+                )
+            }
             .limit(limit)
             .transform {
                 emit(it[PokemonDictionaryTable.nameEn])

@@ -39,15 +39,15 @@ class StaticCloud(
      * @return The ID of the file
      */
     private suspend fun uploadFileToCloud(name: String, mimeType: String, data: ByteArray) =
-            httpClient.submitFormWithBinaryData(url = "${credentials.baseUrl}/upload", formData = formData {
-                append("file", data, Headers.build {
-                    append(HttpHeaders.ContentType, mimeType)
-                    append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
-                })
-                append("path", name)
-            }) {
-                header("Authorization", "Bearer ${credentials.token}")
-            }.bodyAsText().trim('"')
+        httpClient.submitFormWithBinaryData(url = "${credentials.baseUrl}/upload", formData = formData {
+            append("file", data, Headers.build {
+                append(HttpHeaders.ContentType, mimeType)
+                append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
+            })
+            append("path", name)
+        }) {
+            header("Authorization", "Bearer ${credentials.token}")
+        }.bodyAsText().trim('"')
 
     override suspend fun uploadLogoToCloud(
         data: LogoInputData

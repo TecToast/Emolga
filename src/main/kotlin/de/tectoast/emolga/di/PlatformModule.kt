@@ -17,6 +17,7 @@ import kotlin.time.Clock
 @Module(includes = [JsonModule::class])
 class PlatformModule {
     private val defaultCoroutineLogger = KotlinLogging.logger("DefaultCoroutineLogger")
+
     @Single
     fun defaultScope(): CoroutineScope =
         CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { ctx, t ->

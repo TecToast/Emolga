@@ -68,7 +68,10 @@ class TierDataService(
             throw ex
         }
         autocompleteService.invalidateCache(guild, identifier)
-        return K18n_AddToTierlist.Success(pokemonDisplayService.getDisplayName(showdownId, guild, tierlist.language), tier).success()
+        return K18n_AddToTierlist.Success(
+            pokemonDisplayService.getDisplayName(showdownId, guild, tierlist.language),
+            tier
+        ).success()
     }
 
 

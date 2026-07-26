@@ -27,7 +27,7 @@ class DatabaseModule {
             option(PROTOCOL, "postgresql")
             option(USER, cred.username)
             option(PASSWORD, cred.password)
-            option(DATABASE, if(statistics) cred.statisticDatabase else cred.database)
+            option(DATABASE, if (statistics) cred.statisticDatabase else cred.database)
             when (cred) {
                 is BotConfig.Database.Network -> {
                     option(HOST, cred.host)

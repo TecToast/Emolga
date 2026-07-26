@@ -70,7 +70,8 @@ object TransactionRunningTable : Table("transaction_data") {
 
     override val primaryKey = PrimaryKey(leagueName, week, idx)
 
-    private fun Column<List<String>>.showdownIDTransform() = transform(wrap = { it.map { id -> ShowdownID(id) } }, unwrap = { it.map { id -> id.value } })
+    private fun Column<List<String>>.showdownIDTransform() =
+        transform(wrap = { it.map { id -> ShowdownID(id) } }, unwrap = { it.map { id -> id.value } })
 }
 
 object TransactionAmountsTable : Table("transaction_amounts") {

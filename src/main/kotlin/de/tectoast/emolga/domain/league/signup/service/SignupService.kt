@@ -340,7 +340,7 @@ class SignupService(
         )
         val msg = "_----------- ${K18n_Signup.SignupClosed.translateTo(lang)} -----------_"
         channelInterface.sendMessage(config.announceChannel, msg)
-        if(config.announceChannel != config.signupChannel)
+        if (config.announceChannel != config.signupChannel)
             channelInterface.sendMessage(config.signupChannel, msg)
     }
 

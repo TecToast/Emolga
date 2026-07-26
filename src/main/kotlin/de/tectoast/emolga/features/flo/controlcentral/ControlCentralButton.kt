@@ -11,7 +11,10 @@ import mu.KotlinLogging
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class])
-class ControlCentralButton(private val logConfigReloadService: LogConfigReloadService, private val leagueConfigRepo: LeagueConfigRepository) :
+class ControlCentralButton(
+    private val logConfigReloadService: LogConfigReloadService,
+    private val leagueConfigRepo: LeagueConfigRepository
+) :
     ButtonFeature<ControlCentralButton.Args>(::Args, ButtonSpec("controlcentral")) {
 
     private val logger = KotlinLogging.logger {}

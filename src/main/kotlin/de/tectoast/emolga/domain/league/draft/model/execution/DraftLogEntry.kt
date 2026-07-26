@@ -11,6 +11,7 @@ import kotlin.time.Instant
 @Serializable
 sealed interface DraftLogEntry {
     val timestamp: Instant
+
     @Serializable
     @SerialName("Action")
     data class Action(

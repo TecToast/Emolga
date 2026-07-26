@@ -34,7 +34,9 @@ class TransactionExecutionService(
                 val amountData = dataRepo.getTransactionAmounts(leagueName, idx)
                 val picksOfUser = leaguePickRepo.getPicksForUser(leagueName, idx)
                 val dropInsertIndex = amountData.mons - entry.drops.size
-                addColumn(idx.coordXMod("Rosters", 5, 6, 3, 26, 22 + dropInsertIndex), entry.drops.map { displayNames[it] ?: it.value })
+                addColumn(
+                    idx.coordXMod("Rosters", 5, 6, 3, 26, 22 + dropInsertIndex),
+                    entry.drops.map { displayNames[it] ?: it.value })
                 for (newMon in entry.picks) {
                     val monIndex = picksOfUser.getIndexOfMon(newMon)
                     addSingle(

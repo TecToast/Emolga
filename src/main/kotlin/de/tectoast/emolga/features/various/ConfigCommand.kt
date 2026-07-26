@@ -16,12 +16,18 @@ import de.tectoast.k18n.generated.K18nLanguage
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class])
-class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, setLanguage: SetLanguage, embedResults: EmbedResults) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("config", K18n_GenericHelp)) {
+class ConfigCommand(
+    spoilerTags: SpoilerTags,
+    englishResults: EnglishResults,
+    setLanguage: SetLanguage,
+    embedResults: EmbedResults
+) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("config", K18n_GenericHelp)) {
 
     override val children = listOf(spoilerTags, englishResults, setLanguage, embedResults)
 
     @Single
-    class SpoilerTags(private val service: SpoilerTagsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("spoilertags", K18n_SpoilerTags.Help)) {
+    class SpoilerTags(private val service: SpoilerTagsService) :
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("spoilertags", K18n_SpoilerTags.Help)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             return iData.reply(if (service.toggle(iData.gid)) K18n_SpoilerTags.Enabled else K18n_SpoilerTags.Disabled)
@@ -29,7 +35,8 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
     }
 
     @Single
-    class EnglishResults(private val service: EnglishResultsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("englishresults", K18n_EnglishResults.Help)) {
+    class EnglishResults(private val service: EnglishResultsService) :
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("englishresults", K18n_EnglishResults.Help)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             return iData.reply(service.toggle(iData.gid))
@@ -37,7 +44,8 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
     }
 
     @Single
-    class SetLanguage(private val languageRepo: GuildConfigRepository) : CommandFeature<Args>(::Args, CommandSpec("setlanguage", K18n_SetLanguage.Help)) {
+    class SetLanguage(private val languageRepo: GuildConfigRepository) :
+        CommandFeature<Args>(::Args, CommandSpec("setlanguage", K18n_SetLanguage.Help)) {
 
         class Args : Arguments() {
             var language by enumBasic<K18nLanguage>("language", K18n_SetLanguage.ArgLanguage)
@@ -51,13 +59,13 @@ class ConfigCommand(spoilerTags: SpoilerTags, englishResults: EnglishResults, se
     }
 
     @Single
-    class EmbedResults(private val service: EmbedResultsService) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("embedresults", K18n_EmbedResults.Help)) {
+    class EmbedResults(private val service: EmbedResultsService) :
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("embedresults", K18n_EmbedResults.Help)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             return iData.reply(service.toggle(iData.gid))
         }
     }
-
 
 
     context(iData: InteractionData)

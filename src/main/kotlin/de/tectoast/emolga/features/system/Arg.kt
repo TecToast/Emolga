@@ -95,7 +95,7 @@ class Arg<DiscordType, ParsedType>(
         throw IllegalStateException("No value set for $property")
     }
 
-    fun getValueOrNull() : ParsedType? {
+    fun getValueOrNull(): ParsedType? {
         if (success) return parsed as ParsedType
         if (defaultValueSet) return default as ParsedType
         defaultFunction?.let { return it() }

@@ -17,7 +17,7 @@ class HomeAssistantRemoteServerControlHandler(private val httpClient: HttpClient
     private val logger = KotlinLogging.logger {}
 
     override suspend fun startServer(config: RemoteServerControlConfig.HomeAssistant) =
-            logger.debug(httpClient.post("http://${config.url}/api/webhook/${config.webhookIdOn}").bodyAsText())
+        logger.debug(httpClient.post("http://${config.url}/api/webhook/${config.webhookIdOn}").bodyAsText())
 
     override suspend fun powerOff(config: RemoteServerControlConfig.HomeAssistant) =
         logger.debug(httpClient.post("http://${config.url}/api/webhook/${config.webhookIdOff}").bodyAsText())

@@ -59,14 +59,15 @@ class CombinedLogsDraftDisplayService(
         val messageIds = draftLogMessageIdRepository.getMessageIds(leagueName, session, modifiedRounds)
         val primaryIds = leagueMemberRepository.getPrimaryIds(leagueName)
         val roundBase = K18n_Round.translateTo(language)
-        val pokemonDisplayFn: suspend (ShowdownID) -> String = { pokemonDisplayService.getDisplayName(it, ctx, withAdditionalEnglish = true) }
+        val pokemonDisplayFn: suspend (ShowdownID) -> String =
+            { pokemonDisplayService.getDisplayName(it, ctx, withAdditionalEnglish = true) }
         val maxRound = ctx.league.draftOrder.size
         logEntriesForRounds.entries.sortedBy { it.key }.forEach { (round, logEntries) ->
             val logContent =
                 logEntries.map { it.toMessage(primaryIds, language, pokemonDisplayFn) }.joinToString("\n") {
                     "- $it"
                 }
-            val roundMessage = if(round <= maxRound) "$roundBase $round" else K18n_MadeUpFor.translateTo(language)
+            val roundMessage = if (round <= maxRound) "$roundBase $round" else K18n_MadeUpFor.translateTo(language)
             val fullMessage = "# $roundMessage\n$logContent"
             val messageId = messageIds[round]
             if (messageId != null) {

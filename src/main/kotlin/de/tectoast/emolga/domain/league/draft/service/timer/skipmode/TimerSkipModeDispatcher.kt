@@ -20,7 +20,7 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
     ): TimerSkipData {
         val league = ctx.league
         val config = ctx.config
-        if(league.draftData.draftState == DraftState.PSEUDOEND) {
+        if (league.draftData.draftState == DraftState.PSEUDOEND) {
             return afterDraftHandler(config, ctx, data)
         }
         if (league.draftWouldEnd) {
@@ -49,5 +49,6 @@ class TimerSkipModeDispatcher(handlers: List<TimerSkipModeHandler<TimerSkipMode>
     }
 
     private fun DraftRunContext.getCurrentTimerSkipMode() =
-        config.duringTimerSkipMode?.takeUnless { league.draftWouldEnd || league.draftData.draftState == DraftState.PSEUDOEND } ?: config.afterTimerSkipMode
+        config.duringTimerSkipMode?.takeUnless { league.draftWouldEnd || league.draftData.draftState == DraftState.PSEUDOEND }
+            ?: config.afterTimerSkipMode
 }

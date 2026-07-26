@@ -38,8 +38,14 @@ class PokemonDisplayService(
         return result
     }
 
-    suspend fun getDisplayName(showdownId: ShowdownID, guildId: Long, language: Language, withAdditionalEnglish: Boolean = false): String {
-        return getDisplayNames(listOf(showdownId), guildId, language, withAdditionalEnglish)[showdownId] ?: showdownId.value
+    suspend fun getDisplayName(
+        showdownId: ShowdownID,
+        guildId: Long,
+        language: Language,
+        withAdditionalEnglish: Boolean = false
+    ): String {
+        return getDisplayNames(listOf(showdownId), guildId, language, withAdditionalEnglish)[showdownId]
+            ?: showdownId.value
     }
 
     suspend fun getDisplayNamesOfReplay(

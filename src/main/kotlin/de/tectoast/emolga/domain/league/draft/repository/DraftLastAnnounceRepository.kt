@@ -16,7 +16,8 @@ import org.koin.core.annotation.Single
 @Single
 class DraftLastAnnounceRepository(private val db: R2dbcDatabase) {
     suspend fun deleteAndGetLastAnnounceId(leagueName: String, session: Int) = suspendTransaction(db) {
-        val query = (DraftLastAnnounceIdTable.leagueName eq leagueName) and (DraftLastAnnounceIdTable.session eq session)
+        val query =
+            (DraftLastAnnounceIdTable.leagueName eq leagueName) and (DraftLastAnnounceIdTable.session eq session)
         val id = DraftLastAnnounceIdTable.select(DraftLastAnnounceIdTable.lastAnnounceId)
             .where { query }
             .firstOrNull()?.get(DraftLastAnnounceIdTable.lastAnnounceId)

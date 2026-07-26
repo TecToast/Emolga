@@ -55,7 +55,7 @@ class DraftService(
             }
         }
         leagueCoreRepo.getAllRunningDraftLeagueData().forEach { leagueData ->
-            if(leagueData.draftData.draftState != DraftState.ON) return@forEach
+            if (leagueData.draftData.draftState != DraftState.ON) return@forEach
             tx {
                 continueDraft(leagueData)
             }
@@ -255,7 +255,7 @@ class DraftService(
             TimerOption.CANCEL -> draftTimerService.cancelTimer(ctx.league.leagueName)
             TimerOption.KEEP -> {}
         }
-        if(result.results.any { it is DraftActionResult.DraftFinished }) {
+        if (result.results.any { it is DraftActionResult.DraftFinished }) {
             ctx.league.draftData.draftState = DraftState.OFF
         }
         leagueCoreRepo.updateDraftData(ctx.league.leagueName, ctx.league.draftData)

@@ -220,7 +220,8 @@ class SignupRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun getAllEntries(signupId: Int) = suspendTransaction(db) {
-        val users = SignupUserTable.userId.arrayAgg(SignupUserTable.userId, columnType = LongColumnType()).alias("users")
+        val users =
+            SignupUserTable.userId.arrayAgg(SignupUserTable.userId, columnType = LongColumnType()).alias("users")
         val aggregated =
             SignupUserTable.select(SignupUserTable.entryId, users).groupBy(SignupUserTable.entryId).alias("aggregated")
         SignupEntryTable.innerJoin(aggregated, { id }, { aggregated[SignupUserTable.entryId] }).selectAll()

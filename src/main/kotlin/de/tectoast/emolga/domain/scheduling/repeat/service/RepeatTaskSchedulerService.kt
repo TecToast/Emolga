@@ -31,7 +31,7 @@ class RepeatTaskSchedulerService(
             while (isActive) {
                 val now = clock.now()
                 val nextExecution = task.calculateNextExecution(now) ?: break
-                if(task.printTimestamps) {
+                if (task.printTimestamps) {
                     logger.info { "Next execution of ${task.type} is count ${nextExecution.count} at ${nextExecution.time}" }
                 }
                 delay(nextExecution.time - now)

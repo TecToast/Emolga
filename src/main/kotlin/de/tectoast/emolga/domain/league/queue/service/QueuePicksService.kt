@@ -81,7 +81,11 @@ class QueuePicksService(
                 tierDataService.getTierData(tl, mon, requestedTier).getOrReturn<_, K18nMessage> { return@tx it }
             val queuedAction =
                 QueuedAction(
-                    QueuedMon(mon, tierData.specified, tierSpecified = tierData.isTierSpecified && tierData.specified != tierData.official),
+                    QueuedMon(
+                        mon,
+                        tierData.specified,
+                        tierSpecified = tierData.isTierSpecified && tierData.specified != tierData.official
+                    ),
                     oldMonAsDropped
                 )
             val newlist = data.queued.toMutableList().apply { add(queuedAction) }

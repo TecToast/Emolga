@@ -58,9 +58,10 @@ class ResultCodesRepository(private val db: R2dbcDatabase, val clock: Clock) : C
         return code
     }
 
-    suspend fun delete(code: Uuid) {
+    suspend fun delete(code: String) {
+        val uuid = Uuid.parseHexDashOrNull(code) ?: return
         suspendTransaction(db) {
-            ResultCodesTable.deleteWhere { ResultCodesTable.code eq code }
+            ResultCodesTable.deleteWhere { ResultCodesTable.code eq uuid }
         }
     }
 

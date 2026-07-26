@@ -41,6 +41,7 @@ class ResultProcessService(
             guildOfChannel = resData.guild,
             errorSender = { logger.error(it.translateTo(K18N_DEFAULT_LANGUAGE)) }
         )
+        repository.delete(resultid)
         return Unit
     }
 

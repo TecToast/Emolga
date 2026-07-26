@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.league.prediction
 
+import de.tectoast.emolga.domain.league.prediction.model.PredictionActionSource
 import de.tectoast.emolga.domain.league.prediction.service.PredictionGameService
 import de.tectoast.emolga.features.interaction.InteractionData
 import de.tectoast.emolga.features.league.K18n_PredictionGame
@@ -22,8 +23,8 @@ class PredictionGameVoteButton(private val service: PredictionGameService) :
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.ephemeralDefault()
-        iData.deferReply()
-        val result = service.addVote(iData.user, e.leaguename, e.week, e.battleIndex, e.idx)
+        iData.deferEdit()
+        val result = service.addVote(iData.user, e.leaguename, e.week, e.battleIndex, e.idx, PredictionActionSource.WithInteractionData(iData))
         if (result) {
             iData.reply(K18n_PredictionGame.PredictionSaved)
         } else {

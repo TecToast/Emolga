@@ -1,5 +1,6 @@
 package de.tectoast.emolga.discord.jda.league.prediction
 
+import de.tectoast.emolga.domain.league.prediction.model.MessageUpdateSource
 import de.tectoast.emolga.domain.league.prediction.model.PredictionMatchViewState
 import de.tectoast.emolga.domain.league.prediction.service.bridge.PredictionGameUI
 import de.tectoast.emolga.features.league.prediction.PredictionGameVoteButton
@@ -29,7 +30,7 @@ class JDAPredictionGameUI(private val jda: JDA) : PredictionGameUI, KoinComponen
 
     override suspend fun sendInitialMessage(channelId: Long, title: String, color: Int) {
         val channel = jda.getMessageChannel(channelId) ?: return
-        channel.send(embeds = Embed(title = title, color = color).into()).queue()
+        channel.send(embeds = Embed(title = title, color = color).into()).await()
     }
 
     override suspend fun sendPredictionGameMessage(state: PredictionMatchViewState): Long {
@@ -40,15 +41,23 @@ class JDAPredictionGameUI(private val jda: JDA) : PredictionGameUI, KoinComponen
         ).await().idLong
     }
 
-    override suspend fun updatePredictionGameMessage(state: PredictionMatchViewState, messageId: Long) {
-        val channel = jda.getMessageChannel(state.channelId) ?: return
-        channel.editMessage(messageId.toString(), embeds = renderEmbed(state), components = renderComponents(state))
-            .queue()
+    override suspend fun updatePredictionGameMessage(state: PredictionMatchViewState, messageUpdateSource: MessageUpdateSource) {
+        when(messageUpdateSource) {
+            is MessageUpdateSource.MessageId -> {
+                val channel = jda.getMessageChannel(state.channelId) ?: return
+                channel.editMessage(messageUpdateSource.id.toString(), embeds = renderEmbed(state), components = renderComponents(state))
+                    .await()
+            }
+            is MessageUpdateSource.WithInteractionData -> {
+                messageUpdateSource.iData.edit(embeds = renderEmbed(state), components = renderComponents(state))
+            }
+        }
+
     }
 
     override suspend fun sendRolePing(channelId: Long, roleId: Long) {
         val channel = jda.getMessageChannel(channelId) ?: return
-        channel.send("<@&$roleId>").queue()
+        channel.send("<@&$roleId>").await()
     }
 
     private fun renderComponents(

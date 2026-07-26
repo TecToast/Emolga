@@ -5,6 +5,8 @@ import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.gamedata.repository.GameDataRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
+import de.tectoast.emolga.domain.league.prediction.model.MessageUpdateSource
+import de.tectoast.emolga.domain.league.prediction.model.PredictionActionSource
 import de.tectoast.emolga.domain.league.prediction.model.PredictionMatchViewState
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameConfig
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameCurrentStateType
@@ -68,10 +70,9 @@ class PredictionGameService(
         leagueName: String,
         week: Int,
         battleIndex: Int,
-        source: PredictionGameMessageEditSource
+        source: PredictionGameMessageEditSource,
+        actionSource: PredictionActionSource = PredictionActionSource.Direct
     ) {
-        val messageId =
-            predictionGameMessageRepo.getMessageIds(leagueName, week, battleIndex).firstOrNull() ?: return
         val guildId = leagueCoreRepo.getScalarLeagueData(leagueName).guild
         val config = leagueConfigRepo.getConfig(leagueName).predictionGame ?: return
         val matchUp = leagueScheduleRepo.getMatchUp(leagueName, week, battleIndex) ?: return
@@ -95,7 +96,17 @@ class PredictionGameService(
                 matchUp
             ).translateTo(language) else null
         )
-        ui.updatePredictionGameMessage(state, messageId)
+        val updateSource = when(actionSource) {
+            Direct -> {
+                val messageId =
+                    predictionGameMessageRepo.getMessageIds(leagueName, week, battleIndex).firstOrNull() ?: return
+                MessageUpdateSource.MessageId(messageId)
+            }
+            is PredictionActionSource.WithInteractionData -> {
+                MessageUpdateSource.WithInteractionData(actionSource.iData)
+            }
+        }
+        ui.updatePredictionGameMessage(state, updateSource)
     }
 
     enum class PredictionGameMessageEditSource(val targetState: PredictionGameCurrentStateType) {
@@ -163,11 +174,11 @@ class PredictionGameService(
         })
     }
 
-    suspend fun addVote(userId: Long, leagueName: String, week: Int, index: Int, userindex: Int): Boolean {
+    suspend fun addVote(userId: Long, leagueName: String, week: Int, index: Int, userindex: Int, actionSource: PredictionActionSource): Boolean {
         val config = leagueConfigRepo.getConfig(leagueName).predictionGame ?: return false
         predictionGameVotesRepo.addVote(userId, leagueName, week, index, userindex)
         if (config.currentState == PredictionGameCurrentStateType.ALWAYS) {
-            updatePredictionGameMessage(leagueName, week, index, PredictionGameMessageEditSource.VOTE)
+            updatePredictionGameMessage(leagueName, week, index, PredictionGameMessageEditSource.VOTE, actionSource)
         }
         return true
     }

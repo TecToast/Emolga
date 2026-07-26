@@ -465,8 +465,9 @@ private abstract class DraftData(
             INDEX_IN_ROUND -> indexInRound
             else -> resolveSpecific(variable)
         }
-        require(clazz.isInstance(result)) { "Resolved value $result is not of the expected type ${clazz.simpleName}" }
-        return clazz.cast(result)
+        if (clazz != String::class)
+            require(clazz.isInstance(result)) { "Resolved value $result is not of the expected type ${clazz.simpleName}" }
+        return if(clazz == String::class) (result.toString() as T) else clazz.cast(result)
     }
 
     abstract fun resolveSpecific(variable: String): Any

@@ -80,7 +80,7 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         ).where(check).orderBy(num).map {
             ScalarLeagueData(
                 leagueName = it[leagueName],
-                prettyName = it[prettyName],
+                prettyName = it[prettyName]?.takeIf { s -> s.isNotBlank() },
                 num = it[num],
                 guild = it[guild],
                 sheetId = it[sheetId],
@@ -166,7 +166,7 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
                 .map {
                     DraftRelevantLeagueData(
                         leagueName = it[leagueName],
-                        displayName = it[prettyName] ?: it[leagueName],
+                        displayName = it[prettyName]?.takeIf { s -> s.isNotBlank() } ?: it[leagueName],
                         guild = it[guild],
                         sheetId = it[sheetId],
                         draftChannel = it[draftChannel]!!,
@@ -206,7 +206,8 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         LeagueCoreTable.select(LeagueCoreTable.prettyName, LeagueCoreTable.leagueName)
             .where { LeagueCoreTable.guild eq guild }
             .orderBy(LeagueCoreTable.num to SortOrder.ASC, LeagueCoreTable.leagueName to SortOrder.ASC)
-            .map { it[LeagueCoreTable.prettyName] ?: it[LeagueCoreTable.leagueName] }.toList()
+            .map { it[LeagueCoreTable.prettyName]?.takeIf { s -> s.isNotBlank() } ?: it[LeagueCoreTable.leagueName] }
+            .toList()
     }
 
     suspend fun getAllLeagueGuilds() = suspendTransaction(db) {

@@ -7,6 +7,7 @@ import de.tectoast.emolga.domain.league.gamedata.repository.GameDataRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.prediction.model.MessageUpdateSource
 import de.tectoast.emolga.domain.league.prediction.model.PredictionActionSource
+import de.tectoast.emolga.domain.league.prediction.model.PredictionMatchViewPlayerState
 import de.tectoast.emolga.domain.league.prediction.model.PredictionMatchViewState
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameConfig
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameCurrentStateType
@@ -152,7 +153,7 @@ class PredictionGameService(
                     config = config,
                     isLocked = matchUp.battleIndex in playedGames,
                     description = if (config.currentState == PredictionGameCurrentStateType.ALWAYS) K18n_PredictionGame.VotesUntilNow(
-                        "0:0"
+                        matchUp.indices.joinToString(":") { "0" }
                     ).translateTo(language) else null
                 )
                 val messageId = ui.sendPredictionGameMessage(state)
@@ -202,17 +203,22 @@ class PredictionGameService(
         config: PredictionGameConfig,
         isLocked: Boolean,
         description: String?
-    ): PredictionMatchViewState = PredictionMatchViewState(
-        leagueName = leagueName,
-        week = week,
-        battleIndex = battleIndex,
-        channelId = channel,
-        isLocked = isLocked,
-        idx1 = matchUp[0],
-        idx2 = matchUp[1],
-        player1Name = users[matchUp[0]]!!.joinToString(" & ") { names[it] ?: "N/A" },
-        player2Name = users[matchUp[1]]!!.joinToString(" & ") { names[it] ?: "N/A" },
-        embedDescription = description,
-        embedColor = config.customEmbedColor ?: Constants.EMBED_COLOR
-    )
+    ): PredictionMatchViewState {
+        return PredictionMatchViewState(
+            leagueName = leagueName,
+            week = week,
+            battleIndex = battleIndex,
+            channelId = channel,
+            isLocked = isLocked,
+            players = matchUp.map { idx ->
+                PredictionMatchViewPlayerState(
+                    idx,
+                    users[idx]!!.joinToString(" & ") { names[it] ?: "N/A" },
+                    config.formattedEmojis?.getOrNull(idx)
+                )
+            },
+            embedDescription = description,
+            embedColor = config.customEmbedColor ?: Constants.EMBED_COLOR
+        )
+    }
 }

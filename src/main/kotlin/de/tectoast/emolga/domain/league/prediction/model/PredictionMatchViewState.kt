@@ -7,11 +7,8 @@ data class PredictionMatchViewState(
     val channelId: Long,
     val isLocked: Boolean,
 
-    val idx1: Int,
-    val idx2: Int,
-    val player1Name: String,
-    val player2Name: String,
+    val players: List<PredictionMatchViewPlayerState>,
 
     val embedDescription: String? = null,
-    val embedColor: Int
+    val embedColor: Int,
 )

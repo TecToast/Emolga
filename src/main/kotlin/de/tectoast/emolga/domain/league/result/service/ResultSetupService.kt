@@ -60,7 +60,7 @@ class ResultSetupService(
                         .map {
                             val displayName = displayNames[it.showdownId]!!
                             ResultCodePokemon(
-                                displayName, pokedex[it.showdownId]!!.calcSpriteName()
+                                displayName, pokedex[it.showdownId]!!.calcSpriteName(), it.showdownId
                             )
                         })
             })

@@ -12,7 +12,7 @@ class LeagueMentionService(private val leagueMemberRepo: LeagueMemberRepository)
         val pingSubstitutes = allSubstitute.filter { it.shouldPing }
         val mainContent = main.joinToString { "<@${it.userId}>" }
         val substituteContent =
-            if (pingSubstitutes.isNotEmpty()) " ||(${pingSubstitutes.joinToString { "<@$it>" }})||" else ""
+            if (pingSubstitutes.isNotEmpty()) " ||(${pingSubstitutes.joinToString { "<@${it.userId}>" }})||" else ""
         val enabledMentions = participants.filter { it.shouldPing }.map { it.userId }
         return MessageMentionData(mainContent + substituteContent, enabledMentions)
     }

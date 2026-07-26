@@ -58,5 +58,5 @@ object PredictionGameVotesTable : Table("predictiongamevotes") {
     val idx = integer("idx")
     val correct = bool("correct").nullable().default(null)
 
-    override val primaryKey = PrimaryKey(leagueName, userId, week, battle)
+    override val primaryKey = PrimaryKey(leagueName, week, battle, userId)
 }

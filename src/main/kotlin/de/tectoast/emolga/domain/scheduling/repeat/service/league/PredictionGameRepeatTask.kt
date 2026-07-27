@@ -47,7 +47,9 @@ class PredictionGameRepeatTask(
                 RepeatTaskType.PredictionGameLockButtons(leagueName),
                 lastLockButtons,
                 amount,
-                interval
+                interval,
+                skipFirstN = skipFirstN,
+                printTimestamps = true
             )
         ) { week ->
             predictionGameService.lockButtons(leagueName, week)
@@ -61,7 +63,8 @@ class PredictionGameRepeatTask(
                 RepeatTaskType.PredictionGameLeaderboard(leagueName),
                 lastSending + interval,
                 amount,
-                interval
+                interval,
+                skipFirstN = skipFirstN
             )
         ) { _ ->
             predictionGameLeaderboardService.sendNewLeaderboard(leagueName, leaderboardConfig)

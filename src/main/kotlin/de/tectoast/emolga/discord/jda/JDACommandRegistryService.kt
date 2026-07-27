@@ -133,6 +133,12 @@ class JDACommandRegistryService(
         else usedJda.getGuildById(gid)?.updateCommands())?.addCommands(guildFeatures)?.queue()
     }
 
+    override suspend fun updateSingleFeature(featureName: String) {
+        cmdManagementRepo.getGuildsAffectedByCommands(listOf(featureName)).forEach {
+            updateCommandsForGuild(it)
+        }
+    }
+
     private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
         logger.debug { "Generating options for ${feature.spec.name}" }
         return feature.defaultArgs.mapNotNull { a ->

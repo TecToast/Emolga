@@ -5,6 +5,8 @@ import de.tectoast.emolga.domain.cmdmanage.model.AddRemove
 interface CommandRegistryService {
     suspend fun updateCommandsForGuild(gid: Long)
 
+    suspend fun updateSingleFeature(featureName: String)
+
     suspend fun modifyGuildGroup(guildId: Long, group: String, action: AddRemove)
 
     suspend fun modifyGuildCommand(guildId: Long, command: String, action: AddRemove)

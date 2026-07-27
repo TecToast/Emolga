@@ -16,9 +16,10 @@ class CmdManageCommand(
     guildGroup: GuildGroup,
     guildCommand: GuildCommand,
     groupCommand: GroupCommand,
-    update: Update
+    update: Update,
+    updateFeature: UpdateFeature
 ) : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanage", "CmdManage".k18n)) {
-    override val children = listOf(guildGroup, guildCommand, groupCommand, update)
+    override val children = listOf(guildGroup, guildCommand, groupCommand, update, updateFeature)
 
     @Single
     class GuildGroup(private val cmdRegistry: CommandRegistryService) : CommandFeature<GuildGroup.Args>(
@@ -108,6 +109,21 @@ class CmdManageCommand(
         override suspend fun exec(e: Args) {
             iData.deferReply(true)
             cmdRegistry.updateCommandsForGuild(e.guildId)
+            iData.done()
+        }
+    }
+
+    @Single
+    class UpdateFeature(private val cmdRegistry: CommandRegistryService) :
+        CommandFeature<UpdateFeature.Args>(::Args, CommandSpec("updatefeature", "Update".k18n)) {
+        class Args : Arguments() {
+            var feature by string("feature", "Feature".k18n)
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            iData.deferReply(true)
+            cmdRegistry.updateSingleFeature(e.feature)
             iData.done()
         }
     }

@@ -19,7 +19,7 @@ class SwitchTimerCreateCommand(private val service: SwitchTimerService, private 
         )
     ) {
     class Args : Arguments() {
-        var league by string("Liga", K18n_SwitchTimer.ArgLeague)
+        var league by string("Division", K18n_SwitchTimer.ArgLeague)
         var settings by list("Timer %s", K18n_SwitchTimer.ArgSettings, 5, 1)
         var stallSeconds by int("Stall-Sekunden", K18n_SwitchTimer.ArgStallSeconds) {
             default = 0

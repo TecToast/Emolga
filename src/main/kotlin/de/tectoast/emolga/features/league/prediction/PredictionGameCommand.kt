@@ -79,7 +79,7 @@ class PredictionGameCommand(
 
             val leagueCoreRepo: LeagueCoreRepository by inject()
 
-            val leaguename by string("Liga", K18n_PredictionGameCommand.OwnVotesArgLeague) {
+            val leaguename by string("Division", K18n_PredictionGameCommand.OwnVotesArgLeague) {
                 slashCommand { string, event ->
                     val gid = event.guild!!.idLong
                     val names = leagueNameCache.getOrPut(gid) {

@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
@@ -57,6 +59,7 @@ object PredictionGameVotesTable : Table("predictiongamevotes") {
     val battle = integer("battle")
     val idx = integer("idx")
     val correct = bool("correct").nullable().default(null)
+    val timestamp = timestamp("timestamp").defaultExpression(CurrentTimestamp)
 
     override val primaryKey = PrimaryKey(leagueName, week, battle, userId)
 }

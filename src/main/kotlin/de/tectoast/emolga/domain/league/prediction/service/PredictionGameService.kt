@@ -80,6 +80,7 @@ class PredictionGameService(
         val users = leagueMemberRepo.getPrimaryIds(leagueName, matchUp)
         val names = discordUserService.getNames(guildId, users.values.flatten())
         val language = languageRepo.getLanguage(guildId)
+        val currentStateConfig = config.currentState
         val state = buildPredictionMatchViewState(
             leagueName = leagueName,
             week = week,
@@ -90,7 +91,7 @@ class PredictionGameService(
             names = names,
             config = config,
             isLocked = source == PredictionGameMessageEditSource.LOCK,
-            description = if (source.targetState == config.currentState) buildCurrentPredictionGameState(
+            description = if (currentStateConfig != null && source.targetState.rank >= currentStateConfig.rank) buildCurrentPredictionGameState(
                 leagueName,
                 week,
                 battleIndex,

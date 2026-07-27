@@ -563,7 +563,8 @@
         "SelectLanguage": "Select language",
         "Round": "Round",
         "Finished": "Finished",
-        "MadeUpFor": "Made up for"
+        "MadeUpFor": "Made up for",
+        "NoDataAvailable": "No data available"
       }
     }
   }

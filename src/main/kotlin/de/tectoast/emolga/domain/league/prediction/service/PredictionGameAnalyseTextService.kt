@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.prediction.service
 
 import de.tectoast.emolga.features.league.K18n_PredictionGameCommand
 import de.tectoast.emolga.utils.*
+import de.tectoast.generic.K18n_NoDataAvailable
 import de.tectoast.generic.K18n_You
 import org.koin.core.annotation.Single
 
@@ -112,7 +113,7 @@ class PredictionGameAnalyseTextService(
                         null -> {}
                     }
                 }
-            }
+            }.ifEmpty { "_${K18n_NoDataAvailable()}_" }
         }.success()
     }
 

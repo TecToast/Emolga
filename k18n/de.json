@@ -565,7 +565,8 @@
         "SelectLanguage": "Sprache auswählen",
         "Round": "Runde",
         "Finished": "Beendet",
-        "MadeUpFor": "Nachgeholt"
+        "MadeUpFor": "Nachgeholt",
+        "NoDataAvailable": "Keine Daten verfügbar"
       }
     }
   }

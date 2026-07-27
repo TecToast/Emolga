@@ -1,7 +1,5 @@
 package de.tectoast.emolga.features.flo.controlcentral
 
-import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlAction
-import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlActionData
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.service.RemoteServerControlService
 import de.tectoast.emolga.features.interaction.InteractionData
 import de.tectoast.emolga.features.system.Arguments
@@ -11,18 +9,17 @@ import de.tectoast.emolga.features.system.types.ListenerProvider
 import org.koin.core.annotation.Single
 
 @Single(binds = [ListenerProvider::class])
-class RemoteServerControlButton(
+class RemoteServerControlDelegateButton(
     private val service: RemoteServerControlService
 ) :
-    ButtonFeature<RemoteServerControlButton.Args>(::Args, ButtonSpec("remoteservercontrol")) {
+    ButtonFeature<RemoteServerControlDelegateButton.Args>(::Args, ButtonSpec("remoteservercontroldelegate")) {
     class Args : Arguments() {
-        var pc by string()
-        var action by enumBasic<RemoteServerControlAction>()
+        var id by int("id")
     }
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.ephemeralDefault()
-        iData.replyRaw(service.handle(RemoteServerControlActionData(e.pc, e.action)))
+        iData.replyRaw(service.handleDelegate(e.id))
     }
 }

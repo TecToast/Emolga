@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.flo.controlcentral
 
 import de.tectoast.emolga.discord.ChannelInterface
+import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlAction
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlFeature
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.repository.RemoteServerControlRepository
 import de.tectoast.emolga.features.interaction.InteractionData
@@ -63,24 +64,24 @@ class ControlButtonSetupCommand(
                                 "Server starten".k18n,
                                 ButtonStyle.SUCCESS,
                                 emoji = Emoji.fromUnicode("⬆\uFE0F")
-                            ) { this.pc = control.name; this.action = RemoteServerControlButton.Action.START })
+                            ) { this.pc = control.name; this.action = RemoteServerControlAction.START })
 
                         if (RemoteServerControlFeature.STATUS in features) add(
                             remoteServerControlButton(
                                 "Status".k18n, ButtonStyle.PRIMARY, emoji = Emoji.fromUnicode("ℹ")
-                            ) { this.pc = control.name; this.action = RemoteServerControlButton.Action.STATUS })
+                            ) { this.pc = control.name; this.action = RemoteServerControlAction.STATUS })
 
                         if (RemoteServerControlFeature.STOP in features) add(
                             remoteServerControlButton(
                                 "Server stoppen".k18n,
                                 ButtonStyle.SECONDARY,
                                 emoji = Emoji.fromUnicode("⬇\uFE0F")
-                            ) { this.pc = control.name; this.action = RemoteServerControlButton.Action.STOP })
+                            ) { this.pc = control.name; this.action = RemoteServerControlAction.STOP })
 
                         if (RemoteServerControlFeature.POWEROFF in features) add(
                             remoteServerControlButton(
                                 "PowerOff".k18n, ButtonStyle.DANGER, emoji = Emoji.fromUnicode("⚠")
-                            ) { this.pc = control.name; this.action = RemoteServerControlButton.Action.POWEROFF })
+                            ) { this.pc = control.name; this.action = RemoteServerControlAction.POWEROFF })
                     }.into()
                     channelInterface.sendMessage(iData.tc, MessageCreate(embeds = embed, components = components))
                 }

@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.guildspecific.remoteservercontrol.repository
 
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlAction
 import de.tectoast.emolga.domain.guildspecific.remoteservercontrol.model.RemoteServerControlActionData
+import de.tectoast.emolga.utils.referencesCascade
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -21,7 +22,7 @@ class RemoteServerControlDelegateRepository(private val db: R2dbcDatabase) {
 
 object RemoteServerControlDelegateTable : Table("remote_server_control_delegate") {
     val id = integer("id").autoIncrement()
-    val pc = text("pc")
+    val pc = text("pc").referencesCascade(RemoteServerControlTable.name)
     val action = enumerationByName<RemoteServerControlAction>("action", 64)
     val note = text("note").nullable()
 

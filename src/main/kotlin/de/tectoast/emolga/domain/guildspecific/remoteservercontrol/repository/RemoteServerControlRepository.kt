@@ -34,4 +34,6 @@ class RemoteServerControlRepository(private val db: R2dbcDatabase) {
 object RemoteServerControlTable : Table("remote_server_control") {
     val name = text("name")
     val data = jsonb<RemoteServerControlConfig>("data")
+
+    override val primaryKey = PrimaryKey(name)
 }

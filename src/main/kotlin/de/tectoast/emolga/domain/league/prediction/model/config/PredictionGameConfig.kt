@@ -19,6 +19,7 @@ data class PredictionGameConfig(
     val roleToPing: Long? = null,
     val currentState: PredictionGameCurrentStateType? = null,
     val leaderboardConfig: PredictionGameLeaderboardConfig? = null,
+    val docConfig: PredictionGameDocConfig? = null,
     val skipFirstN: Int = 0,
     val formattedEmojis: List<String>? = null
 )

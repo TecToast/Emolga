@@ -1,20 +1,16 @@
 package de.tectoast.emolga.domain.league.prediction.repository
 
+import de.tectoast.emolga.domain.league.core.repository.LeagueCoreTable
 import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
 import de.tectoast.emolga.domain.league.prediction.model.PredictionGameVoteData
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.timestamp
-import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
-import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.*
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
-import org.jetbrains.exposed.v1.r2dbc.update
-import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 
 @Single
@@ -47,8 +43,32 @@ class PredictionGameVoteRepository(
 
     suspend fun getAllPredictionGameVotes(leagueName: String) = suspendTransaction(db, PredictionGameVotesTable) {
         PredictionGameVotesTable.selectAll().where { PredictionGameVotesTable.leagueName eq leagueName }
-            .map { PredictionGameVoteData(it[userId], it[week], it[battle], it[idx], it[correct]) }
+            .map { it.rowToData() }
             .toList()
+    }
+
+    private fun ResultRow.rowToData(): PredictionGameVoteData = with(PredictionGameVotesTable) {
+        PredictionGameVoteData(get(leagueName), get(userId), get(week), get(battle), get(idx), get(correct))
+    }
+
+    suspend fun getAllPredictionGameVotesForWeek(guild: Long, week: Int) = suspendTransaction(db) {
+        PredictionGameVotesTable.innerJoin(LeagueCoreTable, { this.leagueName }, { this.leagueName })
+            .select(PredictionGameVotesTable.columns)
+            .where { (LeagueCoreTable.guild eq guild) and (PredictionGameVotesTable.week eq week) }
+            .orderBy(
+                LeagueCoreTable.num to SortOrder.ASC,
+                PredictionGameVotesTable.userId to SortOrder.ASC,
+                PredictionGameVotesTable.battle to SortOrder.ASC
+            )
+            .map { it.rowToData() }
+            .toList()
+    }
+
+    suspend fun getVoteCountBeforeWeek(guild: Long, week: Int) = suspendTransaction(db) {
+        PredictionGameVotesTable.innerJoin(LeagueCoreTable, { this.leagueName }, { this.leagueName })
+            .selectAll()
+            .where { (LeagueCoreTable.guild eq guild) and (PredictionGameVotesTable.week less week) }
+            .count()
     }
 }
 

@@ -4,6 +4,7 @@ sealed interface RepeatTaskType {
     data class PredictionGameSending(val leagueName: String) : RepeatTaskType
     data class PredictionGameLockButtons(val leagueName: String) : RepeatTaskType
     data class PredictionGameLeaderboard(val leagueName: String) : RepeatTaskType
+    data class PredictionGameDoc(val leagueName: String) : RepeatTaskType
     data class RegisterInDoc(val leagueName: String, val battleIndex: Int) : RepeatTaskType
     data class YTSendAfterGrace(val leagueName: String, val battleIndex: Int) : RepeatTaskType
     data class YTEnable(val leagueName: String, val battleIndex: Int) : RepeatTaskType

@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.scheduling.repeat.service.league
 
 import de.tectoast.emolga.domain.league.config.model.LeagueConfig
 import de.tectoast.emolga.domain.league.prediction.model.config.PredictionGameConfig
+import de.tectoast.emolga.domain.league.prediction.service.PredictionGameDocService
 import de.tectoast.emolga.domain.league.prediction.service.PredictionGameLeaderboardService
 import de.tectoast.emolga.domain.league.prediction.service.PredictionGameService
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTask
@@ -12,7 +13,8 @@ import org.koin.core.annotation.Single
 @Single
 class PredictionGameRepeatTask(
     private val predictionGameService: PredictionGameService,
-    private val predictionGameLeaderboardService: PredictionGameLeaderboardService
+    private val predictionGameLeaderboardService: PredictionGameLeaderboardService,
+    private val predictionGameDocService: PredictionGameDocService,
 ) : LeagueRepeatTask {
     override suspend fun setup(
         scheduler: RepeatTaskScheduler,
@@ -23,6 +25,7 @@ class PredictionGameRepeatTask(
         predictionConfig.setupSendTask(scheduler, leagueName)
         predictionConfig.setupLockButtonsTask(scheduler, leagueName)
         predictionConfig.setupLeaderboardTask(scheduler, leagueName)
+        predictionConfig.setupDocTask(scheduler, leagueName)
     }
 
     private fun PredictionGameConfig.setupSendTask(scheduler: RepeatTaskScheduler, leagueName: String) {
@@ -68,6 +71,21 @@ class PredictionGameRepeatTask(
             )
         ) { _ ->
             predictionGameLeaderboardService.sendNewLeaderboard(leagueName, leaderboardConfig)
+        }
+    }
+
+    private fun PredictionGameConfig.setupDocTask(scheduler: RepeatTaskScheduler, leagueName: String) {
+        val docConfig = docConfig ?: return
+        scheduler.schedule(
+            RepeatTask(
+                RepeatTaskType.PredictionGameDoc(leagueName),
+                lastSending + interval,
+                amount,
+                interval,
+                skipFirstN = skipFirstN
+            )
+        ) { week ->
+            predictionGameDocService.execute(leagueName, week, docConfig)
         }
     }
 }

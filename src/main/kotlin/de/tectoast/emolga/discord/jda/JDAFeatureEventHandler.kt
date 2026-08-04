@@ -3,14 +3,15 @@ package de.tectoast.emolga.discord.jda
 import de.tectoast.emolga.K18n_FeatureManager
 import de.tectoast.emolga.discord.jda.features.JDAInteractionData
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
+import de.tectoast.emolga.domain.statistics.model.FeatureType
+import de.tectoast.emolga.domain.statistics.repository.FeatureStatsRepository
 import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.FeatureEventHandler
 import de.tectoast.emolga.features.system.FeatureRegistry
 import de.tectoast.emolga.features.system.model.Allowed
 import de.tectoast.emolga.features.system.model.ArgumentException
 import de.tectoast.emolga.features.system.model.NotAllowed
-import de.tectoast.emolga.features.system.types.CommandFeature
-import de.tectoast.emolga.features.system.types.Feature
+import de.tectoast.emolga.features.system.types.*
 import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.t
 import kotlinx.coroutines.*
@@ -32,14 +33,17 @@ import kotlin.time.TimeSource
 @Single
 class JDAFeatureEventHandler(
     private val guildLanguageRepo: GuildConfigRepository,
+    private val featureStatsRepository: FeatureStatsRepository,
     private val botConstants: BotConstants,
     private val clock: Clock,
     featureRegistry: FeatureRegistry,
     baseListenerScope: CoroutineScope,
-    baseSurveillanceScope: CoroutineScope
+    baseSurveillanceScope: CoroutineScope,
+    baseStatisticsScope: CoroutineScope,
 ) : FeatureEventHandler {
     private val listenerScope = baseListenerScope + CoroutineName("FeatureManagerListener")
     private val surveillanceScope = baseSurveillanceScope + CoroutineName("FeatureManagerSurveillance")
+    private val statisticsScope = baseStatisticsScope + CoroutineName("FeatureManagerLogging")
 
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String>
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>
@@ -137,8 +141,10 @@ class JDAFeatureEventHandler(
                                 )
                                 return@withContext
                             }
+                            val argsMap = args.toMap()
                             logger.atInfo().setMessage("Feature").addKeyValue("feature", feature.spec.name)
-                                .addKeyValue("args", args.toMap()).log()
+                                .addKeyValue("args", argsMap).log()
+                            logFeatureStatistics(feature, argsMap, e)
                             feature.exec(args)
                         }
 
@@ -158,6 +164,30 @@ class JDAFeatureEventHandler(
                     buildErrorMessage(feature, e, data, ex)
                 )
             }
+        }
+    }
+
+    private fun logFeatureStatistics(
+        feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
+        argsMap: Map<String, Any?>,
+        e: GenericInteractionCreateEvent
+    ) {
+        statisticsScope.launch {
+            featureStatsRepository.addInvocation(
+                feature.spec.name,
+                when (feature) {
+                    is CommandFeature<*> -> FeatureType.SLASH
+                    is ButtonFeature<*> -> FeatureType.BUTTON
+                    is EntitySelectMenuFeature<*> -> FeatureType.ENTITYMENU
+                    is StringSelectMenuFeature<*> -> FeatureType.STRINGMENU
+                    is ModalFeature<*> -> FeatureType.MODAL
+                    else -> FeatureType.UNKNOWN
+                },
+                argsMap.mapValues { it.value.toString() },
+                e.user.idLong,
+                e.guild?.idLong,
+                e.channel?.idLong
+            )
         }
     }
 

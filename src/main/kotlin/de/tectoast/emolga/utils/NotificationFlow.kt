@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 abstract class NotificationFlow<T>(extraBufferCapacity: Int = 10) {
-    private val flow = MutableSharedFlow<T>(extraBufferCapacity)
+    private val flow = MutableSharedFlow<T>(extraBufferCapacity = extraBufferCapacity)
 
     suspend fun emit(msg: T) {
         flow.emit(msg)

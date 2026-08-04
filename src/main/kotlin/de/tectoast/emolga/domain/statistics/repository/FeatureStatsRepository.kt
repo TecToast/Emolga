@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.insert
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
+import kotlin.time.Instant
 
 @Single
 class FeatureStatsRepository(@Named("stats") private val db: R2dbcDatabase) {
@@ -17,6 +18,7 @@ class FeatureStatsRepository(@Named("stats") private val db: R2dbcDatabase) {
         featureName: String,
         type: FeatureType,
         args: Map<String, String>,
+        timestamp: Instant,
         user: Long,
         guild: Long?,
         channel: Long?
@@ -27,6 +29,7 @@ class FeatureStatsRepository(@Named("stats") private val db: R2dbcDatabase) {
                 it[this.featureName] = featureName
                 it[this.type] = type
                 it[this.args] = args
+                it[this.timestamp] = timestamp
                 it[this.guild] = guild
                 it[this.channel] = channel
             }

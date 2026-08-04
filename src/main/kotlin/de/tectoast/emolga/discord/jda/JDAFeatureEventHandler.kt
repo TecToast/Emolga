@@ -27,6 +27,7 @@ import org.slf4j.MDC
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 import kotlin.time.TimeSource
 
 @Suppress("UNCHECKED_CAST")
@@ -104,8 +105,8 @@ class JDAFeatureEventHandler(
     ) {
         val language = guildLanguageRepo.getLanguage(e.guild?.idLong)
         val data = JDAInteractionData(e, language)
-        val traceId = clock.now().toEpochMilliseconds().toString()
-        MDC.put("traceId", traceId)
+        val traceId = clock.now().toEpochMilliseconds()
+        MDC.put("traceId", traceId.toString())
         surveillanceScope.launch(MDCContext()) {
             val executionStart = TimeSource.Monotonic.markNow()
             withTimeoutOrNull(10.seconds) {
@@ -142,9 +143,12 @@ class JDAFeatureEventHandler(
                                 return@withContext
                             }
                             val argsMap = args.toMap()
-                            logger.atInfo().setMessage("Feature").addKeyValue("feature", feature.spec.name)
-                                .addKeyValue("args", argsMap).log()
-                            logFeatureStatistics(feature, argsMap, e)
+                            logFeatureStatistics(
+                                feature = feature,
+                                argsMap = argsMap,
+                                e = e,
+                                timestamp = Instant.fromEpochMilliseconds(traceId)
+                            )
                             feature.exec(args)
                         }
 
@@ -170,24 +174,28 @@ class JDAFeatureEventHandler(
     private fun logFeatureStatistics(
         feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
         argsMap: Map<String, Any?>,
-        e: GenericInteractionCreateEvent
+        e: GenericInteractionCreateEvent,
+        timestamp: Instant
     ) {
         statisticsScope.launch {
-            featureStatsRepository.addInvocation(
-                feature.spec.name,
-                when (feature) {
-                    is CommandFeature<*> -> FeatureType.SLASH
-                    is ButtonFeature<*> -> FeatureType.BUTTON
-                    is EntitySelectMenuFeature<*> -> FeatureType.ENTITYMENU
-                    is StringSelectMenuFeature<*> -> FeatureType.STRINGMENU
-                    is ModalFeature<*> -> FeatureType.MODAL
-                    else -> FeatureType.UNKNOWN
-                },
-                argsMap.mapValues { it.value.toString() },
-                e.user.idLong,
-                e.guild?.idLong,
-                e.channel?.idLong
-            )
+            withContext(NonCancellable) {
+                featureStatsRepository.addInvocation(
+                    featureName = feature.spec.name,
+                    type = when (feature) {
+                        is CommandFeature<*> -> FeatureType.SLASH
+                        is ButtonFeature<*> -> FeatureType.BUTTON
+                        is EntitySelectMenuFeature<*> -> FeatureType.ENTITYMENU
+                        is StringSelectMenuFeature<*> -> FeatureType.STRINGMENU
+                        is ModalFeature<*> -> FeatureType.MODAL
+                        else -> FeatureType.UNKNOWN
+                    },
+                    args = argsMap.mapValues { it.value.toString() },
+                    timestamp = timestamp,
+                    user = e.user.idLong,
+                    guild = e.guild?.idLong,
+                    channel = e.channel?.idLong
+                )
+            }
         }
     }
 

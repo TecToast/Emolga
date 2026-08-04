@@ -9,6 +9,7 @@ import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTask
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTaskType
 import de.tectoast.emolga.domain.scheduling.repeat.service.RepeatTaskScheduler
 import org.koin.core.annotation.Single
+import kotlin.time.Duration.Companion.hours
 
 @Single
 class PredictionGameRepeatTask(
@@ -76,10 +77,11 @@ class PredictionGameRepeatTask(
 
     private fun PredictionGameConfig.setupDocTask(scheduler: RepeatTaskScheduler, leagueName: String) {
         val docConfig = docConfig ?: return
+        val lastExecution = lastLockButtons?.plus(1.hours) ?: (lastSending + interval)
         scheduler.schedule(
             RepeatTask(
                 RepeatTaskType.PredictionGameDoc(leagueName),
-                lastSending + interval,
+                lastExecution,
                 amount,
                 interval,
                 skipFirstN = skipFirstN

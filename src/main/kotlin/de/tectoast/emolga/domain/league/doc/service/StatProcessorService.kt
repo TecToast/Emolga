@@ -68,9 +68,10 @@ class StatProcessorService(private val clock: Clock, private val docProviderDisp
                             continue
                         }
                         val monData = buildMap {
-                            for (processor in statProcessors) {
+                            for ((coordExpr, provider) in statProcessors) {
                                 val statProcessorData = StatProcessorData(
                                     memIdx = idx,
+                                    opponentIdx = uindices[1 - i],
                                     weekIndex = week - 1,
                                     battleindex = battleIndex,
                                     indexInBattle = i,
@@ -78,8 +79,7 @@ class StatProcessorService(private val clock: Clock, private val docProviderDisp
                                     monindex = monIndex,
                                     monIterationIndex = iterationIndex
                                 )
-                                val coord = processor.coord.eval(statProcessorData)
-                                val provider = processor.provider
+                                val coord = coordExpr.eval(statProcessorData)
                                 if (provider !in this@buildMap) {
                                     val value = docProviderDispatcher.provideData(
                                         provider, fullGameData, statProcessorData, additionalDataProvider

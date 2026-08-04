@@ -8,6 +8,7 @@ import kotlin.reflect.cast
 
 class StatProcessorData : AstEnvironment {
     private val memIdx: Int
+    private val opponentIdx: Int
     private val weekIndex: Int
     val battleIndex: Int
     val indexInBattle: Int
@@ -23,6 +24,7 @@ class StatProcessorData : AstEnvironment {
 
     constructor(
         memIdx: Int,
+        opponentIdx: Int,
         weekIndex: Int,
         battleindex: Int,
         indexInBattle: Int,
@@ -31,6 +33,7 @@ class StatProcessorData : AstEnvironment {
         monIterationIndex: Int
     ) {
         this.memIdx = memIdx
+        this.opponentIdx = opponentIdx
         this.weekIndex = weekIndex
         this.battleIndex = battleindex
         this.indexInBattle = indexInBattle
@@ -42,6 +45,7 @@ class StatProcessorData : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
             IDX -> memIdx
+            OPPONENT_IDX -> opponentIdx
             WEEK_INDEX -> weekIndex
             BATTLE_INDEX -> battleIndex
             INDEX_IN_BATTLE -> indexInBattle
@@ -56,9 +60,19 @@ class StatProcessorData : AstEnvironment {
 
     companion object : ValidVariableProvider {
         override val validVariables =
-            setOf(IDX, WEEK_INDEX, BATTLE_INDEX, INDEX_IN_BATTLE, MATCH_NUM, MON_INDEX, MON_ITERATION_INDEX)
+            setOf(
+                IDX,
+                OPPONENT_IDX,
+                WEEK_INDEX,
+                BATTLE_INDEX,
+                INDEX_IN_BATTLE,
+                MATCH_NUM,
+                MON_INDEX,
+                MON_ITERATION_INDEX
+            )
 
         const val IDX = "IDX"
+        const val OPPONENT_IDX = "OPPONENT_IDX"
         const val WEEK_INDEX = "WEEK_INDEX"
         const val BATTLE_INDEX = "BATTLE_INDEX"
         const val INDEX_IN_BATTLE = "INDEX_IN_BATTLE"

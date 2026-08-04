@@ -14,7 +14,7 @@ import org.koin.core.annotation.Single
 class RandomPickButton(private val draftService: DraftService) :
     ButtonFeature<RandomPickButton.Args>(::Args, ButtonSpec("randompick")) {
     class Args : Arguments() {
-        var action by enumBasic<RandomPickAction>()
+        var action by enumBasic<RandomPickAction>("action")
     }
 
 

@@ -17,7 +17,7 @@ class QueuePicksFinishButton(private val stateStore: StateStoreDispatcher) :
     ButtonFeature<QueuePicksFinishButton.Args>(::Args, ButtonSpec("queuepicksfinish")) {
 
     class Args : Arguments() {
-        var enable by boolean()
+        var enable by boolean("enable")
     }
 
     context(iData: InteractionData)

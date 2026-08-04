@@ -15,7 +15,7 @@ class GPCLeagueSubmitModal(private val gpcSubmissionHandler: GPCSubmissionHandle
     override val title = "Liga registrieren".k18n
 
     class Args : Arguments() {
-        var catId by long().compIdOnly()
+        var catId by long("catId").compIdOnly()
         var name by string("Name", "Name der Liga".k18n)
         var docUrl by string("Doc-Link", "Link zum Dokument mit den Teilnehmern".k18n)
         var metaInfos by string("Infos zum Meta", "Hier kannst du Infos zum gespielten Meta angeben".k18n) {

@@ -14,10 +14,10 @@ import org.koin.core.annotation.Single
 class PredictionGameVoteButton(private val service: PredictionGameService) :
     ButtonFeature<PredictionGameVoteButton.Args>(::Args, ButtonSpec("predictiongame").apply { aliases += "tipgame" }) {
     class Args : Arguments() {
-        var leaguename by string()
-        var week by int()
-        var battleIndex by int()
-        var idx by int()
+        var leaguename by string("leaguename")
+        var week by int("week")
+        var battleIndex by int("battleIndex")
+        var idx by int("idx")
     }
 
     context(iData: InteractionData)

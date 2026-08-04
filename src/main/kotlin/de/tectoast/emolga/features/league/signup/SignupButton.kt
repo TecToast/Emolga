@@ -23,7 +23,7 @@ class SignupButton(private val signupService: SignupService) : ButtonFeature<Sig
     override val emoji = Emoji.fromUnicode("✅")
 
     class Args : Arguments() {
-        var identifier by string().compIdOnly().nullable()
+        var identifier by string("identifier").compIdOnly().nullable()
     }
 
     context(iData: InteractionData)

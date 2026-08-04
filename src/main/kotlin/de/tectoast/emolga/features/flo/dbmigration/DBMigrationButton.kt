@@ -18,7 +18,7 @@ class DBMigrationButton(private val dbMigration: DatabaseMigrationService) :
     override val label = "Execute".k18n
 
     class Args : Arguments() {
-        var id: String by string()
+        var id: String by string("id")
     }
 
 

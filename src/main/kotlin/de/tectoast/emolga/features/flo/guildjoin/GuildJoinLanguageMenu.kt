@@ -17,7 +17,7 @@ class LanguageMenu(private val service: GuildWelcomeViewService, private val gui
 
     class Args : Arguments() {
         var selection by singleOption()
-        var guild by long().compIdOnly()
+        var guild by long("guild").compIdOnly()
     }
 
     context(iData: InteractionData)

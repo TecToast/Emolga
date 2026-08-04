@@ -19,7 +19,7 @@ class QueuePicksSetLocationModal(private val stateStore: StateStoreDispatcher) :
     override val title = K18n_QueuePicks.SetLocationModalTitle
 
     class Args : Arguments() {
-        var mon by showdownIDArg().compIdOnly()
+        var mon by showdownIDArg("mon").compIdOnly()
         var location by string<Int>("Position") {
             validate { it.toIntOrNull() }
             modal(placeholder = K18n_QueuePicks.SetLocationModalArgLocation)

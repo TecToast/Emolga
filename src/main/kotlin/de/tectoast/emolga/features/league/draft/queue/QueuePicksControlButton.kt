@@ -20,8 +20,8 @@ class QueuePicksControlButton(private val stateStore: StateStoreDispatcher) :
     }
 
     class Args : Arguments() {
-        var mon by showdownIDArg()
-        var controlMode by enumBasic<ControlMode>()
+        var mon by showdownIDArg("mon")
+        var controlMode by enumBasic<ControlMode>("controlMode")
     }
 
     context(iData: InteractionData)

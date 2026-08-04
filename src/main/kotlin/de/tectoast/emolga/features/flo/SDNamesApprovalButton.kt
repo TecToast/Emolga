@@ -17,9 +17,9 @@ class SDNamesApprovalButton(
 ) :
     ButtonFeature<SDNamesApprovalButton.Args>(::Args, ButtonSpec("sdnamesapproval")) {
     class Args : Arguments() {
-        var accept by boolean()
-        var id by long()
-        var username by string()
+        var accept by boolean("accept")
+        var id by long("id")
+        var username by string("username")
     }
 
     context(iData: InteractionData)

@@ -19,8 +19,8 @@ class SwitchTimerButton(private val service: SwitchTimerService) : ButtonFeature
     override val buttonStyle = ButtonStyle.PRIMARY
 
     class Args : Arguments() {
-        var league by string()
-        var switchTo by string()
+        var league by string("league")
+        var switchTo by string("switchTo")
     }
 
     context(iData: InteractionData)

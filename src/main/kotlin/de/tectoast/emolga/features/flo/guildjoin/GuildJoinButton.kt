@@ -19,7 +19,7 @@ class GuildJoinButton(private val adminSupportRepo: GuildInviteCreator) :
     override val emoji = Emoji.fromUnicode("✉️")
 
     class Args : Arguments() {
-        var gid by long()
+        var gid by long("guild")
     }
 
 

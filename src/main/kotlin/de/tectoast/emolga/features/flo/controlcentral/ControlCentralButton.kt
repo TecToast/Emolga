@@ -20,7 +20,7 @@ class ControlCentralButton(
     private val logger = KotlinLogging.logger {}
 
     class Args : Arguments() {
-        var mode by enumBasic<Mode>()
+        var mode by enumBasic<Mode>("mode")
     }
 
     enum class Mode {

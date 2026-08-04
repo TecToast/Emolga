@@ -39,7 +39,7 @@ open class Arguments : KoinComponent {
     val autocompleteService by inject<PokemonAutocompleteService>()
 
     inline fun string(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<String, String>.() -> Unit = {}
     ) =
@@ -47,14 +47,14 @@ open class Arguments : KoinComponent {
 
     @JvmName("stringGeneric")
     inline fun <T> string(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<String, T>.() -> Unit = {}
     ) =
         createArg(name, help, OptionType.STRING, builder)
 
     inline fun showdownIDArg(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<String, ShowdownID>.() -> Unit = {}
     ) =
@@ -67,20 +67,20 @@ open class Arguments : KoinComponent {
             builder()
         }
 
-    inline fun long(name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, Long>.() -> Unit = {}) =
+    inline fun long(name: String, help: K18nMessage = EmptyMessage, builder: Arg<String, Long>.() -> Unit = {}) =
         createArg<String, Long>(name, help, OptionType.STRING) {
             validate { it.toLongOrNull() }
             builder()
         }
 
-    inline fun int(name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<Long, Int>.() -> Unit = {}) =
+    inline fun int(name: String, help: K18nMessage = EmptyMessage, builder: Arg<Long, Int>.() -> Unit = {}) =
         createArg<Long, Int>(name, help, OptionType.INTEGER) {
             validate { it.toInt() }
             builder()
         }
 
     inline fun draftPokemon(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<String, ShowdownID>.() -> Unit = {},
         noinline autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
@@ -95,14 +95,14 @@ open class Arguments : KoinComponent {
     }
 
     inline fun boolean(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<Boolean, Boolean>.() -> Unit = {}
     ) =
         createArg(name, help, OptionType.BOOLEAN, builder)
 
     inline fun <reified T : Enum<T>> enumBasic(
-        name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
+        name: String, help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
     ) = createArg(name, help, OptionType.STRING) {
         val enumValues = enumValues<T>()
         validate {
@@ -123,7 +123,7 @@ open class Arguments : KoinComponent {
     }
 
     inline fun fromListCommand(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         crossinline collSupplier: suspend (CommandAutoCompleteInteractionEvent) -> Collection<String>,
         builder: Arg<String, String>.() -> Unit = {}
@@ -136,7 +136,7 @@ open class Arguments : KoinComponent {
     }
 
     inline fun fromListModal(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         placeholder: K18nMessage? = null,
         valueRange: IntRange? = 1..1,
@@ -148,7 +148,7 @@ open class Arguments : KoinComponent {
     }
 
     inline fun <reified T> enumAdvanced(
-        name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
+        name: String, help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
     ) where T : Enum<T>, T : Nameable = createArg(name, help, OptionType.STRING) {
         validate {
             try {
@@ -166,7 +166,7 @@ open class Arguments : KoinComponent {
     }
 
     fun pokemontype(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         language: Language,
         builder: Arg<String, String>.() -> Unit = {}
@@ -181,7 +181,7 @@ open class Arguments : KoinComponent {
     }
 
     private fun String.embedI(i: Int, startAt: Int) = if ("&s" in this) format(i + startAt) else plus(i + startAt)
-    fun list(name: String = "", help: K18nMessage = EmptyMessage, numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
+    fun list(name: String, help: K18nMessage = EmptyMessage, numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
                 createArg<String, String>(
@@ -208,29 +208,31 @@ open class Arguments : KoinComponent {
         }
 
     inline fun member(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<Member, Member>.() -> Unit = {}
     ) =
         createArg(name, help, OptionType.USER, builder)
 
     inline fun channel(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
     ) = createArg(name, help, OptionType.CHANNEL, builder)
 
     inline fun attachment(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
 
-    fun singleOption() = createArg<String, String>(help = EmptyMessage, optionType = OptionType.STRING) {
+    fun singleOption() =
+        createArg<String, String>(name = "option", help = EmptyMessage, optionType = OptionType.STRING) {
         spec = SelectMenuArgSpec(1..1)
     }
 
     fun multiOption(range: IntRange) = createArg<List<String>, List<String>>(
+        name = "options",
         help = EmptyMessage,
         optionType = OptionType.STRING
     ) {
@@ -238,6 +240,7 @@ open class Arguments : KoinComponent {
     }
 
     fun multiOptionLong(range: IntRange) = createArg<List<Long>, List<Long>>(
+        name = "options",
         help = EmptyMessage,
         optionType = OptionType.NUMBER
     ) {
@@ -250,7 +253,7 @@ open class Arguments : KoinComponent {
     }
 
     inline fun <DiscordType, ParsedType> createArg(
-        name: String = "",
+        name: String,
         help: K18nMessage = EmptyMessage,
         optionType: OptionType = OptionType.STRING,
         builder: Arg<DiscordType, ParsedType>.() -> Unit
@@ -283,7 +286,7 @@ open class Arguments : KoinComponent {
 }
 
 class MessageContextArgs : Arguments() {
-    var message by createArg<Message, Message> { }
+    var message by createArg<Message, Message>("message") { }
 }
 
 object NoArgs : Arguments() {

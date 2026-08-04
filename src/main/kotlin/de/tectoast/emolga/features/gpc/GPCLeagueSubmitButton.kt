@@ -19,7 +19,7 @@ class GPCLeagueSubmitButton(private val modal: GPCLeagueSubmitModal) : ButtonFea
     override val emoji = Emoji.fromUnicode("\uD83D\uDCE9")
 
     class Args : Arguments() {
-        var catId by long().compIdOnly()
+        var catId by long("catId").compIdOnly()
     }
 
     context(iData: InteractionData)

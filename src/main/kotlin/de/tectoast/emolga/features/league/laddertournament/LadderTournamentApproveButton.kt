@@ -17,7 +17,7 @@ class LadderTournamentApproveButton(private val service: LadderTournamentService
     override val label = K18n_Approve
 
     class Args : Arguments() {
-        var user by long()
+        var user by long("user")
     }
 
     context(iData: InteractionData)

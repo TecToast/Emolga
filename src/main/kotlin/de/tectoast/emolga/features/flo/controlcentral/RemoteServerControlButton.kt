@@ -16,8 +16,8 @@ class RemoteServerControlButton(
 ) :
     ButtonFeature<RemoteServerControlButton.Args>(::Args, ButtonSpec("remoteservercontrol")) {
     class Args : Arguments() {
-        var pc by string()
-        var action by enumBasic<RemoteServerControlAction>()
+        var pc by string("pc")
+        var action by enumBasic<RemoteServerControlAction>("action")
     }
 
     context(iData: InteractionData)

@@ -36,8 +36,8 @@ class NominateButton(private val stateStore: StateStoreDispatcher, private val n
     }
 
     class Args : Arguments() {
-        var mode by enumBasic<Mode>()
-        var data by showdownIDArg()
+        var mode by enumBasic<Mode>("mode")
+        var data by showdownIDArg("data")
     }
 
     context(iData: InteractionData)

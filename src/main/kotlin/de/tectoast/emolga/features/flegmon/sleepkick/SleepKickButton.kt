@@ -20,7 +20,7 @@ class SleepKickButton(private val service: SleepKickService) : ButtonFeature<Sle
     override val label = "Für Sleep-Kick stimmen".k18n
 
     class Args : Arguments() {
-        var id by long().compIdOnly()
+        var id by long("id").compIdOnly()
     }
 
     context(iData: InteractionData)

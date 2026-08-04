@@ -2,7 +2,10 @@ package de.tectoast.emolga.features.system
 
 import de.tectoast.k18n.generated.K18nMessage
 
-sealed class FeatureSpec(open val name: String, val aliases: MutableSet<String> = mutableSetOf())
+sealed class FeatureSpec(open val name: String, val aliases: MutableSet<String> = mutableSetOf()) {
+    var parentName: String? = null
+    val fullName: String get() = parentName?.let { "$it $name" } ?: name
+}
 sealed class RegisteredFeatureSpec(name: String) : FeatureSpec(name) {
     var inDM = false
 }

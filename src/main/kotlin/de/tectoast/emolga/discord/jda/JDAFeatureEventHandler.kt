@@ -180,7 +180,7 @@ class JDAFeatureEventHandler(
         statisticsScope.launch {
             withContext(NonCancellable) {
                 featureStatsRepository.addInvocation(
-                    featureName = feature.spec.name,
+                    featureName = feature.spec.fullName,
                     type = when (feature) {
                         is CommandFeature<*> -> FeatureType.SLASH
                         is ButtonFeature<*> -> FeatureType.BUTTON
@@ -209,7 +209,7 @@ class JDAFeatureEventHandler(
         data: JDAInteractionData,
         ex: Exception
     ) =
-        ("Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: ${data.user}\n" + (if (data.gid != -1L) {
+        ("Error in feature ${feature.spec.fullName}:\n" + "Event: ${e::class.simpleName}\n" + "User: ${data.user}\n" + (if (data.gid != -1L) {
             "Guild: ${data.gid} [${data.e.guild?.name}]\n" + "Channel: ${data.tc} [${data.e.channel?.name}]\n"
         } else "" + "Input: ${e.stringify()}\n") + ex.stackTraceToString())
 

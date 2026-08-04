@@ -22,7 +22,12 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
             .toMap()
     }
     open val children: List<CommandFeature<*>> = emptyList()
-    val childCommands by lazy { children.associateBy { it.spec.name } }
+    val childCommands by lazy {
+        children.associateBy {
+            it.spec.parentName = spec.name
+            it.spec.name
+        }
+    }
     var slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.ENABLED
 
     val botConstants by inject<BotConstants>()

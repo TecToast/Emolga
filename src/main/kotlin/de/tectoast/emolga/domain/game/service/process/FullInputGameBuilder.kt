@@ -67,9 +67,9 @@ class FullInputGameBuilder(
                     }
                 }.error()
             }
-            val (game, ctx, dontTranslate) = data
-            dontTranslateFromReplayServer = dontTranslateFromReplayServer || dontTranslate
-            addToStatistics(ctx)
+            val (game, ctx, serverData) = data
+            dontTranslateFromReplayServer = dontTranslateFromReplayServer || serverData.dontTranslate
+            addToStatistics(ctx, serverData.identifier)
             val uids = sdNamesRepo.getIDsByUsernames(game.map { it.nickname.toShowdownUserId() })
             logger.info("Analysed!")
             game.forEach { player ->
@@ -96,9 +96,9 @@ class FullInputGameBuilder(
     private fun List<SDPlayer>.toDefaultNameLookup() =
         flatMap { it.pokemon }.associate { it.showdownIDInRoster to it.pokemon }
 
-    private fun addToStatistics(ctx: BattleContext) {
+    private fun addToStatistics(ctx: BattleContext, serverIdentifier: String) {
         scope.launch {
-            statisticsRepository.addToStatistics(ctx)
+            statisticsRepository.addToStatistics(ctx, serverIdentifier)
             generalDiscordService.updatePresence()
         }
     }

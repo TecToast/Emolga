@@ -16,12 +16,12 @@ import kotlin.time.Duration.Companion.seconds
 class AnalysisService(val httpClient: HttpClient) {
 
     private val modeByServer = mapOf(
-        "replay.pokemonshowdown.com" to ReplayServerMode.LOG,
-        "replays.tectoast.de" to ReplayServerMode.LOG,
-        "replay.reshowdown.top" to ReplayServerMode.LOG,
-        "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE,
-        "play.champsnatdex.dynv6.net/replays" to ReplayServerMode.SCRAPE,
-        "replay.pokeathlon.com" to ReplayServerMode.POKEATHLON,
+        "replay.pokemonshowdown.com" to ReplayServerData(ReplayServerMode.LOG, "S"),
+        "replays.tectoast.de" to ReplayServerData(ReplayServerMode.LOG, "FLO"),
+        "replay.reshowdown.top" to ReplayServerData(ReplayServerMode.LOG, "RESHOWDOWN"),
+        "battling.p-insurgence.com/replays" to ReplayServerData(ReplayServerMode.SCRAPE, "INSURGENCE"),
+        "play.champsnatdex.dynv6.net/replays" to ReplayServerData(ReplayServerMode.SCRAPE, "CHAMPSNATDEX"),
+        "replay.pokeathlon.com" to ReplayServerData(ReplayServerMode.POKEATHLON, "POKEATHLON"),
     )
     private val regex = Regex("https://(${modeByServer.keys.joinToString("|")}).*")
 
@@ -31,7 +31,7 @@ class AnalysisService(val httpClient: HttpClient) {
     ): AnalysisData {
         var gameNullable: List<String>? = null
         val mr = regex.find(urlProvided) ?: throw InvalidReplayException()
-        val mode = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
+        val (mode, identifier) = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
         val url = mr.groupValues[0]
         val mappedURL = mode.mapURL(url)
         for (unused in 0..1) {
@@ -54,11 +54,11 @@ class AnalysisService(val httpClient: HttpClient) {
         }
         logger.info("Starting analyse!")
         val game = gameNullable ?: throw ShowdownDoesNotAnswerException()
-        return analyseFromLog(game, url, mode.dontTranslate)
+        return analyseFromLog(game, url, DataFromReplayServer(identifier, mode.dontTranslate))
     }
 
     fun analyseFromLog(
-        game: List<String>, url: String, dontTranslate: Boolean = false,
+        game: List<String>, url: String, serverData: DataFromReplayServer = DataFromReplayServer("DEFAULT", false),
     ): AnalysisData {
         var amount = 1
         val nicknames: MutableMap<Int, String> = mutableMapOf()
@@ -156,7 +156,7 @@ class AnalysisService(val httpClient: HttpClient) {
                 }
             }
             logger.debug { "Total Dmg: $totalDmg, Calced: $calcedTotalDmg" }
-            AnalysisData(sdPlayers, this, dontTranslate)
+            AnalysisData(sdPlayers, this, serverData)
         }
     }
 

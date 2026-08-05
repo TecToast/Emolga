@@ -48,11 +48,11 @@ class StatisticsRepository(@Named("stats") private val db: R2dbcDatabase, privat
 
     }
 
-    suspend fun addToStatistics(ctx: BattleContext) {
+    suspend fun addToStatistics(ctx: BattleContext, serverIdentifier: String) {
         lastEventsCache[ctx.url] = ctx.events
         suspendTransaction(db) {
             val events = ctx.events
-            val replayId = ctx.url.substringAfterLast("/")
+            val replayId = serverIdentifier + "@" + ctx.url.substringAfterLast("/")
             val start = events.start.firstOrNull()?.timestamp
                 ?: this.run {
                     try {

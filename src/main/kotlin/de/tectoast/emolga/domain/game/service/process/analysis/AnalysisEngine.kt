@@ -297,7 +297,8 @@ sealed class SDEffect(vararg val types: String) {
     data object Explosion : SDEffect("move") {
         context(context: BattleContext)
         override fun execute(split: List<String>) {
-            if (split[2] in explosionMoves) {
+            val usedMove = split[2]
+            if (explosionMoves.any { it == usedMove || "Z-$it" == usedMove }) {
                 val (pl, idx) = split[1].parsePokemonLocation()
                 run {
                     var i = context.currentLineIndex + 1

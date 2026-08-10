@@ -4,8 +4,8 @@ import de.tectoast.emolga.domain.config.model.GuildConfigType
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
 import de.tectoast.emolga.domain.game.model.KDWithName
 import de.tectoast.emolga.domain.game.model.ResultMessage
+import de.tectoast.emolga.domain.game.model.SingleGame
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
-import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.Language
@@ -23,13 +23,11 @@ class ResultMessageBuilder(
 ) {
     private val logger = KotlinLogging.logger {}
     suspend fun getResultMessages(
-        game: List<List<KDWithName>>,
-        is4v4: Boolean,
+        game: SingleGame,
         language: K18nLanguage,
         dontTranslateFromReplayServer: Boolean,
         playerNames: List<String>,
         gid: Long,
-        defaultNameLookup: Map<ShowdownID, String> = emptyMap(),
         urlIfPresent: String? = null,
     ): List<ResultMessage> {
         val isEnglishResults = language == K18nLanguage.EN || configRepo.query(
@@ -43,23 +41,21 @@ class ResultMessageBuilder(
         val description = generateDescription(
             game = game,
             spoiler = spoiler,
-            is4v4 = is4v4,
             kLang = language,
             pokemonLang = pokemonLang,
             guildId = gid,
             playerNames = playerNames,
-            defaultNameLookup = defaultNameLookup
         )
         val resultMessages = mutableListOf<ResultMessage>()
         resultMessages += ResultMessage.Game(description)
         var illusionMonPresent = false
-        for ((index, ga) in game.withIndex()) {
+        for ((index, ga) in game.kd.withIndex()) {
             if (ga.containsIllusionMon()) {
                 resultMessages += ResultMessage.IllusionWarning(playerNames[index])
                 illusionMonPresent = true
             }
         }
-        if (gid != botConstants.botOwnerGuildId && game.totalKDCount().let { it.first != it.second }) {
+        if (gid != botConstants.botOwnerGuildId && game.kd.totalKDCount().let { it.first != it.second }) {
             resultMessages += ResultMessage.KillsDeathsNotMatching(illusionMonPresent)
             logger.warn((if (illusionMonPresent) "Zoroark... " else "") + "Kills don't match Deaths $urlIfPresent $game\n\n${description}")
         }
@@ -85,53 +81,54 @@ class ResultMessageBuilder(
     }
 
     private suspend fun generateDescription(
-        game: List<List<KDWithName>>,
+        game: SingleGame,
         spoiler: Boolean,
-        is4v4: Boolean,
         kLang: K18nLanguage,
         pokemonLang: Language?,
         guildId: Long,
-        playerNames: List<String>,
-        defaultNameLookup: Map<ShowdownID, String>
+        playerNames: List<String>
     ): String {
+        val kd = game.kd
         val displayNames = if (pokemonLang == null) emptyMap() else displayService.getDisplayNamesOfReplay(
-            game.flatten().mapTo(mutableSetOf()) { it.name }, guildId, pokemonLang
+            kd.flatten().mapTo(mutableSetOf()) { it.name }, guildId, pokemonLang
         )
-        val monStrings = game.map { player ->
-            val notAllDead = !player.all { it.deaths > 0 }
-            player.joinToString("\n") { mon ->
-                val pokemonName = displayNames[mon.name] ?: defaultNameLookup[mon.name] ?: mon.name.value
-                buildString {
-                    append(pokemonName)
-                    if (mon.kills > 0) append(" ${mon.kills}")
-                    if (mon.deaths > 0 && (notAllDead || spoiler)) append(" X")
-                }
-            }
-        }
         val allDead = K18n_Analysis.AllDead.translateTo(kLang)
         val description = buildString {
-            game.mapIndexed { index, sdPlayer ->
+            kd.mapIndexed { index, sdPlayer ->
                 val list = buildList {
+                    val shouldMarkWinner = game.winnerIndex == index
                     add(playerNames[index])
                     add(" ")
                     if (spoiler) add("||")
-                    add(sdPlayer.count { it.deaths == 0 }.minus(if (is4v4) 2 else 0))
+                    add(buildString {
+                        if (shouldMarkWinner) append("__")
+                        append(sdPlayer.count { it.deaths == 0 }.minus(if (game.is4v4) 2 else 0))
+                        if (shouldMarkWinner) append("__")
+                    })
                 }
                 val isOddIndex = index % 2 > 0
                 for (item in if (isOddIndex) list.reversed() else list) append(item)
                 if (!isOddIndex) append(":")
             }
-            if (is4v4) append("\n(4v4)")
+            if (game.is4v4) append("\n(4v4)")
             append("\n\n")
-            game.forEachIndexed { index, player ->
+            kd.forEachIndexed { index, player ->
                 append(playerNames[index])
                 append(":")
                 if (player.all { it.deaths > 0 } && !spoiler) append(allDead)
                 append("\n")
                 if (spoiler) append("||")
-                append(monStrings[index])
+                val notAllDead = !player.all { it.deaths > 0 }
+                append(player.joinToString("\n") { mon ->
+                    val pokemonName = displayNames[mon.name] ?: game.defaultNameLookup[mon.name] ?: mon.name.value
+                    buildString {
+                        append(pokemonName)
+                        if (mon.kills > 0) append(" ${mon.kills}")
+                        if (mon.deaths > 0 && (notAllDead || spoiler)) append(" X")
+                    }
+                })
                 if (spoiler) append("||")
-                if (index < game.lastIndex) append("\n\n")
+                if (index < kd.lastIndex) append("\n\n")
             }
         }
         return description

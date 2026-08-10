@@ -149,8 +149,7 @@ class GameProcessService(
                     }
                     if (configResultChannel != null) finalResultChannel = configResultChannel
                     allResultMessages += resultMessageBuilder.getResultMessages(
-                        game = singleGame.kd,
-                        is4v4 = singleGame.is4v4,
+                        game = singleGame,
                         language = language,
                         dontTranslateFromReplayServer = fullInputGame.dontTranslatePokemon,
                         playerNames = uindices.mapIndexed { index, idx ->
@@ -158,8 +157,7 @@ class GameProcessService(
                                 fromReplay.showdownUserNames[index]
                             } ?: "N/A"
                         },
-                        gid = guildId,
-                        defaultNameLookup = singleGame.defaultNameLookup
+                        gid = guildId
                     )
                 } else {
                     replaySender.sendMessage(Constants.CHECKMARK)
@@ -174,13 +172,11 @@ class GameProcessService(
                     replaySender.sendMessage(url)
                 }
                 allResultMessages += resultMessageBuilder.getResultMessages(
-                    game = singleGame.kd,
-                    is4v4 = singleGame.is4v4,
+                    game = singleGame,
                     language = language,
                     dontTranslateFromReplayServer = fullInputGame.dontTranslatePokemon,
                     playerNames = source.showdownUserNames,
                     gid = guildId,
-                    defaultNameLookup = singleGame.defaultNameLookup
                 )
             } else {
                 error("Should not happen, source without league data should be of type Direct with leagueResult null")

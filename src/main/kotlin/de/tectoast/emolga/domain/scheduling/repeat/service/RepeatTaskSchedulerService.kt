@@ -3,6 +3,8 @@ package de.tectoast.emolga.domain.scheduling.repeat.service
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTask
 import de.tectoast.emolga.domain.scheduling.repeat.model.RepeatTaskType
 import de.tectoast.emolga.domain.scheduling.repeat.service.instanttomidnight.InstantToMidnightConverter
+import de.tectoast.emolga.utils.toJavaLocalDateTime
+import de.tectoast.emolga.utils.toKotlinInstant
 import kotlinx.coroutines.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -57,13 +59,15 @@ class RepeatTaskSchedulerService(
 
     private fun RepeatTask.calculateNextExecution(now: Instant): NextExecution? {
         if (now > lastExecution) return null
-        var targetTime = lastExecution
+        val nowLocal = now.toJavaLocalDateTime()
+        var targetTime = lastExecution.toJavaLocalDateTime()
+        val intervalSeconds = interval.inWholeSeconds
         var count = amount
-        while (targetTime - interval > now && (count > max(skipFirstN, 0) + 1)) {
-            targetTime -= interval
+        while (targetTime.minusSeconds(intervalSeconds) > nowLocal && (count > max(skipFirstN, 0) + 1)) {
+            targetTime = targetTime.minusSeconds(intervalSeconds)
             count--
         }
-        return NextExecution(targetTime, count)
+        return NextExecution(targetTime.toKotlinInstant(), count)
     }
 
     private data class NextExecution(val time: Instant, val count: Int)

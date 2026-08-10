@@ -1,6 +1,8 @@
 package de.tectoast.emolga.domain.game.service.process.analysis
 
 import de.tectoast.emolga.domain.game.model.analysis.*
+import de.tectoast.emolga.domain.game.repository.ReplayServerRepository
+import de.tectoast.emolga.utils.cache.OneTimeCache
 import de.tectoast.emolga.utils.showdown.K18n_Analysis
 import de.tectoast.k18n.generated.K18nMessage
 import io.ktor.client.*
@@ -13,25 +15,16 @@ import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
 @Single
-class AnalysisService(val httpClient: HttpClient) {
+class AnalysisService(val httpClient: HttpClient, val repo: ReplayServerRepository) {
 
-    private val modeByServer = mapOf(
-        "replay.pokemonshowdown.com" to ReplayServerData(ReplayServerMode.LOG, "S"),
-        "replays.tectoast.de" to ReplayServerData(ReplayServerMode.LOG, "FLO"),
-        "replay.reshowdown.top" to ReplayServerData(ReplayServerMode.LOG, "RESHOWDOWN"),
-        "battling.p-insurgence.com/replays" to ReplayServerData(ReplayServerMode.SCRAPE, "INSURGENCE"),
-        "play.champsnatdex.dynv6.net/replays" to ReplayServerData(ReplayServerMode.SCRAPE, "CHAMPSNATDEX"),
-        "replay.pokeathlon.com" to ReplayServerData(ReplayServerMode.POKEATHLON, "POKEATHLON"),
-    )
-    private val regex = Regex("https://(${modeByServer.keys.joinToString("|")}).*")
-
+    private val regex = OneTimeCache { Regex("https://(${repo.modeByServer.await().keys.joinToString("|")}).*") }
 
     suspend fun analyse(
         urlProvided: String, answer: (suspend (K18nMessage) -> Unit)? = null
     ): AnalysisData {
         var gameNullable: List<String>? = null
-        val mr = regex.find(urlProvided) ?: throw InvalidReplayException()
-        val (mode, identifier) = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
+        val mr = regex().find(urlProvided) ?: throw InvalidReplayException()
+        val (mode, identifier) = repo.modeByServer.await()[mr.groupValues[1]] ?: throw InvalidReplayException()
         val url = mr.groupValues[0]
         val mappedURL = mode.mapURL(url)
         for (unused in 0..1) {

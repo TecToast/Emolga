@@ -26,16 +26,18 @@ class RepeatTaskSchedulerService(
     private val scope = baseScope + CoroutineName("TaskSchedulerService")
     private val tasks = ConcurrentHashMap<RepeatTaskType, RepeatTask>()
     private val logger = KotlinLogging.logger {}
+    val nextExecutions = ConcurrentHashMap<RepeatTaskType, NextExecution>()
 
     override fun schedule(task: RepeatTask, action: suspend (Int) -> Unit) {
         tasks[task.type] = task
-        scope.launch {
+        scope.launch(CoroutineName("TaskSchedulerService-${task.type}")) {
             while (isActive) {
                 val now = clock.now()
                 val nextExecution = task.calculateNextExecution(now) ?: break
                 if (task.printTimestamps) {
                     logger.info { "Next execution of ${task.type} is count ${nextExecution.count} at ${nextExecution.time}" }
                 }
+                nextExecutions[task.type] = nextExecution
                 delay(nextExecution.time - now)
                 action(nextExecution.count)
                 delay(1.seconds) // prevent multiple executions at the same time
@@ -70,7 +72,7 @@ class RepeatTaskSchedulerService(
         return NextExecution(targetTime.toKotlinInstant(), count)
     }
 
-    private data class NextExecution(val time: Instant, val count: Int)
+    data class NextExecution(val time: Instant, val count: Int)
 }
 
 

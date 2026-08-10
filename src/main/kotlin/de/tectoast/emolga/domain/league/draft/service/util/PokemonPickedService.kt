@@ -29,7 +29,7 @@ class PokemonPickedService(
     baseScope: CoroutineScope
 ) : StartupTask {
     private val pickedDataCache = newThreadSafeCache<Long, List<PokemonPickedData>>()
-    private val scope = baseScope + CoroutineName("PokemonPickedService")
+    private val scope = baseScope + CoroutineName("PokemonPicksModified")
 
     override suspend fun onStartup() {
         picksModifiedFlow.launch(scope) { pickedDataCache.remove(it) }

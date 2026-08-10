@@ -43,7 +43,7 @@ class GameProcessService(
     baseScope: CoroutineScope
 ) : StartupTask {
 
-    private val scope = baseScope + CoroutineName("GameProcessService")
+    private val scope = baseScope + CoroutineName("HideGamesInsert")
     private val logger = KotlinLogging.logger {}
 
     override suspend fun onStartup() {

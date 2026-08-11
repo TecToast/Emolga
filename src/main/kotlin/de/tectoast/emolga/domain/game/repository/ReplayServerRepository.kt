@@ -21,7 +21,7 @@ class ReplayServerRepository(private val db: R2dbcDatabase, baseScope: Coroutine
     }
 
     override suspend fun onStartup() {
-        modeByServer.await()
+        modeByServer.start()
     }
 }
 

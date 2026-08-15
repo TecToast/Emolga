@@ -101,8 +101,12 @@ class AnalysisService(val httpClient: HttpClient, val repo: ReplayServerReposito
                 ).also { allMons.getOrPut(player) { mutableListOf() }.add(it) }
                 var downIndex = index - 1
                 while (!game[downIndex].startsWith("|switch|$monloc")) downIndex--
-                allMons[player]!!.first {
-                    game[downIndex].cleanSplit()[2].substringBefore(",").startsWith(it.pokemon.replace("-*", ""))
+                val targetPokemon = game[downIndex].cleanSplit()[2].substringBefore(",")
+                allMons[player]!!.first { mon ->
+                    buildList {
+                        add(mon.pokemon.replace("-*", ""))
+                        addAll(mon.otherNames)
+                    }.any { targetPokemon.startsWith(it) }
                 }.zoroLines[downIndex..index] = mon
             }
         }

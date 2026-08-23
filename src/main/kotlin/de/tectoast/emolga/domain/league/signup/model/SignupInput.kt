@@ -49,6 +49,13 @@ sealed interface SignupInput {
         override val id = YT_CHANNEL_ID
     }
 
+    @Serializable
+    @SerialName("User")
+    @Config("User", "wip")
+    data class User(val num: Int) : SignupInput {
+        override val id = "$USER_ID$num"
+    }
+
     companion object {
         const val SDNAME_ID = "sdname"
         const val TEAMNAME_ID = "teamname"
@@ -56,5 +63,6 @@ sealed interface SignupInput {
         const val LOGO_ID = "logo"
         const val YT_CHANNEL_ID = "ytchannel"
         const val TEAMMATE_ID = "teammate"
+        const val USER_ID = "user_"
     }
 }

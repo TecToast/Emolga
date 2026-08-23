@@ -6,5 +6,6 @@ data class SignupSubmissionRequest(
     val identifier: String,
     val isChange: Boolean,
     val fieldData: Map<String, String>,
-    val teammates: List<Long>, val logoAttachment: FileSubmission?
+    val teammates: List<Long>,
+    val logoAttachment: FileSubmission?
 )

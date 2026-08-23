@@ -8,7 +8,8 @@ import org.koin.core.annotation.Single
 class SignupInputDispatcher(handlers: List<SignupInputHandler<SignupInput>>) : SignupInputOperations<SignupInput> {
     private val registry = HandlerRegistry(handlers)
 
-    override fun getModalInputOptions(config: SignupInput) = registry.getHandler(config).getModalInputOptions(config)
+    override fun getFormField(config: SignupInput, oldData: String?) =
+        registry.getHandler(config).getFormField(config, oldData)
 
     override suspend fun validate(
         config: SignupInput, data: String

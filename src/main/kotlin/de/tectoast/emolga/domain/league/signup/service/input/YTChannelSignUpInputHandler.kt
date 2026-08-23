@@ -1,8 +1,8 @@
 package de.tectoast.emolga.domain.league.signup.service.input
 
-import de.tectoast.emolga.domain.league.signup.model.ModalInputOptions
 import de.tectoast.emolga.domain.league.signup.model.SignupInput
 import de.tectoast.emolga.domain.league.signup.model.SignupValidateResult
+import de.tectoast.emolga.domain.league.signup.model.form.SignupFormField
 import de.tectoast.emolga.domain.ytgeneric.service.YouTubeChannelIdService
 import de.tectoast.emolga.utils.json.K18n_SignupInput
 import de.tectoast.emolga.utils.k18n
@@ -13,11 +13,13 @@ class YTChannelSignupInputHandler(private val ytChannelIdService: YouTubeChannel
     SignupInputHandler<SignupInput.YTChannel> {
     override val targetClass = SignupInput.YTChannel::class
 
-    override fun getModalInputOptions(config: SignupInput.YTChannel): ModalInputOptions {
-        return ModalInputOptions(
-            label = K18n_SignupInput.YTChannelLabel, required = true, placeholder = "https://youtube.com/@tectoast".k18n
-        )
-    }
+    override fun getFormField(config: SignupInput.YTChannel, oldData: String?) = SignupFormField.TextInputState(
+        config.id,
+        K18n_SignupInput.YTChannelLabel,
+        inputRequired = true,
+        placeholder = "https://youtube.com/@tectoast".k18n,
+        value = oldData?.let { mapValueForDisplay(config, it) }
+    )
 
     override suspend fun validate(config: SignupInput.YTChannel, data: String): SignupValidateResult {
         val (channelId, handle) = runCatching { ytChannelIdService.mapToChannelId(data) }.getOrNull()

@@ -42,6 +42,7 @@ class SignupModalHandler(private val signupService: SignupService, private val l
                 fieldData[id] = when (entry.type) {
                     Component.Type.TEXT_INPUT -> entry.asString
                     Component.Type.STRING_SELECT -> entry.asStringList.first()
+                    Component.Type.USER_SELECT -> entry.asLongList.first().toString()
                     else -> error("Unsupported component type in signup modal ${it.type}")
                 }
             }

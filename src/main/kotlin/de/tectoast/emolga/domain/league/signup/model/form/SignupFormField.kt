@@ -13,8 +13,9 @@ sealed interface SignupFormField {
         override val label: K18nMessage,
         override val description: K18nMessage? = null,
         override val inputRequired: Boolean,
-        val placeholder: K18nMessage?,
-        val value: String?
+        val placeholder: K18nMessage? = null,
+        val value: String? = null,
+        val requiredLength: IntRange? = null
     ) : SignupFormField
 
     data class SelectInputState(
@@ -22,7 +23,7 @@ sealed interface SignupFormField {
         override val label: K18nMessage,
         override val description: K18nMessage? = null,
         override val inputRequired: Boolean,
-        val placeholder: K18nMessage?,
+        val placeholder: K18nMessage? = null,
         val list: List<String>,
     ) : SignupFormField
 
@@ -30,7 +31,8 @@ sealed interface SignupFormField {
         override val id: String,
         override val label: K18nMessage,
         override val description: K18nMessage?,
-        override val inputRequired: Boolean = false
+        override val inputRequired: Boolean = false,
+        val range: IntRange? = null
     ) : SignupFormField
 
     data class FileUploadState(

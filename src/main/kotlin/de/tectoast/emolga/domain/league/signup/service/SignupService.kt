@@ -175,26 +175,8 @@ class SignupService(
         val formId = "signup;${config.identifier};$customIdSuffix"
         val fields = mutableListOf<SignupFormField>()
         config.signupStructure.forEach { structure ->
-            val options = signUpInputDispatcher.getModalInputOptions(structure)
-            val state = options.list?.let { list ->
-                SignupFormField.SelectInputState(
-                    id = structure.id,
-                    label = options.label,
-                    inputRequired = options.required,
-                    description = options.description,
-                    placeholder = options.placeholder,
-                    list = list
-                )
-            } ?: SignupFormField.TextInputState(
-                id = structure.id,
-                label = options.label,
-                inputRequired = options.required,
-                placeholder = options.placeholder,
-                value = oldData?.data?.get(structure.id)?.let {
-                    signUpInputDispatcher.mapValueForDisplay(structure, it)
-                }
-            )
-            fields.add(state)
+            val field = signUpInputDispatcher.getFormField(structure, oldData = oldData?.data?.get(structure.id))
+            fields.add(field)
         }
         if (config.allowTeams) {
             fields.add(
@@ -232,7 +214,7 @@ class SignupService(
                 is SignupValidateResult.Error -> {
                     errors += b {
                         K18n_SignupInput.Error(
-                            signUpInputDispatcher.getModalInputOptions(inputConfig).label(), result.message()
+                            signUpInputDispatcher.getFormField(inputConfig, null).label(), result.message()
                         )()
                     }
                 }

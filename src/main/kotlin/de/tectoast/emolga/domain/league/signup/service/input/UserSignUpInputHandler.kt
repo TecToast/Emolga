@@ -15,11 +15,15 @@ class UserSignupInputHandler : SignupInputHandler<SignupInput.User> {
             config.id,
             getDisplayTitle(config),
             description = null,
-            inputRequired = true
+            inputRequired = true,
+            range = 1..1
         )
     }
 
     override fun getDisplayTitle(config: SignupInput.User) = K18n_SignupInput.User(config.num)
 
-
+    override fun mapValueForDisplay(
+        config: SignupInput.User,
+        data: String
+    ) = "<@$data>"
 }

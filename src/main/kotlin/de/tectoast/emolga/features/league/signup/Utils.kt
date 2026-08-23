@@ -26,7 +26,7 @@ internal fun SignupResult.toMessageContent(): K18nMessage {
 
 context(iData: InteractionData)
 internal fun SignupFormState.toModal() = Modal(id = this.customId, title = this.title.t()) {
-    for (field in fields) {
+    for (field in fields.take(5)) {
         label(label = field.label.t(), description = field.description?.t(), child = field.toComponent())
     }
 }
@@ -51,7 +51,7 @@ internal fun SignupFormField.toComponent(): LabelChildComponent = when (this) {
 
     is UserSelectState -> EntitySelectMenu(
         customId = this.id,
-        valueRange = 0..2,
+        valueRange = this.range ?: (if (inputRequired) 1..2 else 0..2),
         types = listOf(EntitySelectMenu.SelectTarget.USER)
     ) {
         this.isRequired = inputRequired

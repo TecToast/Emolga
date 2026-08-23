@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class YouTubeMessageConfig(
-    val includeRolePing: Long? = null,
+    val includeRolePing: List<Long>? = null,
 )

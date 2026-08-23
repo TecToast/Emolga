@@ -26,7 +26,10 @@ class YouTubeAnnouncementMessageBuilder(
         val muData = leagueScheduleRepo.getMatchUp(leagueName, week, battleIndex) ?: return null
         val primaryIds = leagueMemberRepo.getPrimaryIds(leagueName, muData)
         return buildString {
-            messageConfig.includeRolePing?.let { append("<@&$it>\n") }
+            messageConfig.includeRolePing?.let { roles ->
+                append(roles.joinToString { "<@&$it>" })
+                append("\n")
+            }
             val language = languageRepo.getLanguage(leagueCoreRepo.getScalarLeagueData(leagueName).guild)
             append(K18n_YouTube.WeekAndBattle(week, battleIndex + 1).translateTo(language))
             append("\n\n")

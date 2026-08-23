@@ -286,7 +286,7 @@ class SignupService(
             val signupEntry = SignupEntry(users.toMutableSet(), data.toMutableMap(), signupMessageId = messageId)
             val entryId = signupRepo.saveNewSignupEntry(signupId, signupEntry)
             isNewSignup = true
-            if (currentSignupCount + 1 >= maxUsers) {
+            if (maxUsers > 0 && currentSignupCount + 1 >= maxUsers) {
                 closeSignup(leagueSignup)
             }
             logoAttachment?.handleLogoOnSignup(entryId, leagueSignup)?.let { return@tx it }

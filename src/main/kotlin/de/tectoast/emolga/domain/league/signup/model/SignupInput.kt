@@ -52,7 +52,10 @@ sealed interface SignupInput {
     @Serializable
     @SerialName("User")
     @Config("User", "wip")
-    data class User(val num: Int) : SignupInput {
+    data class User(
+        @Config("Num", "wip")
+        val num: Int
+    ) : SignupInput {
         override val id = "$USER_ID$num"
     }
 

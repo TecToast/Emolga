@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.select
@@ -15,7 +16,8 @@ import org.koin.core.annotation.Single
 @Single
 class RemoteServerControlDelegateRepository(private val db: R2dbcDatabase) {
     suspend fun getData(id: Int) = suspendTransaction(db, RemoteServerControlDelegateTable) {
-        select(pc, action).where { this.id eq id }.map { RemoteServerControlActionData(it[this.pc], it[this.action]) }
+        select(pc, action).where { (this.id eq id) and (this.active eq true) }
+            .map { RemoteServerControlActionData(it[this.pc], it[this.action]) }
             .firstOrNull()
     }
 }
@@ -25,6 +27,7 @@ object RemoteServerControlDelegateTable : Table("remote_server_control_delegate"
     val pc = text("pc").referencesCascade(RemoteServerControlTable.name)
     val action = enumerationByName<RemoteServerControlAction>("action", 64)
     val note = text("note").nullable()
+    val active = bool("active").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -14,7 +14,7 @@ import org.koin.core.annotation.Single
 class RemoteServerControlButton(
     private val service: RemoteServerControlService
 ) :
-    ButtonFeature<RemoteServerControlButton.Args>(::Args, ButtonSpec("remoteservercontrol")) {
+    ButtonFeature<RemoteServerControlButton.Args>(::Args, ButtonSpec("rscbtn")) {
     class Args : Arguments() {
         var pc by string("pc")
         var action by enumBasic<RemoteServerControlAction>("action")

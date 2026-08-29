@@ -24,9 +24,9 @@ class LogoNameRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object LogoNameTable : Table("logoname") {
-    val filename = text("filename")
-    val teamname = text("teamname").nullable()
+object LogoNameTable : Table("logo_name") {
+    val filename = text("file_name")
+    val teamname = text("team_name").nullable()
 
     override val primaryKey = PrimaryKey(filename)
 }

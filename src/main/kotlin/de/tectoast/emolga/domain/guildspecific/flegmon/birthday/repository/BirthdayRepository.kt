@@ -55,7 +55,7 @@ class BirthdayRepository(private val db: R2dbcDatabase) {
 
 
 object BirthdayTable : Table("birthdays") {
-    val userid = long("userid")
+    val userid = long("user_id")
     val year = integer("year")
     val month = integer("month")
     val day = integer("day")

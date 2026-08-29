@@ -37,8 +37,8 @@ class NicknameCooldownsRepository(private val db: R2dbcDatabase) {
 
 @OptIn(ExperimentalTime::class)
 object NicknameCooldownsTable : Table("nickname_cooldowns") {
-    val guild = long("guild")
-    val user = long("user")
+    val guild = long("guild_id")
+    val user = long("user_id")
     val timestamp = timestamp("timestamp")
 
     override val primaryKey = PrimaryKey(guild, user)

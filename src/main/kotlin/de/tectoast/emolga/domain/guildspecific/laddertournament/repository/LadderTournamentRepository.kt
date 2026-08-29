@@ -71,14 +71,14 @@ class LadderTournamentRepository(private val db: R2dbcDatabase) {
 }
 
 object LadderTournamentConfigTable : Table("ladder_tournament_config") {
-    val guild = long("league")
-    val lastExecution = timestamp("lastExecution")
+    val guild = long("guild_id")
+    val lastExecution = timestamp("last_execution")
     val data = jsonb<LadderTournamentConfig>("data")
 }
 
 object LadderTournamentUserTable : Table("ladder_tournament_users") {
-    val guild = long("guild")
-    val userId = long("user")
+    val guild = long("guild_id")
+    val userId = long("user_id")
     val sdName = text("sd_name")
     val formats = array<String>("formats")
     val verified = bool("verified")

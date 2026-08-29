@@ -17,10 +17,10 @@ class DraftAdminRepository(private val db: R2dbcDatabase) {
 
 }
 
-object DraftAdminsTable : Table("draftadmins") {
-    val guild = long("guildid")
-    val roleid = long("roleid")
-    val userid = long("userid")
+object DraftAdminsTable : Table("draft_admins") {
+    val guild = long("guild_id")
+    val roleid = long("role_id")
+    val userid = long("user_id")
 
     override val primaryKey = PrimaryKey(guild, roleid, userid)
 }

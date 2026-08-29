@@ -38,9 +38,9 @@ class YouTubeNotificationsRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object YTNotificationsTable : Table("ytnotifications") {
-    val discordChannel = long("dcchannel")
-    val ytChannel = text("ytchannel")
+object YTNotificationsTable : Table("youtube_notifications") {
+    val discordChannel = long("discord_channel")
+    val ytChannel = text("youtube_channel")
     val dm = bool("dm").default(false)
     val format = text("format").default("{ytlink}")
 

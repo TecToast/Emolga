@@ -51,7 +51,7 @@ class StateStoreRepository(private val db: R2dbcDatabase, private val clock: Clo
 }
 
 object StateStoreTable : Table("state_store") {
-    val uid = long("user")
+    val uid = long("user_id")
     val type = text("type")
     val data = jsonb<StateStore>("data")
     val timestamp = timestamp("timestamp")

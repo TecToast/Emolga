@@ -34,9 +34,9 @@ class LiveTeamRepository(private val db: R2dbcDatabase) {
 }
 
 @OptIn(ExperimentalUuidApi::class)
-object LiveTeamTable : Table("liveteam") {
+object LiveTeamTable : Table("live_team") {
     val code = uuid("code")
-    val league = text("league").referencesLeagueName()
+    val league = text("league_name").referencesLeagueName()
 
     override val primaryKey = PrimaryKey(code)
 }

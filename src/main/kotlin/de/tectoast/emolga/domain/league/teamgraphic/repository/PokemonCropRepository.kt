@@ -115,7 +115,7 @@ class PokemonCropRepository(
 
 @OptIn(ExperimentalTime::class)
 object PokemonCropTable : Table("pokemon_crop") {
-    val guild = long("guild")
+    val guild = long("guild_id")
     val showdownId = showdownIDColumn().referencesPokedex()
     val x = integer("x").default(0)
     val y = integer("y").default(0)

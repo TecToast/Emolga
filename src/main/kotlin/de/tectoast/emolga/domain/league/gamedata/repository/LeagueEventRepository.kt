@@ -64,11 +64,11 @@ class LeagueEventRepository(private val db: R2dbcDatabase) {
 
 object LeagueEventTable : Table("league_events") {
 
-    val leaguename = text("leaguename").referencesLeagueName()
+    val leaguename = text("league_name").referencesLeagueName()
     val week = integer("week")
     val timestamp = timestamp("timestamp")
     val uindices = array<Int>("uindices")
-    val matchNum = integer("matchnum")
+    val matchNum = integer("match_num")
 
     val specificData = jsonb<LeagueEventSpecificData>("specific_data")
 

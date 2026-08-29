@@ -4,7 +4,9 @@ import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.concat
 import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.stringLiteral
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.koin.core.annotation.Single
@@ -13,7 +15,8 @@ import org.koin.core.annotation.Single
 @Single
 class YouTubeLeagueNamesRepository(private val db: R2dbcDatabase) {
     suspend fun getPossibleGuilds(title: String) = suspendTransaction(db, YouTubeLeagueNamesTable) {
-        select(guild).where { this.leagueName like "%$title%" }.map { it[guild] }.toSet()
+        select(guild).where { stringLiteral(title) like concat(stringLiteral("%"), leagueName, stringLiteral("%")) }
+            .map { it[guild] }.toSet()
     }
 }
 

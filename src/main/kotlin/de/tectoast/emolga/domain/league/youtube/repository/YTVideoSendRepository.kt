@@ -106,9 +106,9 @@ class YTVideoSendRepository(private val db: R2dbcDatabase) {
 
 }
 
-object YTVideoStateTable : Table("ytvideosend_enable") {
+object YTVideoStateTable : Table("youtube_video_state") {
     val id = integer("id").autoIncrement()
-    val leagueName = text("league").referencesLeagueName()
+    val leagueName = text("league_name").referencesLeagueName()
     val week = integer("week")
     val battleIndex = integer("battle_index")
     val enabled = bool("enabled")
@@ -120,10 +120,10 @@ object YTVideoStateTable : Table("ytvideosend_enable") {
     }
 }
 
-object YTVideoVidsTable : Table("ytvideosend_vids") {
-    val stateId = integer("stateid").referencesCascade(YTVideoStateTable.id)
+object YTVideoVidsTable : Table("youtube_videos") {
+    val stateId = integer("state_id").referencesCascade(YTVideoStateTable.id)
     val idx = integer("idx")
-    val videoId = text("videoid")
+    val videoId = text("video_id")
 
     override val primaryKey = PrimaryKey(stateId, idx)
 }

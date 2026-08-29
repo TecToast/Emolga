@@ -66,8 +66,8 @@ class GuildConfigRepository(private val db: R2dbcDatabase) {
     } as Column<T>
 }
 
-object GuildConfigTable : Table() {
-    val guild = long("guild")
+object GuildConfigTable : Table("guild_config") {
+    val guild = long("guild_id")
     val spoilerTags = bool("spoiler_tags").default(GuildConfigType.SpoilerTags.default)
     val englishResults = bool("english_results").default(GuildConfigType.EnglishResults.default)
     val embedResults = bool("embed_results").default(GuildConfigType.EmbedResults.default)

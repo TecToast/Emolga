@@ -141,7 +141,7 @@ class StatisticsRepository(@Named("stats") private val db: R2dbcDatabase, privat
 
 
 abstract class AnalysisStatistics(type: String) : Table("st_$type") {
-    val replayId = text("replayid")
+    val replayId = text("replay_id")
     val row = integer("row")
 
     override val primaryKey = PrimaryKey(replayId, row)
@@ -156,7 +156,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 }
 
 object StartTable : Table("st_start") {
-    val replayId = text("replayid")
+    val replayId = text("replay_id")
     val timestamp = timestamp("timestamp")
 
     override val primaryKey = PrimaryKey(replayId)
@@ -172,17 +172,17 @@ object TurnTable : AnalysisStatistics("turn") {
 
 object MoveTable : AnalysisStatistics("move") {
     val sourceMon = showdownIDColumn("source")
-    val sourcePlayer = integer("sourceplayer")
+    val sourcePlayer = integer("source_player")
     val targetMon = showdownIDColumn("target").nullable()
-    val targetPlayer = integer("targetplayer").nullable()
+    val targetPlayer = integer("target_player").nullable()
     val move = text("move")
 }
 
 object DamageTable : AnalysisStatistics("damage") {
     val sourceMon = showdownIDColumn("source")
-    val sourcePlayer = integer("sourceplayer")
+    val sourcePlayer = integer("source_player")
     val targetMon = showdownIDColumn("target")
-    val targetPlayer = integer("targetplayer")
+    val targetPlayer = integer("target_player")
     val by = text("by")
     val percent = integer("percent")
     val faint = bool("faint")
@@ -190,9 +190,9 @@ object DamageTable : AnalysisStatistics("damage") {
 
 object HealTable : AnalysisStatistics("heal") {
     val sourceMon = showdownIDColumn("source")
-    val sourcePlayer = integer("sourceplayer")
+    val sourcePlayer = integer("source_player")
     val targetMon = showdownIDColumn("target")
-    val targetPlayer = integer("targetplayer")
+    val targetPlayer = integer("target_player")
     val by = text("by")
     val percent = integer("percent")
 }
@@ -208,14 +208,14 @@ object SwitchTable : AnalysisStatistics("switch") {
 
 object StatusTable : AnalysisStatistics("status") {
     val sourceMon = showdownIDColumn("source")
-    val sourcePlayer = integer("sourceplayer")
+    val sourcePlayer = integer("source_player")
     val targetMon = showdownIDColumn("target")
-    val targetPlayer = integer("targetplayer")
+    val targetPlayer = integer("target_player")
     val status = text("status")
 }
 
 object WinTable : Table("st_wins") {
-    val replayId = text("replayid")
+    val replayId = text("replay_id")
     val pokemon = showdownIDColumn("pokemon")
     val player = integer("player")
     val won = bool("won")

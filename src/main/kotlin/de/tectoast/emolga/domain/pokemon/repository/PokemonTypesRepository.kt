@@ -41,11 +41,11 @@ class PokemonTypesRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object PokemonTypesTable : Table("types") {
-    val englishid = text("englishid")
-    val germanid = text("germanid")
-    val englishname = text("englishname")
-    val germanname = text("germanname")
+object PokemonTypesTable : Table("pokemon_types") {
+    val englishid = text("english_id")
+    val germanid = text("german_id")
+    val englishname = text("english_name")
+    val germanname = text("german_name")
 
     override val primaryKey = PrimaryKey(englishid)
 }

@@ -13,7 +13,6 @@ import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.koin.core.annotation.Single
 
@@ -28,9 +27,9 @@ class DBMigrationCommand(
     private val initialMigrationScope = baseScope + CoroutineName("InitialMigration")
 
     override suspend fun onDiscordReady() {
-        initialMigrationScope.launch {
+        /*initialMigrationScope.launch {
             sendMigrationStatements(447357526997073932)
-        }
+        }*/
     }
 
     context(iData: InteractionData)

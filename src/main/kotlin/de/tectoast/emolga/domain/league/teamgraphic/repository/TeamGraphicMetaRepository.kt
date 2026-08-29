@@ -27,10 +27,10 @@ class TeamGraphicMetaRepository(
     }
 }
 
-object TeamGraphicMetaTable : Table("teamgraphicsmeta") {
-    val guild = long("guild")
+object TeamGraphicMetaTable : Table("team_graphics_meta") {
+    val guild = long("guild_id")
     val shape = enumerationByName<TeamgraphicShape>("shape", 16)
-    val spriteStyle = enumerationByName<TeamgraphicSpriteStyle>("spritestyle", 16)
+    val spriteStyle = enumerationByName<TeamgraphicSpriteStyle>("sprite_style", 16)
 
     override val primaryKey = PrimaryKey(guild)
 }

@@ -46,11 +46,11 @@ class PredictionGameMessageRepository(
     }
 }
 
-object PredictionGameMessagesTable : Table("predictiongamemessages") {
-    val leaguename = text("leaguename").referencesLeagueName()
+object PredictionGameMessagesTable : Table("prediction_game_messages") {
+    val leaguename = text("league_name").referencesLeagueName()
     val week = integer("week")
     val battle = integer("battle")
-    val messageid = long("messageid")
+    val messageid = long("message_id")
 
     override val primaryKey = PrimaryKey(leaguename, week, battle)
 }

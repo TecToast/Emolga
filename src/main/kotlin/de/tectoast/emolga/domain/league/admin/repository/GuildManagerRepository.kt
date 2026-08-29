@@ -52,9 +52,9 @@ class GuildManagerRepository(private val db: R2dbcDatabase, private val botConst
 }
 
 
-object GuildManagerTable : Table("guildmanager") {
-    val guild = long("guild")
-    val user = long("user")
+object GuildManagerTable : Table("guild_manager") {
+    val guild = long("guild_id")
+    val user = long("user_id")
     override val primaryKey = PrimaryKey(guild, user)
 
 }

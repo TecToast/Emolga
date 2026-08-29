@@ -62,9 +62,9 @@ class TransactionCodesRepository(
 }
 
 @OptIn(ExperimentalUuidApi::class)
-object TransactionCodesTable : Table("transactioncodes") {
+object TransactionCodesTable : Table("transaction_codes") {
     val code = uuid("code")
-    val leagueName = text("leaguename").referencesLeagueName()
+    val leagueName = text("league_name").referencesLeagueName()
     val idx = integer("idx")
     val timestamp = timestamp("timestamp")
 

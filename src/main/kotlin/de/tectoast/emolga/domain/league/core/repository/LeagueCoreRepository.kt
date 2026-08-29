@@ -222,7 +222,7 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
 }
 
 object LeagueCoreTable : Table("league_core") {
-    val leagueName = text("name")
+    val leagueName = text("league_name")
     val num = integer("num").default(0)
     val guild = long("guild")
     val prettyName = text("pretty_name").nullable()

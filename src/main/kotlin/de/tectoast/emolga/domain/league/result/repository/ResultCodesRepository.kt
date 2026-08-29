@@ -73,9 +73,9 @@ class ResultCodesRepository(private val db: R2dbcDatabase, val clock: Clock) : C
 }
 
 @OptIn(ExperimentalUuidApi::class)
-object ResultCodesTable : Table("resultcodes") {
+object ResultCodesTable : Table("result_codes") {
     val code = uuid("code")
-    val leagueName = text("leaguename").referencesLeagueName()
+    val leagueName = text("league_name").referencesLeagueName()
     val week = integer("week")
     val p1 = integer("p1")
     val p2 = integer("p2")

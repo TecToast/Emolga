@@ -168,7 +168,7 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
 
 object LeagueUserTable : Table("league_user") {
     val leagueName = text("league_name").referencesLeagueName()
-    val idx = integer("user_index")
+    val idx = integer("idx")
     val userOrder = integer("user_order").default(0)
     val userId = long("user_id")
     val substitute = bool("substitute").default(false)

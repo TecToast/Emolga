@@ -54,17 +54,17 @@ class TeamGraphicRepository(
     }
 }
 
-object TeamGraphicMessageTable : Table("teamgraphicmessage") {
-    val league = text("league").referencesLeagueName()
+object TeamGraphicMessageTable : Table("team_graphic_message") {
+    val league = text("league_name").referencesLeagueName()
     val idx = integer("idx")
-    val messageId = long("messageid")
+    val messageId = long("message_id")
 
     override val primaryKey = PrimaryKey(league, idx)
 }
 
-object TeamGraphicChannelTable : Table("teamgraphicchannel") {
-    val league = text("league").referencesLeagueName()
-    val channel = long("channelid")
+object TeamGraphicChannelTable : Table("team_graphic_channel") {
+    val league = text("league_name").referencesLeagueName()
+    val channel = long("channel_id")
 
     override val primaryKey = PrimaryKey(league)
 }

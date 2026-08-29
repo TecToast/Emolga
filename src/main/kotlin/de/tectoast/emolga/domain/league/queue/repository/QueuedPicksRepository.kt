@@ -50,7 +50,7 @@ class QueuedPicksRepository(private val db: R2dbcDatabase) {
 }
 
 object QueuedPicksTable : Table("queued_picks") {
-    val leagueName = text("leaguename").referencesLeagueName()
+    val leagueName = text("league_name").referencesLeagueName()
     val idx = integer("idx")
     val data = jsonb<QueuePicksUserData>("data")
 

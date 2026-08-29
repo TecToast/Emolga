@@ -21,7 +21,7 @@ class SignupRepository(private val db: R2dbcDatabase) {
     suspend fun createNewSignup(guild: Long, identifier: String, config: LeagueSignupConfig, announceMessageId: Long) =
         suspendTransaction(
             db,
-            LeagueSignupTable
+            SignupCoreTable
         ) {
             insertIgnore {
                 it[this.guild] = guild
@@ -32,38 +32,38 @@ class SignupRepository(private val db: R2dbcDatabase) {
         }
 
     suspend fun hasRunningSignup(guild: Long) = suspendTransaction(db) {
-        LeagueSignupTable.selectAll().where { LeagueSignupTable.guild eq guild }.count() > 0L
+        SignupCoreTable.selectAll().where { SignupCoreTable.guild eq guild }.count() > 0L
     }
 
-    suspend fun getConfig(guildId: Long, identifier: String) = suspendTransaction(db, LeagueSignupTable) {
-        select(config).where { (guild eq guildId) and (LeagueSignupTable.identifier eq identifier) }.firstOrNull()
+    suspend fun getConfig(guildId: Long, identifier: String) = suspendTransaction(db, SignupCoreTable) {
+        select(config).where { (guild eq guildId) and (SignupCoreTable.identifier eq identifier) }.firstOrNull()
             ?.get(config)
     }
 
-    suspend fun getConfig(signupId: Int) = suspendTransaction(db, LeagueSignupTable) {
-        select(config).where { LeagueSignupTable.id eq signupId }.firstOrNull()?.get(config)
+    suspend fun getConfig(signupId: Int) = suspendTransaction(db, SignupCoreTable) {
+        select(config).where { SignupCoreTable.id eq signupId }.firstOrNull()?.get(config)
     }
 
     suspend fun getDirtySignups() = suspendTransaction(db) {
         val countExpr = wrapAsExpression<Long>(
             SignupEntryTable.select(SignupEntryTable.id.count())
-                .where { SignupEntryTable.signupId eq LeagueSignupTable.id })
+                .where { SignupEntryTable.signupId eq SignupCoreTable.id })
         val countExprLabeled = countExpr.alias("user_count")
-        LeagueSignupTable
+        SignupCoreTable
             .select(
-                LeagueSignupTable.id,
-                LeagueSignupTable.config,
-                LeagueSignupTable.guild,
-                LeagueSignupTable.announceMessageId,
+                SignupCoreTable.id,
+                SignupCoreTable.config,
+                SignupCoreTable.guild,
+                SignupCoreTable.announceMessageId,
                 countExprLabeled
             )
-            .where { LeagueSignupTable.lastDocumentedEntryCount neq countExpr }
+            .where { SignupCoreTable.lastDocumentedEntryCount neq countExpr }
             .map {
                 DirtySignup(
-                    id = it[LeagueSignupTable.id],
-                    config = it[LeagueSignupTable.config],
-                    guild = it[LeagueSignupTable.guild],
-                    announceMessageId = it[LeagueSignupTable.announceMessageId],
+                    id = it[SignupCoreTable.id],
+                    config = it[SignupCoreTable.config],
+                    guild = it[SignupCoreTable.guild],
+                    announceMessageId = it[SignupCoreTable.announceMessageId],
                     userCount = it[countExprLabeled] ?: 0
                 )
             }.toList()
@@ -71,8 +71,8 @@ class SignupRepository(private val db: R2dbcDatabase) {
 
     suspend fun setNewDocumentedCount(data: Map<Int, Long>) = suspendTransaction(db) {
         for ((signupId, documentedCount) in data) {
-            LeagueSignupTable.update({ LeagueSignupTable.id eq signupId }) {
-                it[LeagueSignupTable.lastDocumentedEntryCount] = documentedCount
+            SignupCoreTable.update({ SignupCoreTable.id eq signupId }) {
+                it[SignupCoreTable.lastDocumentedEntryCount] = documentedCount
             }
         }
     }
@@ -157,28 +157,28 @@ class SignupRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun exists(guild: Long, identifier: String) = suspendTransaction(db) {
-        LeagueSignupTable.selectAll()
-            .where { (LeagueSignupTable.guild eq guild) and (LeagueSignupTable.identifier eq identifier) }.count() > 0L
+        SignupCoreTable.selectAll()
+            .where { (SignupCoreTable.guild eq guild) and (SignupCoreTable.identifier eq identifier) }.count() > 0L
     }
 
     suspend fun getLeagueSignup(guild: Long, identifier: String, locking: Boolean = false) = getLeagueSignup(
-        { (LeagueSignupTable.guild eq guild) and (LeagueSignupTable.identifier eq identifier) },
+        { (SignupCoreTable.guild eq guild) and (SignupCoreTable.identifier eq identifier) },
         locking
     )
 
     suspend fun getLeagueSignup(signupId: Int, locking: Boolean = false) =
-        getLeagueSignup({ LeagueSignupTable.id eq signupId }, locking)
+        getLeagueSignup({ SignupCoreTable.id eq signupId }, locking)
 
     suspend fun getLeagueSignupOfUser(guild: Long, user: Long, locking: Boolean = false) =
         getLeagueSignupFromQuery(locking) {
             SignupUserTable.innerJoin(SignupEntryTable, { entryId }, { id })
-                .innerJoin(LeagueSignupTable, { SignupEntryTable.signupId }, { id })
+                .innerJoin(SignupCoreTable, { SignupEntryTable.signupId }, { id })
                 .selectAll()
-                .where { (LeagueSignupTable.guild eq guild) and (SignupUserTable.userId eq user) }
+                .where { (SignupCoreTable.guild eq guild) and (SignupUserTable.userId eq user) }
         }
 
     private suspend fun getLeagueSignup(predicate: () -> Op<Boolean>, locking: Boolean) =
-        getLeagueSignupFromQuery(locking) { LeagueSignupTable.selectAll().where(predicate) }
+        getLeagueSignupFromQuery(locking) { SignupCoreTable.selectAll().where(predicate) }
 
     private suspend inline fun getLeagueSignupFromQuery(locking: Boolean, crossinline queryProvider: () -> Query) =
         suspendTransaction(db) {
@@ -188,26 +188,26 @@ class SignupRepository(private val db: R2dbcDatabase) {
                 }
                 .map {
                     LeagueSignup(
-                        id = it[LeagueSignupTable.id],
-                        guild = it[LeagueSignupTable.guild],
-                        identifier = it[LeagueSignupTable.identifier],
-                        config = it[LeagueSignupTable.config],
-                        announceMessageId = it[LeagueSignupTable.announceMessageId],
-                        conferences = it[LeagueSignupTable.conferences],
-                        conferenceRoleIds = it[LeagueSignupTable.conferenceRoleIds]
+                        id = it[SignupCoreTable.id],
+                        guild = it[SignupCoreTable.guild],
+                        identifier = it[SignupCoreTable.identifier],
+                        config = it[SignupCoreTable.config],
+                        announceMessageId = it[SignupCoreTable.announceMessageId],
+                        conferences = it[SignupCoreTable.conferences],
+                        conferenceRoleIds = it[SignupCoreTable.conferenceRoleIds]
                     )
                 }.firstOrNull()
         }
 
     suspend fun removeUser(guild: Long, userId: Long): SignupRemoveUserResult = suspendTransaction(db) {
         val resultRow = SignupUserTable.innerJoin(SignupEntryTable, { entryId }, { id })
-            .innerJoin(LeagueSignupTable, { SignupEntryTable.signupId }, { id })
-            .select(SignupUserTable.id, SignupUserTable.entryId, LeagueSignupTable.id)
-            .where { (LeagueSignupTable.guild eq guild) and (SignupUserTable.userId eq userId) }.firstOrNull()
+            .innerJoin(SignupCoreTable, { SignupEntryTable.signupId }, { id })
+            .select(SignupUserTable.id, SignupUserTable.entryId, SignupCoreTable.id)
+            .where { (SignupCoreTable.guild eq guild) and (SignupUserTable.userId eq userId) }.firstOrNull()
             ?: return@suspendTransaction SignupRemoveUserResult.NotFound
         val entryId = resultRow[SignupUserTable.entryId]
         val userIdentifier = resultRow[SignupUserTable.id]
-        val signupId = resultRow[LeagueSignupTable.id]
+        val signupId = resultRow[SignupCoreTable.id]
         SignupUserTable.deleteWhere { SignupUserTable.id eq userIdentifier }
         val entry = getSignupEntryById(entryId) ?: return@suspendTransaction SignupRemoveUserResult.NotFound
         val remainingUserCount = SignupUserTable.selectAll().where { SignupUserTable.entryId eq entryId }.count()
@@ -234,8 +234,8 @@ class SignupRepository(private val db: R2dbcDatabase) {
     }
 
     suspend fun setConferencesForSignup(signupId: Int, conferences: List<String>) = suspendTransaction(db) {
-        LeagueSignupTable.update({ LeagueSignupTable.id eq signupId }) {
-            it[LeagueSignupTable.conferences] = conferences
+        SignupCoreTable.update({ SignupCoreTable.id eq signupId }) {
+            it[SignupCoreTable.conferences] = conferences
         }
     }
 
@@ -262,9 +262,9 @@ class SignupRepository(private val db: R2dbcDatabase) {
 }
 
 
-object LeagueSignupTable : Table("league_signup") {
+object SignupCoreTable : Table("signup_core") {
     val id = integer("id").autoIncrement()
-    val guild = long("guild")
+    val guild = long("guild_id")
     val identifier = text("identifier").default("")
     val config = jsonb<LeagueSignupConfig>("config")
     val announceMessageId = long("announce_message_id")
@@ -281,7 +281,7 @@ object LeagueSignupTable : Table("league_signup") {
 
 object SignupEntryTable : Table("signup_entry") {
     val id = integer("id").autoIncrement()
-    val signupId = integer("signup_id").referencesCascade(LeagueSignupTable.id)
+    val signupId = integer("signup_id").referencesCascade(SignupCoreTable.id)
     val data = jsonb<Map<String, String>>("data")
     val signupMessageId = long("signup_message_id").nullable()
     val logoMessageId = long("logo_message_id").nullable()

@@ -73,9 +73,9 @@ class ShowdownUserIdColumnType : ColumnType<ShowdownUserID>() {
     }
 }
 
-object SDNamesTable : Table("sdnames") {
+object SDNamesTable : Table("showdown_names") {
     val name = showdownUserIDColumn("name")
-    val id = long("id")
+    val id = long("user_id")
 
     override val primaryKey = PrimaryKey(name)
 }

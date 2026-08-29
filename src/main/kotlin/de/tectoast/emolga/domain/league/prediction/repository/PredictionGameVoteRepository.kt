@@ -72,9 +72,9 @@ class PredictionGameVoteRepository(
     }
 }
 
-object PredictionGameVotesTable : Table("predictiongamevotes") {
-    val leagueName = text("leaguename").referencesLeagueName()
-    val userId = long("userid")
+object PredictionGameVotesTable : Table("prediction_game_votes") {
+    val leagueName = text("league_name").referencesLeagueName()
+    val userId = long("user_id")
     val week = integer("week")
     val battle = integer("battle")
     val idx = integer("idx")

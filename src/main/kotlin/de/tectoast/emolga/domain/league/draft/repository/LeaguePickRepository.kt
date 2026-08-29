@@ -143,7 +143,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
 
 object LeaguePickTable : Table("league_pick") {
     val leagueName = text("league_name").referencesLeagueName()
-    val userIndex = integer("user_index")
+    val userIndex = integer("idx")
     val pickIndex = integer("pick_index")
     val showdownId = showdownIDColumn().referencesPokedex()
     val tier = text("tier")

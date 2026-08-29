@@ -94,7 +94,7 @@ class LeagueConfigRepository(private val db: R2dbcDatabase) {
     }
 }
 
-object GuildDefaultConfigTable : Table("guild_default_config") {
+object GuildDefaultConfigTable : Table("league_guild_config") {
     val guildId = long("guild_id")
     val config = jsonb<LeagueConfigOverride>("config").nullable()
 

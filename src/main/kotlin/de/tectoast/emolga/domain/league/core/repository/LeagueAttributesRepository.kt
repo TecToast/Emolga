@@ -50,7 +50,7 @@ class LeagueAttributesRepository(private val db: R2dbcDatabase) {
 }
 
 object LeagueAttributesTable : Table("league_attributes") {
-    val league = text("league").referencesLeagueName()
+    val league = text("league_name").referencesLeagueName()
     val attribute = text("attribute")
     val value = text("value")
 }

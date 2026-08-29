@@ -19,7 +19,7 @@ class InviteControlRepository(private val db: R2dbcDatabase) {
 }
 
 object InviteControlTable : Table("invite_control") {
-    val guild = long("guildid")
+    val guild = long("guild_id")
     val adminRoleId = long("admin_role_id")
 
     override val primaryKey = PrimaryKey(guild)

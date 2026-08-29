@@ -82,9 +82,9 @@ class ReplayChannelRepository(private val db: R2dbcDatabase) {
 }
 
 object ReplayChannelTable : Table("replay_channel") {
-    val replay = long("replay")
-    val result = long("result")
-    val guild = long("guild")
+    val replay = long("replay_channel_id")
+    val result = long("result_channel_id")
+    val guild = long("guild_id")
 
     override val primaryKey = PrimaryKey(replay)
 }

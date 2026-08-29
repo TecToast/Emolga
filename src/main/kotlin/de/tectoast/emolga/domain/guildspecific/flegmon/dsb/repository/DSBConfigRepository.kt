@@ -30,7 +30,7 @@ class DSBConfigRepository(private val db: R2dbcDatabase) {
 
 object DSBConfigTable : Table("dsb_config") {
     val host = long("host")
-    val guild = long("guild")
+    val guild = long("guild_id")
     val categories = array<String>("categories")
     val users = array<Long>("users")
 

@@ -42,8 +42,8 @@ class YouTubeChannelsRepository(private val db: R2dbcDatabase) {
 
 }
 
-object YTChannelsTable : Table("ytchannels") {
-    val user = long("user")
+object YTChannelsTable : Table("youtube_channels") {
+    val user = long("user_id")
     val channelId = text("channel_id")
     val handle = text("handle").nullable()
 

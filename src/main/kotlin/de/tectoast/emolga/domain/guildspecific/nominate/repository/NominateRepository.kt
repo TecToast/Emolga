@@ -30,7 +30,7 @@ class NominateRepository(private val db: R2dbcDatabase) {
 }
 
 object NominateTable : Table("nominate") {
-    val league = text("league").referencesLeagueName()
+    val league = text("league_name").referencesLeagueName()
     val idx = integer("idx")
     val week = integer("week")
     val nominations = array<Int>("nominations")

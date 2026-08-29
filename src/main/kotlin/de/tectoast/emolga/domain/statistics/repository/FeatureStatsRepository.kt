@@ -38,13 +38,13 @@ class FeatureStatsRepository(@Named("stats") private val db: R2dbcDatabase) {
 
 object FeatureStatsTable : Table("feature_stats") {
     val id = integer("id").autoIncrement()
-    val user = long("user")
+    val user = long("user_id")
     val featureName = text("feature")
     val type = enumerationByName<FeatureType>("type", 64)
     val args = jsonb<Map<String, String>>("args")
     val timestamp = timestamp("timestamp").defaultExpression(CurrentTimestamp)
-    val guild = long("guild").nullable()
-    val channel = long("channel").nullable()
+    val guild = long("guild_id").nullable()
+    val channel = long("channel_id").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

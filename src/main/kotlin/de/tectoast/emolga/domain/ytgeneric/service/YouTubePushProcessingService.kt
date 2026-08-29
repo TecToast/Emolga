@@ -63,6 +63,8 @@ class YouTubePushProcessingService(
     private fun validateSignature(body: String, xHubSignature: String): Boolean {
         val correctSignatureBytes = mac.doFinal(body.toByteArray())
         val hexSignature = correctSignatureBytes.joinToString("") { b -> "%02x".format(b) }
-        return xHubSignature.substringAfter("=") == hexSignature
+        val result = xHubSignature.substringAfter("=") == hexSignature
+        if (!result) logger.warn("Invalid signature: $xHubSignature != $hexSignature")
+        return result
     }
 }

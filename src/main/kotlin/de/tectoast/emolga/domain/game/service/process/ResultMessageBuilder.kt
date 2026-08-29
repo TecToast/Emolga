@@ -38,20 +38,21 @@ class ResultMessageBuilder(
         val pokemonLang =
             if (dontTranslateFromReplayServer) null else if (isEnglishResults) Language.ENGLISH else Language.GERMAN
         val spoiler = configRepo.query(gid, GuildConfigType.SpoilerTags)
+        val sanitizedPlayerNames = playerNames.map { it.replace("_", "\\_").replace("*", "\\*") }
         val description = generateDescription(
             game = game,
             spoiler = spoiler,
             kLang = language,
             pokemonLang = pokemonLang,
             guildId = gid,
-            playerNames = playerNames,
+            sanitizedPlayerNames = sanitizedPlayerNames,
         )
         val resultMessages = mutableListOf<ResultMessage>()
         resultMessages += ResultMessage.Game(description)
         var illusionMonPresent = false
         for ((index, ga) in game.kd.withIndex()) {
             if (ga.containsIllusionMon()) {
-                resultMessages += ResultMessage.IllusionWarning(playerNames[index])
+                resultMessages += ResultMessage.IllusionWarning(sanitizedPlayerNames[index])
                 illusionMonPresent = true
             }
         }
@@ -86,7 +87,7 @@ class ResultMessageBuilder(
         kLang: K18nLanguage,
         pokemonLang: Language?,
         guildId: Long,
-        playerNames: List<String>
+        sanitizedPlayerNames: List<String>
     ): String {
         val kd = game.kd
         val displayNames = if (pokemonLang == null) emptyMap() else displayService.getDisplayNamesOfReplay(
@@ -97,7 +98,7 @@ class ResultMessageBuilder(
             kd.mapIndexed { index, sdPlayer ->
                 val list = buildList {
                     val shouldMarkWinner = game.winnerIndex == index
-                    add(playerNames[index])
+                    add(sanitizedPlayerNames[index])
                     add(" ")
                     if (spoiler) add("||")
                     add(buildString {
@@ -113,7 +114,7 @@ class ResultMessageBuilder(
             if (game.is4v4) append("\n(4v4)")
             append("\n\n")
             kd.forEachIndexed { index, player ->
-                append(playerNames[index])
+                append(sanitizedPlayerNames[index])
                 append(":")
                 if (player.all { it.deaths > 0 } && !spoiler) append(allDead)
                 append("\n")

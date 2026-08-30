@@ -87,7 +87,7 @@ class PredictionGameRepeatTask(
                 skipFirstN = skipFirstN
             )
         ) { week ->
-            predictionGameDocService.execute(leagueName, week, docConfig)
+            predictionGameDocService.executeUpUntil(leagueName, week, docConfig)
         }
     }
 }

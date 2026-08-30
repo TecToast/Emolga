@@ -15,21 +15,24 @@ class PredictionGameDocService(
     private val spreadsheetService: SpreadsheetService,
     private val votesRepo: PredictionGameVoteRepository
 ) {
-    suspend fun execute(leagueName: String, week: Int, config: PredictionGameDocConfig) {
+
+    suspend fun executeUpUntil(leagueName: String, maxWeek: Int, config: PredictionGameDocConfig) {
         val guild = leagueCoreRepo.getScalarLeagueDataOrNull(leagueName)?.guild ?: return
-        val votes = votesRepo.getAllPredictionGameVotesForWeek(guild, week)
-        val countBefore = votesRepo.getVoteCountBeforeWeek(guild, week).toInt()
-        val userData = userService.getData(guild, votes.mapTo(mutableSetOf()) { it.userId })
+        val votes =
+            (1..maxWeek).flatMap { week -> votesRepo.getAllPredictionGameVotesForWeek(guild, week).map { week to it } }
+        val userData = userService.getData(guild, votes.mapTo(mutableSetOf()) { it.second.userId })
         spreadsheetService.updateSheet(config.sheetId, wait = false) {
-            addAll(Coord(config.sheet, config.x, config.y + countBefore), votes.map {
+            addAll(Coord(config.sheet, config.x, config.y), votes.map { (week, vote) ->
                 listOf(
                     week,
-                    userData[it.userId]?.displayName ?: it.userId.toString(),
-                    it.leagueName,
-                    it.battle + 1,
-                    it.idx
+                    userData[vote.userId]?.displayName ?: vote.userId.toString(),
+                    vote.leagueName,
+                    vote.battle + 1,
+                    vote.idx
                 )
             })
         }
     }
+
+
 }

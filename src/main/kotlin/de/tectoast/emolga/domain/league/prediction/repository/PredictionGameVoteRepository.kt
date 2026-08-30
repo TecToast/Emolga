@@ -63,13 +63,6 @@ class PredictionGameVoteRepository(
             .map { it.rowToData() }
             .toList()
     }
-
-    suspend fun getVoteCountBeforeWeek(guild: Long, week: Int) = suspendTransaction(db) {
-        PredictionGameVotesTable.innerJoin(LeagueCoreTable, { this.leagueName }, { this.leagueName })
-            .selectAll()
-            .where { (LeagueCoreTable.guild eq guild) and (PredictionGameVotesTable.week less week) }
-            .count()
-    }
 }
 
 object PredictionGameVotesTable : Table("prediction_game_votes") {

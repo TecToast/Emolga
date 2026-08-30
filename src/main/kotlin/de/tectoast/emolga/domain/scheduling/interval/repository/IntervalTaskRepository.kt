@@ -8,6 +8,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.r2dbc.upsert
@@ -21,6 +22,10 @@ class IntervalTaskRepository(private val db: R2dbcDatabase) {
         IntervalTasksTable.select(IntervalTasksTable.nextExecution, IntervalTasksTable.notAfter)
             .where { IntervalTasksTable.key eq key.value }
             .firstOrNull()?.toData()
+    }
+
+    suspend fun deleteTask(key: IntervalTaskKey) = suspendTransaction(db) {
+        IntervalTasksTable.deleteWhere { IntervalTasksTable.key eq key.value }
     }
 
     suspend fun upsertTask(key: IntervalTaskKey, nextExecution: Instant) = suspendTransaction(db) {

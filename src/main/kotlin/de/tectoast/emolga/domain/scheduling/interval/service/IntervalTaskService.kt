@@ -26,7 +26,8 @@ class IntervalTaskService(
     }
 
     private fun addTask(key: IntervalTaskKey, task: IntervalTask) {
-        scope.launch {
+        jobs[key]?.cancel()
+        jobs[key] = scope.launch {
             val data = repository.getTask(key)
             val now = clock.now()
             data?.notAfter?.let {
@@ -47,9 +48,9 @@ class IntervalTaskService(
         }
     }
 
-    fun restartTask(key: IntervalTaskKey) {
-        jobs[key]?.cancel()
+    suspend fun restartTask(key: IntervalTaskKey) {
         val task = tasksById[key] ?: return
+        repository.deleteTask(key)
         addTask(key, task)
     }
 }

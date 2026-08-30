@@ -54,7 +54,7 @@ class YTVideoSendRepository(private val db: R2dbcDatabase) {
                         (YTVideoStateTable.battleIndex eq battle)
             }.singleOrNull() ?: return@suspendTransaction false
             val stateId = raw[YTVideoStateTable.id]
-            YTVideoVidsTable.insert {
+            YTVideoVidsTable.insertIgnore {
                 it[this.stateId] = stateId
                 it[this.idx] = idx
                 it[this.videoId] = videoId

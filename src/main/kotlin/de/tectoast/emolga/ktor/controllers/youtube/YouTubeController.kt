@@ -1,7 +1,7 @@
 package de.tectoast.emolga.ktor.controllers.youtube
 
 import de.tectoast.emolga.domain.ytgeneric.service.YouTubePushProcessingService
-import de.tectoast.emolga.domain.ytgeneric.service.YouTubeSubscriptionService
+import de.tectoast.emolga.domain.ytgeneric.service.YouTubeSubscriptionValidationService
 import de.tectoast.emolga.ktor.WebController
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -11,14 +11,14 @@ import org.koin.core.annotation.Single
 
 @Single(binds = [WebController::class])
 class YouTubeController(
-    private val subscriptionService: YouTubeSubscriptionService,
+    private val validationService: YouTubeSubscriptionValidationService,
     private val pushNotificationService: YouTubePushProcessingService
 ) : WebController() {
     override fun Route.setup() {
         route("/youtube") {
             get {
                 val params = call.request.queryParameters
-                val result = subscriptionService.handleChallengeVerification(
+                val result = validationService.handleChallengeVerification(
                     mode = params["hub.mode"],
                     topic = params["hub.topic"],
                     challenge = params["hub.challenge"]

@@ -1,21 +1,21 @@
 [versions]
 coroutines = "1.11.0"
-exposed = "1.3.1"
-google-drive = "v3-rev20260712-2.0.0"
+exposed = "1.5.0"
+google-drive = "v3-rev20260823-2.0.0"
 google-sheets = "v4-rev20260610-2.0.0"
-google-youtube = "v3-rev20260709-2.0.0"
+google-youtube = "v3-rev20260820-2.0.0"
 jda = "6.5.0"
 jda-ktx = "0.15.0"
 jib = "3.5.4"
-jsoup = "1.22.2"
+jsoup = "1.23.2"
 k18n = "2.2.1"
 koin = "4.2.2"
-kotest = "6.2.3"
+kotest = "6.2.4"
 kotlin = "2.4.10"
 kotlin-logging = "3.0.5"
-ktor = "3.5.1"
-logback = "1.5.38"
-loki-logback-appender = "2.0.3"
+ktor = "3.5.2"
+logback = "1.6.3"
+loki-logback-appender = "2.1.0"
 mockk = "1.14.11"
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.2.RELEASE"
@@ -24,10 +24,10 @@ serialization-json = "1.11.0"
 slf4j = "2.0.18"
 
 [plugins]
-gradleversions = "nl.littlerobots.version-catalog-update:1.1.0"
+gradleversions = "nl.littlerobots.version-catalog-update:1.1.1"
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 k18n = { id = "de.tectoast.k18n", version.ref = "k18n" }
-koin-compiler = "io.insert-koin.compiler.plugin:1.0.2"
+koin-compiler = "io.insert-koin.compiler.plugin:1.1.0"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 

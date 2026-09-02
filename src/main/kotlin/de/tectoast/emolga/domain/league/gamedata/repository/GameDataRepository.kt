@@ -80,6 +80,7 @@ class GameDataRepository(private val db: R2dbcDatabase) {
                 LeagueScheduleTable.p1,
                 LeagueScheduleTable.p2
             )
+            .where { LeagueScheduleTable.leagueName eq leagueName }
             .orderBy(LeagueScheduleTable.week to SortOrder.ASC, LeagueScheduleTable.battleIndex to SortOrder.ASC)
             .groupByMapping({
                 Triple(

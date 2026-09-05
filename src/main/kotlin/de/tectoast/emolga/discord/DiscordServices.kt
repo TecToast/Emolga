@@ -83,6 +83,8 @@ interface GuildInviteCreator {
 
 interface ChannelPermissionChecker {
     suspend fun hasSelfWritePermission(channelId: Long): Boolean
+
+    suspend fun hasEmbedPermission(channelId: Long): Boolean
 }
 
 interface InteractableChecker {

@@ -138,6 +138,12 @@ class JDAChannelPermissionChecker(private val jda: JDA) : ChannelPermissionCheck
         ))
     }
 
+    override suspend fun hasEmbedPermission(channelId: Long): Boolean {
+        val channel = jda.getChannel<GuildMessageChannel>(channelId) ?: return false
+        val self = channel.guild.selfMember
+        return self.hasPermission(channel, Permission.MESSAGE_EMBED_LINKS)
+    }
+
     private fun GuildMessageChannel.isText() = type == ChannelType.TEXT
     private fun GuildMessageChannel.isThread() =
         type == ChannelType.GUILD_PUBLIC_THREAD || type == ChannelType.GUILD_PRIVATE_THREAD

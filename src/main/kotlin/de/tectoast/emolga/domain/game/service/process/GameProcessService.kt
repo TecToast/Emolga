@@ -219,7 +219,10 @@ class GameProcessService(
         language: K18nLanguage
     ) {
         val resultSender = channelInterface.createSingleChannel(channelId)
-        val embedResults = guildConfigRepo.query(guild, GuildConfigType.EmbedResults)
+        val embedResults =
+            guildConfigRepo.query(guild, GuildConfigType.EmbedResults) && channelPermissionChecker.hasEmbedPermission(
+                channelId
+            )
         for (message in messages) {
             when (message) {
                 is ResultMessage.Game -> {

@@ -16,7 +16,7 @@ class YouTubeSubscriptionStarter(
         logger.info("Subscribing to ${allChannels.size} channels...")
         allChannels.forEach {
             service.subscribeToChannel(it)
-            delay(1.seconds)
+            delay(10.seconds)
         }
         logger.info("Done subscribing to ${allChannels.size} channels!")
     }

@@ -25,6 +25,8 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
     private val cosmeticLookup = mutableMapOf<ShowdownID, Pokemon>()
     private val lock = Mutex()
 
+    override val priority = -1
+
     override suspend fun onStartup() {
         setupCacheIfRequired()
     }
@@ -46,7 +48,11 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
         }
     }
 
-    private fun lookup(id: ShowdownID): Pokemon? = cosmeticLookup[id] ?: pokedex[id]
+    suspend fun lookup(id: ShowdownID): Pokemon? = withReady {
+        lookupInternal(id)
+    }
+
+    private fun lookupInternal(id: ShowdownID): Pokemon? = cosmeticLookup[id] ?: pokedex[id]
 
     private suspend inline fun <T> withReady(block: suspend () -> T): T {
         setupCacheIfRequired()
@@ -54,47 +60,25 @@ class PokedexRepository(private val db: R2dbcDatabase) : StartupTask {
     }
 
     suspend fun getPokedexNumber(showdownId: ShowdownID): Int? = withReady {
-        lookup(showdownId)?.num
+        lookupInternal(showdownId)?.num
     }
 
     suspend fun getPokedexNumbers(showdownIds: Iterable<ShowdownID>): Map<ShowdownID, Int> = withReady {
         val destination = mutableMapOf<ShowdownID, Int>()
         for (id in showdownIds) {
-            lookup(id)?.num?.let { destination[id] = it }
+            lookupInternal(id)?.num?.let { destination[id] = it }
         }
         destination
     }
 
     suspend fun get(id: ShowdownID): Pokemon? = withReady {
-        lookup(id)
+        lookupInternal(id)
     }
 
     suspend fun getAll(ids: Iterable<ShowdownID>): Map<ShowdownID, Pokemon> = withReady {
         val destination = mutableMapOf<ShowdownID, Pokemon>()
         for (id in ids) {
-            lookup(id)?.let { destination[id] = it }
-        }
-        destination
-    }
-
-    suspend fun getAllPossibleForms(ids: Iterable<ShowdownID>): Map<ShowdownID, Set<ShowdownID>> = withReady {
-        val destination = mutableMapOf<ShowdownID, Set<ShowdownID>>()
-        for (id in ids) {
-            lookup(id)?.let { pokemon ->
-                val formes = pokemon.otherFormes
-                val baseSpecies = pokemon.baseSpecies
-                destination[id] = buildSet {
-                    add(id)
-                    add(pokemon.name.toShowdownID())
-                    if (formes != null) addAll(formes.map(String::toShowdownID))
-                    if (baseSpecies != null) {
-                        val baseId = baseSpecies.toShowdownID()
-                        add(baseId)
-                        val baseOtherForms = pokedex[baseId]?.otherFormes
-                        if (baseOtherForms != null) addAll(baseOtherForms.map(String::toShowdownID))
-                    }
-                }
-            }
+            lookupInternal(id)?.let { destination[id] = it }
         }
         destination
     }

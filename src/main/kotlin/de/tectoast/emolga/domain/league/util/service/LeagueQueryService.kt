@@ -10,6 +10,7 @@ import de.tectoast.emolga.domain.league.util.model.LeagueQueryResult
 import de.tectoast.emolga.domain.league.util.model.LeagueResult
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
+import de.tectoast.emolga.domain.pokemon.service.PokemonPossibleFormsResolver
 import de.tectoast.emolga.utils.groupByMapping
 import de.tectoast.emolga.utils.toShowdownID
 import kotlinx.coroutines.flow.*
@@ -25,7 +26,8 @@ import kotlin.time.measureTimedValue
 class LeagueQueryService(
     private val db: R2dbcDatabase,
     private val configRepository: LeagueConfigRepository,
-    private val pokedexRepo: PokedexRepository
+    private val pokedexRepo: PokedexRepository,
+    private val possibleFormsResolver: PokemonPossibleFormsResolver
 ) {
     private val logger = KotlinLogging.logger {}
     suspend fun getByGuildUser(guild: Long, user: Long) = suspendTransaction(db) {
@@ -105,7 +107,7 @@ class LeagueQueryService(
             return getLeagueResultWithoutPicks(gid, uids)
         }
         val matchMonIds = game.map { it.pokemon.map { mon -> mon.pokemon.toShowdownID() } }
-        val allPossibleIds = pokedexRepo.getAllPossibleForms(matchMonIds.flatten())
+        val allPossibleIds = possibleFormsResolver.getAllPossibleForms(gid, matchMonIds.flatten())
         val allPicks = getAllPicksGroupedByLeagueAndIdx(gid)
         val (leagueResult, duration) = measureTimedValue {
             val allowedIds1 = matchMonIds[0].map { allPossibleIds[it] ?: setOf(it) }

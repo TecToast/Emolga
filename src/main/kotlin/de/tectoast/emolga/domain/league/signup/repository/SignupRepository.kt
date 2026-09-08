@@ -258,6 +258,10 @@ class SignupRepository(private val db: R2dbcDatabase) {
             }.toList()
     }
 
+    suspend fun getAllGuilds() = suspendTransaction(db) {
+        SignupCoreTable.selectAll().map { it[SignupCoreTable.guild] }.toSet()
+    }
+
 
 }
 

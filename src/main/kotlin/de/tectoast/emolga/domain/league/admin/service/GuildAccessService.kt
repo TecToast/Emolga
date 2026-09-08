@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.admin.service
 
 import de.tectoast.emolga.domain.league.admin.repository.GuildManagerRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
+import de.tectoast.emolga.domain.league.signup.repository.SignupRepository
 import de.tectoast.emolga.utils.BotConstants
 import org.koin.core.annotation.Single
 
@@ -9,6 +10,7 @@ import org.koin.core.annotation.Single
 class GuildAccessService(
     private val repo: GuildManagerRepository,
     private val leagueCoreRepo: LeagueCoreRepository,
+    private val signupRepo: SignupRepository,
     private val botConstants: BotConstants
 ) {
     /**
@@ -18,7 +20,7 @@ class GuildAccessService(
     suspend fun getGuildsForUser(user: Long): Set<Long> {
         val result = repo.getDirectlyAuthorizedGuilds(user)
         if (user == botConstants.botOwnerId) {
-            return result + leagueCoreRepo.getAllLeagueGuilds() + botConstants.botOwnerGuildId
+            return result + signupRepo.getAllGuilds() + leagueCoreRepo.getAllLeagueGuilds() + botConstants.botOwnerGuildId
         }
         return result
     }

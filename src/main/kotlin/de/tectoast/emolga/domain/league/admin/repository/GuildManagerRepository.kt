@@ -18,7 +18,7 @@ class GuildManagerRepository(private val db: R2dbcDatabase, private val botConst
 
 
     suspend fun isAuthorized(user: Long, guild: Long): Boolean {
-        return suspendTransaction(db, GuildManagerTable) {
+        return user == botConstants.botOwnerId || suspendTransaction(db, GuildManagerTable) {
             selectAll().where { (this.guild eq guild) and (this.user eq user) }.count() > 0
         }
     }

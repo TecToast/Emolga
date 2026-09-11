@@ -212,7 +212,7 @@ class JDADiscordUserProvider(private val jda: JDA) : DiscordUserProvider {
         return userIds.chunked(100).flatMap { chunk ->
             guildObj.retrieveMembersByIds(chunk).await().map {
                 it.idLong to DiscordUserData(
-                    userId = it.idLong, displayName = it.effectiveName, avatarUrl = it.effectiveAvatarUrl
+                    userId = it.idLong, displayName = it.user.effectiveName, avatarUrl = it.user.effectiveAvatarUrl
                 )
             }
         }.toMap()

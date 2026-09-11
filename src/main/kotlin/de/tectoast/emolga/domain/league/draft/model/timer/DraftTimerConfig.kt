@@ -4,26 +4,32 @@ import de.tectoast.emolga.utils.serializer.TreeMapSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.util.*
-import kotlin.time.Instant
 
 @Serializable
-sealed class DraftTimerConfig {
-    var timerStart: Instant? = null
-    var stallSeconds: Int = 0
-    var oneTimerForAllPicks: Boolean = false
-    var startPunishSkipsTime: Instant = Instant.DISTANT_PAST
+sealed interface DraftTimerConfig {
+    val generalConfig: GeneralDraftTimerConfig
 
     @Serializable
     @SerialName("ClockDependent")
-    class ClockDependentTimer(val timers: @Serializable(with = TreeMapSerializer::class) TreeMap<Long, TimerInfo>) :
-        DraftTimerConfig()
+    class ClockDependentTimer(
+        override val generalConfig: GeneralDraftTimerConfig = GeneralDraftTimerConfig(),
+        val timers: @Serializable(with = TreeMapSerializer::class) TreeMap<Long, TimerInfo>
+    ) :
+        DraftTimerConfig
 
     @Serializable
     @SerialName("Simple")
-    class SimpleTimer(val timerInfo: TimerInfo) : DraftTimerConfig()
+    class SimpleTimer(
+        override val generalConfig: GeneralDraftTimerConfig = GeneralDraftTimerConfig(),
+        val timerInfo: TimerInfo
+    ) : DraftTimerConfig
 
     @Serializable
     @SerialName("Switch")
-    class SwitchTimer(val timerInfos: Map<String, TimerInfo>, var currentTimer: String = timerInfos.keys.first()) :
-        DraftTimerConfig()
+    class SwitchTimer(
+        override val generalConfig: GeneralDraftTimerConfig = GeneralDraftTimerConfig(),
+        val timerInfos: Map<String, TimerInfo>,
+        var currentTimer: String = timerInfos.keys.first()
+    ) :
+        DraftTimerConfig
 }

@@ -59,7 +59,7 @@ class DraftTimerService(
         val delayData = DelayData(
             timerRelated.cooldown, timerRelated.regularCooldown, clock.now()
         )
-        startTimer(ctx.league.leagueName, timerRelated, ctx.config.timer?.stallSeconds, delayData)
+        startTimer(ctx.league.leagueName, timerRelated, ctx.config.timer?.generalConfig?.stallSeconds, delayData)
     }
 
     fun startRegularTimer(ctx: DraftRunContext) {
@@ -79,7 +79,7 @@ class DraftTimerService(
         } ?: return disableTimer(
             leagueName, timerRelated
         )
-        startTimer(leagueName, timerRelated, timerConfig.stallSeconds, delayData, now)
+        startTimer(leagueName, timerRelated, timerConfig.generalConfig.stallSeconds, delayData, now)
     }
 
     private fun startTimer(
@@ -128,7 +128,7 @@ class DraftTimerService(
                 append(
                     K18n_League.TimeUntil(
                         formatTimeFormatBasedOnDistance(
-                            timerData.regularCooldown, timerConfig.stallSeconds
+                            timerData.regularCooldown, timerConfig.generalConfig.stallSeconds
                         )
                     )()
                 )
@@ -136,7 +136,7 @@ class DraftTimerService(
                     append(
                         K18n_League.TimeUntilStallSeconds(
                             formatTimeFormatBasedOnDistance(
-                                timerData.cooldown, timerConfig.stallSeconds
+                                timerData.cooldown, timerConfig.generalConfig.stallSeconds
                             )
                         )()
                     )

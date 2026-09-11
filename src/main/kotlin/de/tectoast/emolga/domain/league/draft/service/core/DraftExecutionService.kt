@@ -154,7 +154,7 @@ class DraftExecutionService(
             snipeMap = mutableMapOf(),
             modifiedQueue = mutableSetOf(),
             allResults = mutableListOf(),
-            isOneTimerForAllPicks = ctx.config.timer?.oneTimerForAllPicks == true
+            isOneTimerForAllPicks = ctx.config.timer?.generalConfig?.oneTimerForAllPicks == true
         )
     }
 
@@ -182,7 +182,7 @@ class DraftExecutionService(
             league.addToMoved(ctx.activeIdx)
             val timerConfig = ctx.config.timer
             if (timerConfig != null) {
-                if (now > timerConfig.startPunishSkipsTime) {
+                if (now > timerConfig.generalConfig.startPunishSkipsTime) {
                     val isPunishable = when (val reason = nextPlayerData.reason) {
                         SkipReason.RealTimer -> true
                         is SkipReason.Skip -> reason.skippedByExternal != null
@@ -202,7 +202,7 @@ class DraftExecutionService(
         }
         var currentIdx = ctx.activeIdx
         if (timerSkipData.result != TimerSkipResult.SAME) {
-            ctx.config.timer?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
+            ctx.config.timer?.generalConfig?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
                 val timerRelated = draftData.timer
                 if (timerRelated.cooldown > Instant.DISTANT_PAST) {
                     val usedSeconds =

@@ -18,14 +18,14 @@ class SwitchTimerService(
     suspend fun create(
         leagueName: String, settings: List<String>, stallSeconds: Int = 0, from: Int = 0, to: Int = 24
     ): CalcResult<DraftTimerConfig.SwitchTimer> {
-        val timer = DraftTimerConfig.SwitchTimer(settings.associateWith {
+        val timer = DraftTimerConfig.SwitchTimer(timerInfos = settings.associateWith {
             val minutes =
                 timeFormatService.parseDuration(it).inWholeMinutes.takeIf { n -> n >= 0 }
                     ?: return K18n_SwitchTimer.InvalidTime(it)
                         .error()
             TimerInfo(minutes.toInt()).set(from, to)
         })
-        timer.stallSeconds = stallSeconds
+        timer.generalConfig.stallSeconds = stallSeconds
         leagueConfigRepo.updateLeagueOverride(leagueName) {
             copy(timer = timer)
         }

@@ -25,7 +25,7 @@ class DraftTimerCalculationService(private val clock: Clock, private val dispatc
             return if (calced == 0 && dispatcher.shouldCancelOnZeroDelay(config)) null else calced
         }
 
-        var localDateTime = listOfNotNull(now, config.timerStart).max().toJavaLocalDateTime()
+        var localDateTime = listOfNotNull(now, config.generalConfig.timerStart).max().toJavaLocalDateTime()
         fun recheckTimerInfo() {
             currentTimerInfo = dispatcher.getCurrentTimerInfo(config, localDateTime.toKotlinInstant())
         }
@@ -50,7 +50,7 @@ class DraftTimerCalculationService(private val clock: Clock, private val dispatc
         }
         val regularTimestamp = localDateTime.toKotlinInstant()
         return DelayData(
-            regularTimestamp + (config.stallSeconds - usedStallSeconds).coerceAtLeast(0).seconds,
+            regularTimestamp + (config.generalConfig.stallSeconds - usedStallSeconds).coerceAtLeast(0).seconds,
             regularTimestamp,
             now
         )

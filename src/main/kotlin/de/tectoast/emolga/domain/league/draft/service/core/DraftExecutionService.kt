@@ -194,6 +194,10 @@ class DraftExecutionService(
             }
         }
         val timerSkipData = timerSkipModeDispatcher.afterPick(ctx, nextPlayerData)
+        val generalTimerConfig = ctx.config.timer?.generalConfig
+        if (generalTimerConfig?.resetPunishmentAfterCatchUp == true && !league.hasMovedTurns(ctx.activeIdx)) {
+            draftData.punishableSkippedTurns.remove(ctx.activeIdx)
+        }
         timerSkipData.message?.let { actionResult.sendsMessage += it }
         val defaultTimerOption = when {
             timerSkipData.cancelTimer -> TimerOption.CANCEL
@@ -202,7 +206,7 @@ class DraftExecutionService(
         }
         var currentIdx = ctx.activeIdx
         if (timerSkipData.result != TimerSkipResult.SAME) {
-            ctx.config.timer?.generalConfig?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
+            generalTimerConfig?.stallSeconds?.takeIf { it > 0 }?.let { maxStallSeconds ->
                 val timerRelated = draftData.timer
                 if (timerRelated.cooldown > Instant.DISTANT_PAST) {
                     val usedSeconds =
@@ -467,7 +471,7 @@ private abstract class DraftData(
         }
         if (clazz != String::class)
             require(clazz.isInstance(result)) { "Resolved value $result is not of the expected type ${clazz.simpleName}" }
-        return if(clazz == String::class) (result.toString() as T) else clazz.cast(result)
+        return if (clazz == String::class) (result.toString() as T) else clazz.cast(result)
     }
 
     abstract fun resolveSpecific(variable: String): Any

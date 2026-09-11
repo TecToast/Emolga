@@ -10,4 +10,5 @@ data class GeneralDraftTimerConfig(
     var stallSeconds: Int = 0,
     val oneTimerForAllPicks: Boolean = false,
     val startPunishSkipsTime: Instant = Instant.DISTANT_PAST,
+    val resetPunishmentAfterCatchUp: Boolean = false,
 )

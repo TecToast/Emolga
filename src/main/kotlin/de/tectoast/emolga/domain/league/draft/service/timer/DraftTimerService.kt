@@ -72,6 +72,7 @@ class DraftTimerService(
         val delayData = timerConfig?.let {
             calcService.calc(
                 config = it,
+                round = ctx.league.round,
                 now = now,
                 howOftenSkipped = ctx.league.draftData.punishableSkippedTurns[currentIdx]?.size ?: 0,
                 usedStallSeconds = timerRelated.usedStallSeconds[currentIdx] ?: 0

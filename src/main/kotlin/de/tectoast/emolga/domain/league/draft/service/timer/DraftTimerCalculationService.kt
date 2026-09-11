@@ -7,17 +7,17 @@ import de.tectoast.emolga.domain.league.draft.service.timer.calc.DraftTimerDispa
 import de.tectoast.emolga.utils.toJavaLocalDateTime
 import de.tectoast.emolga.utils.toKotlinInstant
 import org.koin.core.annotation.Single
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 @Single
-class DraftTimerCalculationService(private val clock: Clock, private val dispatcher: DraftTimerDispatcher) {
+class DraftTimerCalculationService(private val dispatcher: DraftTimerDispatcher) {
     fun calc(
         config: DraftTimerConfig,
-        now: Instant = clock.now(),
-        howOftenSkipped: Int = 0,
-        usedStallSeconds: Int = 0
+        round: Int,
+        now: Instant,
+        howOftenSkipped: Int,
+        usedStallSeconds: Int,
     ): DelayData? {
         lateinit var currentTimerInfo: TimerInfo
         fun currentDelay(): Int? {
@@ -25,7 +25,10 @@ class DraftTimerCalculationService(private val clock: Clock, private val dispatc
             return if (calced == 0 && dispatcher.shouldCancelOnZeroDelay(config)) null else calced
         }
 
-        var localDateTime = listOfNotNull(now, config.generalConfig.timerStart).max().toJavaLocalDateTime()
+        val generalConfig = config.generalConfig
+        var localDateTime = listOfNotNull(now, generalConfig.timerStart.takeIf {
+            generalConfig.timerAfterRound == null || round <= generalConfig.timerAfterRound
+        }).max().toJavaLocalDateTime()
         fun recheckTimerInfo() {
             currentTimerInfo = dispatcher.getCurrentTimerInfo(config, localDateTime.toKotlinInstant())
         }
@@ -50,7 +53,7 @@ class DraftTimerCalculationService(private val clock: Clock, private val dispatc
         }
         val regularTimestamp = localDateTime.toKotlinInstant()
         return DelayData(
-            regularTimestamp + (config.generalConfig.stallSeconds - usedStallSeconds).coerceAtLeast(0).seconds,
+            regularTimestamp + (generalConfig.stallSeconds - usedStallSeconds).coerceAtLeast(0).seconds,
             regularTimestamp,
             now
         )

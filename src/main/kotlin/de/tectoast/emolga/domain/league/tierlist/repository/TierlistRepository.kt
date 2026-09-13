@@ -66,6 +66,7 @@ class TierlistRepository(private val db: R2dbcDatabase) {
             it[identifier] = meta.identifier
             it[language] = meta.language
             it[config] = meta.config
+            it[teamSize] = meta.teamSize
         }
     }
 

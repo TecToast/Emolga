@@ -169,7 +169,7 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
                         displayName = it[prettyName]?.takeIf { s -> s.isNotBlank() } ?: it[leagueName],
                         guild = it[guild],
                         sheetId = it[sheetId],
-                        draftChannel = it[draftChannel]!!,
+                        draftChannel = it[draftChannel] ?: -1,
                         draftOrder = it[draftOrder],
                         isSwitchDraft = it[isSwitchDraft],
                         draftData = it[draftData]

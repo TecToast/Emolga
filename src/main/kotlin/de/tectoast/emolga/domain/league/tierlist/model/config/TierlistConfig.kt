@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface TierlistConfig {
     val draftChecks: List<DraftCheck>
+    val updraftConfig: UpdraftConfig
 
 
     @Serializable
@@ -28,7 +29,8 @@ sealed interface TierlistConfig {
         val prices: Map<String, Int>,
         override val globalPoints: Int,
         override val draftChecks: List<DraftCheck> = emptyList(),
-        override val teraMaxPoints: Int? = null
+        override val teraMaxPoints: Int? = null,
+        override val updraftConfig: UpdraftConfig = UpdraftConfig.Disabled,
     ) : TierlistConfig, OnlyPointBasedTierlistConfig
 
     @Serializable
@@ -38,7 +40,8 @@ sealed interface TierlistConfig {
         val minTier: Int,
         override val globalPoints: Int,
         override val draftChecks: List<DraftCheck> = emptyList(),
-        override val teraMaxPoints: Int? = null
+        override val teraMaxPoints: Int? = null,
+        override val updraftConfig: UpdraftConfig = UpdraftConfig.Disabled,
     ) : TierlistConfig, OnlyPointBasedTierlistConfig
 
     @Serializable
@@ -148,5 +151,6 @@ sealed interface TierlistConfig {
     @SerialName("Empty")
     data object Empty : TierlistConfig {
         override val draftChecks: List<DraftCheck> = emptyList()
+        override val updraftConfig: UpdraftConfig = UpdraftConfig.Disabled
     }
 }

@@ -439,6 +439,7 @@
               "CantPickTier": "Du kannst dir kein {tier}-Pokemon mehr picken!",
               "AtmostMega": "Du kannst maximal {count:Int} Mega-Pokemon in deinem Team haben!",
               "ExactlyMega": "Du musst {count:Int} Mega-Pokemon in deinem Team haben!",
+              "AtmostInTierRange": "Du kannst maximal {amount:Int} Pokemon aus den Tiers {tiers} in deinem Team haben!",
               "NoFreePicksLeft": "Du hast keine Free-Picks mehr! (Es gibt maximal {max:Int})",
               "SpeciesClause": "Du kannst nur ein Pokemon pro Dex-Nummer in deinem Team haben!",
               "NotEnoughPoints": "Dafür hast du nicht genug Punkte! (`{calculation}`)",

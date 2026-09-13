@@ -23,7 +23,7 @@ class SimpleTierBasedTierlistActionHandler :
     override val targetClass = TierlistConfig.SimpleTierBased::class
 
     context(data: ValidationRelevantData)
-    override fun handleDraftActionAfterGeneralTierCheck(
+    override fun handleDraftActionAfterGenericChecks(
         config: TierlistConfig.SimpleTierBased,
         action: DraftAction,
         context: DraftActionContext?

@@ -99,7 +99,7 @@ class FreePickTierlistActionHandler :
     }
 
     context(data: ValidationRelevantData)
-    override fun handleDraftActionAfterGeneralTierCheck(
+    override fun handleDraftActionAfterGenericChecks(
         config: TierlistConfig.FreePick,
         action: DraftAction,
         context: DraftActionContext?

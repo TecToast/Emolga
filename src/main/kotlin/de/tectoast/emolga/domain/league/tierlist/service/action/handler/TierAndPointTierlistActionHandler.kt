@@ -27,7 +27,7 @@ class TierAndPointTierlistActionHandler :
     override val targetClass = TierlistConfig.TierAndPoint::class
 
     context(data: ValidationRelevantData)
-    override fun handleDraftActionAfterGeneralTierCheck(
+    override fun handleDraftActionAfterGenericChecks(
         config: TierlistConfig.TierAndPoint,
         action: DraftAction,
         context: DraftActionContext?

@@ -17,4 +17,8 @@ sealed interface DraftCheck {
     @Serializable
     @SerialName("ExactlyOneMega")
     data class ExactlyMega(val count: Int) : DraftCheck
+
+    @Serializable
+    @SerialName("AtmostInTierRange")
+    data class AtmostInTierRange(val tiers: Set<String>, val amount: Int) : DraftCheck
 }

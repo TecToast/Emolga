@@ -15,7 +15,7 @@ class EmptyTierlistActionHandler : TierlistActionHandler<TierlistConfig.Empty>()
     override val targetClass = TierlistConfig.Empty::class
 
     context(data: ValidationRelevantData)
-    override fun handleDraftAction(
+    override fun handleDraftActionAfterGenericChecks(
         config: TierlistConfig.Empty,
         action: DraftAction,
         context: DraftActionContext?

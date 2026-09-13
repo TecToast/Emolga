@@ -439,6 +439,7 @@
               "CantPickTier": "You can’t pick a {tier} Pokemon anymore!",
               "AtmostMega": "You can only have {count:Int} Mega Pokemon on your team!",
               "ExactlyMega": "You must have {count:Int} Mega Pokemon on your team!",
+              "AtmostInTierRange": "You can only have {amount:Int} Pokemon from the {tiers} tiers on your team!",
               "SpeciesClause": "You can only have one Pokemon per dex number on your team!",
               "NotEnoughPoints": "You don’t have enough points for that! (`{calculation}`)",
               "MinimumNeededError": "If you were to take this Pokemon, your roster could no longer be completed! (After this pick you must still have at least {minimumRequired:Int} points, but you would only have {newPoints:Int})",

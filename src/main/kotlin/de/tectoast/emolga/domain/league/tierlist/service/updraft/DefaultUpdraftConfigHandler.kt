@@ -2,8 +2,8 @@ package de.tectoast.emolga.domain.league.tierlist.service.updraft
 
 import de.tectoast.emolga.domain.league.draft.model.core.DraftAction
 import de.tectoast.emolga.domain.league.tierlist.model.UpdraftConfig
-import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
-import de.tectoast.emolga.domain.league.tierlist.service.action.helper.TierBasedTierlistActionHandler
+import de.tectoast.emolga.domain.league.tierlist.model.config.TierlistConfig
+import de.tectoast.emolga.domain.league.tierlist.service.action.TierlistActionHandler
 import de.tectoast.emolga.features.league.draft.generic.K18n_TierNotFound
 import de.tectoast.emolga.utils.ErrorOrNull
 import de.tectoast.emolga.utils.draft.K18n_Tierlist
@@ -14,11 +14,11 @@ class DefaultUpdraftConfigHandler :
     UpdraftConfigHandler<UpdraftConfig.Default> {
     override val targetClass = UpdraftConfig.Default::class
 
-    override fun <T : TierBasedTierlistConfig> handleUpdraft(
+    override fun <T : TierlistConfig> handleUpdraft(
         config: UpdraftConfig.Default,
         tierlistConfig: T,
         action: DraftAction,
-        tierlistActionHandler: TierBasedTierlistActionHandler<T>
+        tierlistActionHandler: TierlistActionHandler<T>
     ): ErrorOrNull {
         val compareResult =
             tierlistActionHandler.compareTiers(tierlistConfig, action.specifiedTier, action.officialTier)

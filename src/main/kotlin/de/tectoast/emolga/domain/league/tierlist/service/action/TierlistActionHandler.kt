@@ -6,6 +6,7 @@ import de.tectoast.emolga.domain.league.draft.model.core.DraftPokemon
 import de.tectoast.emolga.domain.league.draft.model.core.ValidationRelevantData
 import de.tectoast.emolga.domain.league.tierlist.model.config.TierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.service.draftcheck.DraftCheckDispatcher
+import de.tectoast.emolga.domain.league.tierlist.service.updraft.UpdraftConfigDispatcher
 import de.tectoast.emolga.utils.ErrorOrNull
 import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.handler.BaseHandler
@@ -15,6 +16,7 @@ abstract class TierlistActionHandler<C : TierlistConfig> : BaseHandler<C>,
     TierlistActionOperations<C> {
 
     private val generalCheckDispatcher: DraftCheckDispatcher by inject()
+    private val updraftConfigDispatcher: UpdraftConfigDispatcher by inject()
 
     override fun getTierOrderingComparatorWithoutName(config: C): Comparator<DraftPokemon> {
         val tierOrder = getTiers(config)
@@ -29,7 +31,11 @@ abstract class TierlistActionHandler<C : TierlistConfig> : BaseHandler<C>,
     }
 
     context(data: ValidationRelevantData)
-    abstract fun handleDraftAction(config: C, action: DraftAction, context: DraftActionContext? = null): ErrorOrNull
+    abstract fun handleDraftActionAfterGenericChecks(
+        config: C,
+        action: DraftAction,
+        context: DraftActionContext?
+    ): ErrorOrNull
 
     override fun publicTierToDBTier(config: C, tier: String) = tier
     override fun compareTiers(config: C, tierA: String, tierB: String): Int? {
@@ -49,7 +55,10 @@ abstract class TierlistActionHandler<C : TierlistConfig> : BaseHandler<C>,
         for (check in config.draftChecks) {
             generalCheckDispatcher.check(check, action)?.let { return it }
         }
-        return handleDraftAction(config, action, context)
+        if (action.specifiedTier != action.officialTier) {
+            updraftConfigDispatcher.handleUpdraft(config.updraftConfig, config, action, this)?.let { return it }
+        }
+        return handleDraftActionAfterGenericChecks(config, action, context)
     }
 
     fun Map<String, Int>.deductPicks(list: List<DraftPokemon>): Map<String, Int> {

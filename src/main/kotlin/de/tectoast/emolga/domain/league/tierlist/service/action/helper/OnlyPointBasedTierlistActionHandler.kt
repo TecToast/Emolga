@@ -17,10 +17,14 @@ abstract class OnlyPointBasedTierlistActionHandler<C : OnlyPointBasedTierlistCon
     PointBasedTierlistActionHandler<C>(),
     OnlyPointBasedTierlistActionOperations<C> {
     context(data: ValidationRelevantData)
-    override fun handleDraftAction(config: C, action: DraftAction, context: DraftActionContext?): ErrorOrNull {
+    override fun handleDraftActionAfterGenericChecks(
+        config: C,
+        action: DraftAction,
+        context: DraftActionContext?
+    ): ErrorOrNull {
         val cpicks = data.picks
         val currentPoints = getPointsOfUser(config, cpicks)
-        val cost = getPointsForTier(config, action.officialTier) ?: return K18n_TierNotFound(action.officialTier)
+        val cost = getPointsForTier(config, action.specifiedTier) ?: return K18n_TierNotFound(action.specifiedTier)
         val pointsBack = action.switch?.let { switched -> getPointsForTier(config, switched.tier)!! } ?: 0
         val newPoints = currentPoints - cost + pointsBack
         if (newPoints < 0) {

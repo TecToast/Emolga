@@ -2,7 +2,6 @@ package de.tectoast.emolga.domain.league.tierlist.service.core
 
 import de.tectoast.emolga.domain.league.tierlist.model.TierData
 import de.tectoast.emolga.domain.league.tierlist.model.TierlistMeta
-import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierlistActionDispatcher
 import de.tectoast.emolga.domain.league.util.autocomplete.PokemonAutocompleteService
@@ -35,7 +34,7 @@ class TierDataService(
     ): CalcResult<TierData> {
         val real =
             repo.getTier(meta.guild, identifier, showdownId) ?: return K18n_DraftUtils.PokemonNotInTierlist.error()
-        if (requestedTier != null && meta.config is TierBasedTierlistConfig) {
+        if (requestedTier != null && meta.config.updraftConfig.acceptTierInput) {
             val existingTiers = dispatcher.getTiers(meta.config)
             val specifiedTier =
                 existingTiers.firstOrNull { it.equals(requestedTier, ignoreCase = true) } ?: return K18n_TierNotFound(

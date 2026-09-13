@@ -15,7 +15,7 @@ abstract class CombinedOptionsTierlistActionHandler<C : CombinedOptionsTierlistC
     TierBasedTierlistActionHandler<C>() {
 
     context(data: ValidationRelevantData)
-    override fun handleDraftActionAfterGeneralTierCheck(
+    override fun handleDraftActionAfterGenericChecks(
         config: C,
         action: DraftAction,
         context: DraftActionContext?

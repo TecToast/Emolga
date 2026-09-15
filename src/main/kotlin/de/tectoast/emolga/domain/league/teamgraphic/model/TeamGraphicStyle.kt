@@ -1,5 +1,6 @@
 package de.tectoast.emolga.domain.league.teamgraphic.model
 
+import de.tectoast.emolga.utils.serializer.ColorSerializer
 import kotlinx.serialization.Serializable
 import java.awt.Color
 import java.awt.Font
@@ -7,21 +8,35 @@ import java.awt.Graphics2D
 import java.awt.GraphicsEnvironment
 import java.io.File
 
+
 @Serializable
-sealed interface TeamGraphicStyle {
-    fun getDataForIndex(index: Int, data: DrawData): IndexDataStyle
-    val sizeOfShape: Int
-    val playerText: TextProperties?
-    val teamnameText: TextProperties?
-    val logoProperties: LogoProperties?
-    val guild: Long
-    val individualBackgrounds: Boolean get() = false
-    fun backgroundPath(league: String, idx: Int): String
-    fun overlayPath(league: String, idx: Int): String?
+data class TeamGraphicStyle(
+    val guild: Long,
+    val shapeInfo: TeamGraphicShapeInfo,
+    val backgroundPathTemplate: String,
+    val overlayPathTemplate: String? = null,
+    val dataForIndex: Map<Int, CanvasCoordinate>,
+    val individualBackgrounds: Boolean,
+    val playerText: TextProperties? = null,
+    val teamnameText: TextProperties? = null,
+    val logoProperties: LogoProperties? = null,
+    val userNameSettings: TeamGraphicUserNameSettings = TeamGraphicUserNameSettings()
+) {
 
-    fun transformUsername(username: String) = username
+    fun backgroundPath(leagueName: String? = null, idx: Int? = null): String {
+        return backgroundPathTemplate.applyTemplate(leagueName, idx)
+    }
 
+    fun overlayPath(leagueName: String? = null, idx: Int? = null): String? {
+        return overlayPathTemplate?.applyTemplate(leagueName, idx)
+    }
 
+    private fun String.applyTemplate(leagueName: String? = null, idx: Int? = null): String {
+        return replace("{leagueName}", leagueName ?: "")
+            .replace("{idx}", idx?.toString() ?: "")
+    }
+
+    @Serializable
     data class LogoProperties(
         val startX: Int,
         val startY: Int,
@@ -30,9 +45,10 @@ sealed interface TeamGraphicStyle {
         val defaultLogoPath: String?
     )
 
+    @Serializable
     data class TextProperties(
         val fontPath: String,
-        val fontColor: Color,
+        @Serializable(with = ColorSerializer::class) val fontColor: Color,
         val fontSize: Float,
         val xCoord: Int,
         val yCoord: Int,
@@ -50,12 +66,14 @@ sealed interface TeamGraphicStyle {
         }
     }
 
+    @Serializable
     data class TextShadowProperties(
-        val color: Color,
+        @Serializable(with = ColorSerializer::class) val color: Color,
         val offset: Int,
         val blurRadius: Int
     )
 
+    @Serializable
     enum class TextAlignment {
         CENTERED {
             override fun calculateTextCoordinates(

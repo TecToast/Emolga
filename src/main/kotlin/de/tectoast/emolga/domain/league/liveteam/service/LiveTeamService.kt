@@ -26,7 +26,7 @@ class LiveTeamService(
         if (numRaw < 0) {
             if (style.individualBackgrounds) return null
             return withContext(Dispatchers.IO) {
-                Files.readAllBytes(Path(style.backgroundPath(leaguename, -1)))
+                Files.readAllBytes(Path(style.backgroundPath(leaguename)))
             }
         }
         val num = numRaw / 2

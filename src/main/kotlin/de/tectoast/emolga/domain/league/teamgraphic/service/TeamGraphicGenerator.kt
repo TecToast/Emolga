@@ -162,13 +162,16 @@ class TeamGraphicGenerator(
             backgroundImage
         }
         val g2d = image.createGraphics()
-        g2d.setCommonRenderingHints()
-        g2d.drawOptionalText(teamOwner?.let(style::transformUsername), style.playerText)
+        val spriteStyle = metaRepo.getSpriteStyle(style.guild) ?: TeamgraphicSpriteStyle.SUGIMORI
+        g2d.setCommonRenderingHints(spriteStyle.nearestNeighborInterpolation)
+        g2d.drawOptionalText(teamOwner?.let {
+            style.userNameSettings.formatUserName(it)
+        }, style.playerText)
         g2d.drawOptionalText(teamName, style.teamnameText)
         g2d.drawMons(
             monData,
             style,
-            metaRepo.getSpriteStyle(style.guild) ?: TeamgraphicSpriteStyle.SUGIMORI
+            spriteStyle
         )
         style.overlayPath(leaguename, idx)?.let {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
@@ -238,12 +241,14 @@ class TeamGraphicGenerator(
             val image = withContext(Dispatchers.IO) {
                 ImageIO.read(File(imagePath))
             }
-            val dataForIndex = style.getDataForIndex(i, data)
-            val size = style.sizeOfShape
+            val (xInFinal, yInFinal) = style.dataForIndex[i] ?: continue
+            val shapeInfo = style.shapeInfo
+            val size = shapeInfo.size
+            val shape = shapeInfo.provideShape(data.size)
             drawImage(
                 image.flipIf(data.flipped).cropShape(
-                    data.x, data.y, dataForIndex.shape
-                ), dataForIndex.xInFinal, dataForIndex.yInFinal, size, size, null
+                    data.x, data.y, shape
+                ), xInFinal, yInFinal, size, size, null
             )
         }
     }
@@ -298,14 +303,17 @@ fun BufferedImage.cropShape(x: Int, y: Int, shape: Shape): BufferedImage {
     return output
 }
 
-fun Graphics2D.setCommonRenderingHints() {
+fun Graphics2D.setCommonRenderingHints(nearestNeighborInterpolation: Boolean) {
     setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
     setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY)
     setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE)
     setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
-    setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
     setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
     setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
     setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    setRenderingHint(
+        RenderingHints.KEY_INTERPOLATION,
+        if (nearestNeighborInterpolation) RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR else RenderingHints.VALUE_INTERPOLATION_BILINEAR
+    )
 }

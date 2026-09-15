@@ -55,7 +55,7 @@ class PokemonCropService(
         val listSize = list.size
         val baseImage = BufferedImage(128 * 10, 128 * ((listSize + 9) / 10), BufferedImage.TYPE_INT_ARGB)
         val g2d = baseImage.createGraphics()
-        g2d.setCommonRenderingHints()
+        g2d.setCommonRenderingHints(spriteStyle.nearestNeighborInterpolation)
         val map = pokedexRepo.getAll(list.map { it.showdownId })
         for ((index, data) in list.sortedBy { map[it.showdownId]!!.num }.withIndex()) {
             val showdownId = data.showdownId

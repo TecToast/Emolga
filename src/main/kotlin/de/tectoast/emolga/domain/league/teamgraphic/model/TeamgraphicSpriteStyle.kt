@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class TeamgraphicSpriteStyle {
-    SUGIMORI, HOME
+    SUGIMORI, HOME, GEN5
 }

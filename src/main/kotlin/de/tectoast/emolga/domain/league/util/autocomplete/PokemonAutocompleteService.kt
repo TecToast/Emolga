@@ -29,6 +29,7 @@ class PokemonAutocompleteService(
 ) {
     private val cache = newThreadSafeCache<CacheKey, List<CacheValue>>(10)
     suspend fun autocompletePokemon(query: String, guild: Long, channel: Long, user: Long, limit: Int): List<String>? {
+        val trimmedQuery = query.trim()
         val leagueWithGuild = leagueCoreRepo.getLeagueFromDraftChannelOrUser(channel, guild, user)
         val realGuild = leagueWithGuild?.second ?: guild
         val cacheKey = leagueWithGuild?.let { (leagueName, realGuild) ->
@@ -41,7 +42,7 @@ class PokemonAutocompleteService(
         val filtered = mutableListOf<ShowdownIDWithDisplayName>()
         outer@ for (value in rawResult) {
             for (displayName in value.displayNames) {
-                if (displayName.contains(query, ignoreCase = true)) {
+                if (displayName.contains(trimmedQuery, ignoreCase = true)) {
                     filtered += ShowdownIDWithDisplayName(value.showdownId, displayName)
                     if (filtered.size > limit) break@outer
                 }
@@ -52,7 +53,7 @@ class PokemonAutocompleteService(
             val allShowdownIds = leaguePickRepo.getAllPickedIds(leagueWithGuild.first)
             filtered.mapTo(mutableSetOf()) { if (allShowdownIds.contains(it.showdownId)) "${it.displayName} (NICHT VERFÜGBAR)" else it.displayName }
         }
-        return finalStrings.sortedWith(compareBy({ !it.startsWith(query) }, { it }))
+        return finalStrings.sortedWith(compareBy({ !it.startsWith(trimmedQuery) }, { it }))
     }
 
     suspend fun autocompletePokemonOfTeam(query: String, guild: Long, channel: Long, user: Long): List<String>? {

@@ -13,7 +13,7 @@ class PokemonImageController(private val authRoutingHelper: AuthRoutingHelper) :
     override fun Route.setup() {
         route("/monimg") {
             install(authRoutingHelper.userAuthGuard)
-            staticFiles("/monimg", File("/teamgraphics/sprites"), index = null)
+            staticFiles("/", File("/teamgraphics/sprites"), index = null)
         }
     }
 }

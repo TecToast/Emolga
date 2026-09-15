@@ -2,7 +2,6 @@ package de.tectoast.emolga.domain.league.teamgraphic.service
 
 import de.tectoast.emolga.domain.league.teamgraphic.model.PokemonToCropData
 import de.tectoast.emolga.domain.league.teamgraphic.repository.PokemonCropRepository
-import de.tectoast.emolga.domain.league.teamgraphic.repository.PokemonCropTable
 import de.tectoast.emolga.domain.league.teamgraphic.repository.TeamGraphicMetaRepository
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
@@ -11,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.v1.r2dbc.upsert
 import org.koin.core.annotation.Single
 import java.awt.geom.Ellipse2D
 import java.awt.image.BufferedImage
@@ -46,11 +44,7 @@ class PokemonCropService(
                 )
             }
         if (result != null) {
-            PokemonCropTable.upsert {
-                it[this.guild] = guild
-                it[showdownId] = result.official
-                it[wipSince] = clock.now()
-            }
+            cropRepo.setWIP(guild, result.official, clock.now())
         }
         result
     }

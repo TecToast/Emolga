@@ -29,6 +29,7 @@ class DraftTimerCalculationService(private val dispatcher: DraftTimerDispatcher)
         var localDateTime = listOfNotNull(now, generalConfig.timerStart.takeIf {
             generalConfig.timerAfterRound == null || round <= generalConfig.timerAfterRound
         }).max().toJavaLocalDateTime()
+
         fun recheckTimerInfo() {
             currentTimerInfo = dispatcher.getCurrentTimerInfo(config, localDateTime.toKotlinInstant())
         }
@@ -38,8 +39,11 @@ class DraftTimerCalculationService(private val dispatcher: DraftTimerDispatcher)
         while (minutesToGo > 0) {
             val p = currentTimerInfo[localDateTime.dayOfWeek.value]
             val plusOneMin = localDateTime.plusMinutes(1)
-            if (localDateTime.hour >= p.from && plusOneMin.hour < p.to) minutesToGo-- else localDateTime =
-                localDateTime.withSecond(0)
+            if (localDateTime.hour >= p.from && plusOneMin.hour < p.to) {
+                minutesToGo--
+            } else {
+                localDateTime = localDateTime.withSecond(0)
+            }
             localDateTime = plusOneMin
             recheckTimerInfo()
             val currentTimerInfoDelay = currentDelay() ?: return null

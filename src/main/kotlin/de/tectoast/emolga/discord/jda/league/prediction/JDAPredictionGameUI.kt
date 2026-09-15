@@ -72,7 +72,11 @@ class JDAPredictionGameUI(private val jda: JDA) : PredictionGameUI, KoinComponen
         state: PredictionMatchViewState,
     ): List<ActionRow> {
         return state.players.map { player ->
-            btn.withoutIData(label = player.name.k18n, emoji = player.formattedEmoji?.let { Emoji.fromFormatted(it) }, disabled = state.isLocked) {
+            btn.withoutIData(
+                label = player.name.k18n,
+                emoji = player.formattedEmoji?.let { Emoji.fromFormatted(it) },
+                disabled = state.isLocked
+            ) {
                 this.leaguename = state.leagueName
                 this.week = state.week
                 this.battleIndex = state.battleIndex

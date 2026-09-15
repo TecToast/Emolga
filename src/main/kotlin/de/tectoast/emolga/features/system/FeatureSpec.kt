@@ -6,6 +6,7 @@ sealed class FeatureSpec(open val name: String, val aliases: MutableSet<String> 
     var parentName: String? = null
     val fullName: String get() = parentName?.let { "$it $name" } ?: name
 }
+
 sealed class RegisteredFeatureSpec(name: String) : FeatureSpec(name) {
     var inDM = false
 }

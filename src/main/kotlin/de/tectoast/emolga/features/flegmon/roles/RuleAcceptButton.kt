@@ -22,7 +22,7 @@ class RuleAcceptButton(private val service: RuleAcceptService) :
 
     override val emoji = Emoji.fromUnicode("✅")
 
-    context (iData: InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         val result = service.acceptRules(iData.gid, iData.user, iData.data.memberRoles)
         iData.replyRaw(

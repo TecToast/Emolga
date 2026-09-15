@@ -60,7 +60,7 @@ abstract class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEven
     }
     val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
 
-    context (iData: InteractionData)
+    context(iData: InteractionData)
     abstract suspend fun exec(e: A)
 
     context(iData: InteractionData)

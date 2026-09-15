@@ -228,8 +228,8 @@ open class Arguments : KoinComponent {
 
     fun singleOption() =
         createArg<String, String>(name = "option", help = EmptyMessage, optionType = OptionType.STRING) {
-        spec = SelectMenuArgSpec(1..1)
-    }
+            spec = SelectMenuArgSpec(1..1)
+        }
 
     fun multiOption(range: IntRange) = createArg<List<String>, List<String>>(
         name = "options",

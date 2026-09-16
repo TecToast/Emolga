@@ -24,6 +24,7 @@ import de.tectoast.emolga.features.league.signup.SignoutButton
 import de.tectoast.emolga.features.league.signup.SignupButton
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.K18n_SignupInput
+import de.tectoast.generic.K18n_AlreadySignedUp
 import de.tectoast.generic.K18n_SignupNoun
 import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
@@ -278,6 +279,10 @@ class SignupService(
                 scope.launch { handleSignupChange(leagueSignup, signupEntry) }
                 logoAttachment?.handleLogoOnSignup(entryIdOfFirst, leagueSignup)?.let { return@tx it }
                 return@tx SignupResult.Success(K18n_Signup.DataChangeSuccessful)
+            } else {
+                if (entryIdOfFirst != null) {
+                    return@tx SignupResult.ErrorSignup(K18n_AlreadySignedUp)
+                }
             }
             val messageId = channelInterface.sendMessage(
                 config.signupChannel,

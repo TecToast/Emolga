@@ -44,7 +44,7 @@ class DraftTimerCalculationService(private val dispatcher: DraftTimerDispatcher)
             } else {
                 localDateTime = localDateTime.withSecond(0)
             }
-            localDateTime = plusOneMin
+            localDateTime = localDateTime.plusMinutes(1)
             recheckTimerInfo()
             val currentTimerInfoDelay = currentDelay() ?: return null
             if (currentDelay != currentTimerInfoDelay) {

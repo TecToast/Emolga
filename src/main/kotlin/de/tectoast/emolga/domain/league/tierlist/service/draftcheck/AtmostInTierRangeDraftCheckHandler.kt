@@ -13,6 +13,7 @@ class AtmostInTierRangeDraftCheckHandler : DraftCheckHandler<DraftCheck.AtmostIn
 
     context(data: ValidationRelevantData)
     override suspend fun check(config: DraftCheck.AtmostInTierRange, action: DraftAction): ErrorOrNull {
+        if (action.specifiedTier !in config.tiers) return null
         val countInRange = data.picks.count { pick ->
             pick.tier in config.tiers
         }

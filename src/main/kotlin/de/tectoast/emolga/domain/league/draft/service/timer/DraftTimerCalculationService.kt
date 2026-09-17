@@ -37,14 +37,22 @@ class DraftTimerCalculationService(private val dispatcher: DraftTimerDispatcher)
         var currentDelay = currentDelay() ?: return null
         var minutesToGo: Int = currentDelay
         val initialTimerData = currentTimerInfo[localDateTime.dayOfWeek.value]
-        if (localDateTime.hour.let { hour -> hour < initialTimerData.from || hour >= initialTimerData.to }) {
+        val startingInNight =
+            localDateTime.hour.let { hour -> hour < initialTimerData.from || hour >= initialTimerData.to }
+        if (startingInNight) {
             localDateTime = localDateTime.withSecond(0)
         }
+        var enteredNightPhase = startingInNight
         while (minutesToGo > 0) {
             val p = currentTimerInfo[localDateTime.dayOfWeek.value]
             val plusOneMin = localDateTime.plusMinutes(1)
             if (localDateTime.hour >= p.from && plusOneMin.hour < p.to && localDateTime.hour <= plusOneMin.hour) {
                 minutesToGo--
+            } else {
+                if (!enteredNightPhase) {
+                    minutesToGo--
+                    enteredNightPhase = true
+                }
             }
             localDateTime = plusOneMin
             recheckTimerInfo()

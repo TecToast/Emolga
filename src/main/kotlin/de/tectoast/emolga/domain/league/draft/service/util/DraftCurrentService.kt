@@ -29,11 +29,13 @@ class DraftCurrentService(
             if (hasMovedTurns(idxOfParticipant)) return PickContext.AfterDraftUnordered(idxOfParticipant).success()
             return K18n_League.NoOpenPicks.error()
         }
-        if (!pseudoEnd && config.duringTimerSkipMode == TimerSkipMode.During.Always && idxOfParticipant != null) {
-            if (hasMovedTurns(idxOfParticipant)) return PickContext.InBetweenPick(
-                idxOfParticipant,
-                isActualCurrent = currentIdx == idxOfParticipant
-            ).success()
+        if (!pseudoEnd && config.duringTimerSkipMode == TimerSkipMode.During.Always) {
+            (idxOfParticipant ?: leagueMemberRepo.getSingleParticipantAsSubstitute(leagueName, uid))?.let { idx ->
+                if (hasMovedTurns(idx)) return PickContext.InBetweenPick(
+                    idx,
+                    isActualCurrent = currentIdx == idx
+                ).success()
+            }
         }
         PickContext.RegularTurn(currentIdx).success()
     }

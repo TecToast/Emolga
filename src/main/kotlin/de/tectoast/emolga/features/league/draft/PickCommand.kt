@@ -7,7 +7,6 @@ import de.tectoast.emolga.domain.league.draft.model.core.PickInput
 import de.tectoast.emolga.domain.league.draft.service.core.DraftService
 import de.tectoast.emolga.domain.league.tierlist.model.UpdraftConfig
 import de.tectoast.emolga.domain.league.tierlist.model.config.FreePickTierlistConfig
-import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.league.util.autocomplete.TierAutocompleteService
 import de.tectoast.emolga.features.interaction.InteractionData
@@ -38,7 +37,7 @@ class PickCommand(private val draftService: DraftService) :
             slashCommand(guildChecker = { gid ->
                 if (gid == botConstants.botOwnerGuildId) return@slashCommand ArgumentPresence.OPTIONAL
                 if (tierlistRepo.getAllMetasForGuild(gid)
-                        .any { meta -> meta.config is TierBasedTierlistConfig && meta.config.updraftConfig != UpdraftConfig.Disabled }
+                        .any { meta -> meta.config.updraftConfig != UpdraftConfig.Disabled }
                 ) ArgumentPresence.OPTIONAL
                 else ArgumentPresence.NOT_PRESENT
             }, autocomplete = { query, event ->

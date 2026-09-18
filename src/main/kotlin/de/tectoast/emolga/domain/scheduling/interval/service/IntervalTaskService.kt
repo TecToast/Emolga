@@ -19,7 +19,7 @@ class IntervalTaskService(
 ) : StartupTask {
     val scope = baseScope + CoroutineName("IntervalTaskService")
     private val jobs = ConcurrentHashMap<IntervalTaskKey, Job>()
-    private val tasksById = tasks.associate { it.key to it.provideTask() }
+    private val tasksById = tasks.filter { it.enabled }.associate { it.key to it.provideTask() }
 
     override suspend fun onStartup() {
         tasksById.forEach { (key, task) -> addTask(key, task) }

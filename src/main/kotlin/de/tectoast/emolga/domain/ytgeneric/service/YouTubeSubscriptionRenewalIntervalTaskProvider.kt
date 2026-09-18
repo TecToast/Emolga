@@ -10,6 +10,7 @@ import kotlin.time.Duration.Companion.days
 class YouTubeSubscriptionRenewalIntervalTaskProvider(private val ytSubscriptionStarter: YouTubeSubscriptionStarter) :
     IntervalTaskProvider {
     override val key = IntervalTaskKey("YTSubscriptionsRenewal")
+    override val enabled = false
 
     override fun provideTask() = IntervalTask(
         delay = 4.days,

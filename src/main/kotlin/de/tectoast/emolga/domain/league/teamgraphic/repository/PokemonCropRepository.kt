@@ -7,10 +7,7 @@ import de.tectoast.emolga.domain.league.tierlist.repository.TierlistMetaTable
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
-import kotlinx.coroutines.flow.associate
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.*
@@ -27,24 +24,26 @@ class PokemonCropRepository(
     private val db: R2dbcDatabase,
 ) {
     private val tierlistJoinedTable = TierlistEntryTable.innerJoin(TierlistMetaTable, { this.tierlistId }, { this.id })
+    private val cropJoinedTable = tierlistJoinedTable.leftJoin(PokemonCropTable, additionalConstraint = {
+        (TierlistMetaTable.guild eq PokemonCropTable.guild) and (TierlistEntryTable.showdownId eq PokemonCropTable.showdownId)
+    })
 
-    suspend fun getNewPokemonToCrop(guild: Long, now: Instant) = suspendTransaction(db) {
-        tierlistJoinedTable.leftJoin(PokemonCropTable, additionalConstraint = {
-            (TierlistMetaTable.guild eq PokemonCropTable.guild) and (TierlistEntryTable.showdownId eq PokemonCropTable.showdownId)
-        })
-            .select(
-                TierlistEntryTable.showdownId,
-                PokemonCropTable.guild,
-                PokemonCropTable.wipSince,
-            )
-            .where {
-                TierlistMetaTable.guild eq guild and (PokemonCropTable.guild.isNull() or (PokemonCropTable.wipSince less now
-                    .minus(1.minutes)))
-            }
-            .orderBy(Random())
-            .limit(1)
-            .firstOrNull()?.get(TierlistEntryTable.showdownId)
+    suspend fun getNewPokemonToCrop(guild: Long, now: Instant): ShowdownID? {
+        return suspendTransaction(db) {
+            cropJoinedTable
+                .select(TierlistEntryTable.showdownId)
+                .where {
+                    buildUnfinishedPredicate(guild, now)
+                }
+                .orderBy(Random())
+                .limit(1)
+                .firstOrNull()?.get(TierlistEntryTable.showdownId)
+        }
     }
+
+    private fun buildUnfinishedPredicate(guild: Long, now: Instant): Op<Boolean> =
+        TierlistMetaTable.guild eq guild and (PokemonCropTable.guild.isNull() or (PokemonCropTable.wipSince less now
+            .minus(1.minutes)))
 
     suspend fun getDoneCount(guild: Long) = suspendTransaction(db) {
         PokemonCropTable.selectAll().where { PokemonCropTable.guild eq guild }.count()
@@ -67,6 +66,13 @@ class PokemonCropRepository(
                 )
             }
             .toList()
+    }
+
+    suspend fun getUnfinished(guild: Long, now: Instant): Set<ShowdownID> = suspendTransaction(db) {
+        cropJoinedTable.select(TierlistEntryTable.showdownId)
+            .where { buildUnfinishedPredicate(guild, now) }
+            .map { it[TierlistEntryTable.showdownId] }
+            .toSet()
     }
 
     suspend fun setWIP(guild: Long, showdownId: ShowdownID, now: Instant) = suspendTransaction(db) {

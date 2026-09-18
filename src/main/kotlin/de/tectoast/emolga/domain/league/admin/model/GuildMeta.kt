@@ -9,5 +9,6 @@ data class GuildMeta(
     val name: String,
     val icon: String,
     val runningSignup: Boolean,
-    val teamgraphicShape: TeamgraphicShape? = null
+    val teamgraphicShape: TeamgraphicShape? = null,
+    val teamgraphicPixelated: Boolean? = null
 )

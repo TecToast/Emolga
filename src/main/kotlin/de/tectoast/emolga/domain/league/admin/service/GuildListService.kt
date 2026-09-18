@@ -19,12 +19,14 @@ class GuildListService(
             val icon = guildMetaRepo.getGuildIcon(guildId).orEmpty()
             val hasSignup = signupRepo.hasRunningSignup(guildId)
             val teamgraphicsShape = teamgraphicsMetaRepo.getShape(guildId)
+            val spriteStyle = teamgraphicsMetaRepo.getSpriteStyle(guildId)
             GuildMeta(
                 id = guildId.toString(),
                 name = name,
                 icon = icon,
                 runningSignup = hasSignup,
-                teamgraphicShape = teamgraphicsShape
+                teamgraphicShape = teamgraphicsShape,
+                teamgraphicPixelated = spriteStyle?.nearestNeighborInterpolation
             )
         }
     }

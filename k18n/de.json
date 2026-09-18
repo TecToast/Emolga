@@ -340,6 +340,10 @@
             }
           },
           "various": {
+            "Login_nested": {
+              "Help": "Loggt dich auf der Website ein",
+              "Success": "Klicke auf den folgenden Link, um dich auf der Website einzuloggen:\n{baseUrl}/api/emolga/codelogin?code={code}\n\n-# Gib diesen Link nicht weiter! Mit diesem Link kann man sich in deinem Namen auf der Website einloggen."
+            },
             "GuildAuthorizeSuccess": "Du wurdest für diesen Server auf der Website autorisiert!",
             "GuildAuthorizeMessage": "Hier könnt ihr euch Rechte für die Website holen :)",
             "Nickname_nested": {

@@ -4,9 +4,7 @@ import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.emolga.utils.suspendTransaction
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toSet
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.select
@@ -21,6 +19,15 @@ class GuildManagerRepository(private val db: R2dbcDatabase, private val botConst
         return user == botConstants.botOwnerId || suspendTransaction(db, GuildManagerTable) {
             selectAll().where { (this.guild eq guild) and (this.user eq user) }.count() > 0
         }
+    }
+
+    suspend fun isAuthorizedForLoginCommand(guild: Long, user: Long, roles: Iterable<Long>) = suspendTransaction(
+        db,
+        GuildManagerTable
+    ) {
+        selectAll().where {
+            (this.guild eq guild) and ((this.user eq user) or (this.role inList roles))
+        }.count() > 0
     }
 
 
@@ -54,7 +61,8 @@ class GuildManagerRepository(private val db: R2dbcDatabase, private val botConst
 
 object GuildManagerTable : Table("guild_manager") {
     val guild = long("guild_id")
-    val user = long("user_id")
-    override val primaryKey = PrimaryKey(guild, user)
+    val user = long("user_id").default(0)
+    val role = long("role_id").default(0)
+    override val primaryKey = PrimaryKey(guild, user, role)
 
 }

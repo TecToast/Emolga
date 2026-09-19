@@ -59,22 +59,18 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
         guild: Long,
         leagueName: String,
         userIndex: Int,
-        pokemonId: ShowdownID,
-        tier: String,
-        free: Boolean,
-        noCost: Boolean,
-        tera: Boolean
+        pokemon: DraftPokemon
     ) = suspendTransaction(db) {
         val nextIndex = getNextIndex(leagueName, userIndex)
         LeaguePickTable.insert {
             it[LeaguePickTable.leagueName] = leagueName
             it[LeaguePickTable.userIndex] = userIndex
             it[LeaguePickTable.pickIndex] = nextIndex
-            it[LeaguePickTable.showdownId] = pokemonId
-            it[LeaguePickTable.tier] = tier
-            it[LeaguePickTable.freePick] = free
-            it[LeaguePickTable.noCost] = noCost
-            it[LeaguePickTable.tera] = tera
+            it[LeaguePickTable.showdownId] = pokemon.showdownId
+            it[LeaguePickTable.tier] = pokemon.tier
+            it[LeaguePickTable.freePick] = pokemon.free
+            it[LeaguePickTable.noCost] = pokemon.noCost
+            it[LeaguePickTable.tera] = pokemon.tera
         }
         nextIndex
     }.also { picksModifiedFlow.tryEmit(guild) }

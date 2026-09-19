@@ -78,7 +78,8 @@ class DraftValidationService(
                     it,
                     saveTier
                 )
-            }
+            },
+            currentPicks = picks
         ).success()
     }
 
@@ -110,7 +111,8 @@ class DraftValidationService(
             saveTier = tierData.specified,
             freePick = false,
             updrafted = false,
-            points = null
+            points = null,
+            currentPicks = picks
         ).success()
     }
 
@@ -133,7 +135,13 @@ class DraftValidationService(
         banRoundConfigDispatcher.checkBan(banRoundConfig, tier, leagueData.alreadyBannedMonsThisRound)?.let { reason ->
             return reason.error()
         }
-        return ValidationSuccess(saveTier = tier, freePick = false, updrafted = false, points = null).success()
+        return ValidationSuccess(
+            saveTier = tier,
+            freePick = false,
+            updrafted = false,
+            points = null,
+            currentPicks = emptyList()
+        ).success()
     }
 }
 

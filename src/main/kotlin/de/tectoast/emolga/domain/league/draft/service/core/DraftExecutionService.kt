@@ -9,6 +9,8 @@ import de.tectoast.emolga.domain.league.draft.util.getDisplayName
 import de.tectoast.emolga.domain.league.queue.model.QueuePicksUserData
 import de.tectoast.emolga.domain.league.queue.repository.QueuedPicksRepository
 import de.tectoast.emolga.domain.league.queue.service.QueuedPicksProvider
+import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
+import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierBasedTierlistActionDispatcher
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.league.K18n_League
@@ -34,6 +36,7 @@ class DraftExecutionService(
     private val queuedPicksRepo: QueuedPicksRepository,
     private val displayService: PokemonDisplayService,
     private val queuedPicksProvider: QueuedPicksProvider,
+    private val tierBasedTierlistActionDispatcher: TierBasedTierlistActionDispatcher,
     private val clock: Clock
 ) {
     suspend fun processDraftInput(
@@ -313,6 +316,12 @@ class DraftExecutionService(
         input.freesPokemon?.let { remove(it) }
     }
 
+    private fun DraftRunContext.getTierInsertIndex(picks: List<DraftPokemon>): Int {
+        val tlConfig = this.tierlistMeta.config
+        if (tlConfig !is TierBasedTierlistConfig) return 0
+        return tierBasedTierlistActionDispatcher.getTierInsertIndex(tlConfig, picks)
+    }
+
     private suspend fun handleSingleInput(
         ctx: DraftRunContext,
         input: DraftInput,
@@ -324,16 +333,20 @@ class DraftExecutionService(
         val idx = ctx.activeIdx
         return when (input) {
             is PickInput -> {
+                val newMon = DraftPokemon(
+                    showdownId = input.pokemon,
+                    tier = validatedData.saveTier,
+                    free = validatedData.freePick,
+                    noCost = input.noCost,
+                    tera = input.tera
+                )
                 val pickIndex = picksRepo.saveNewPick(
                     ctx.league.guild,
                     ctx.league.leagueName,
                     idx,
-                    input.pokemon,
-                    validatedData.saveTier,
-                    validatedData.freePick,
-                    input.noCost,
-                    input.tera
+                    newMon
                 )
+                val newPicks = validatedData.currentPicks + newMon
                 val forRound = timerSkipModeDispatcher.getPickRound(ctx)
                 val data = PickData(
                     userIndex = idx,
@@ -346,7 +359,8 @@ class DraftExecutionService(
                     free = validatedData.freePick,
                     updrafted = validatedData.updrafted,
                     tera = input.tera,
-                    points = validatedData.points
+                    points = validatedData.points,
+                    tierInsertIndex = ctx.getTierInsertIndex(newPicks)
                 )
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
@@ -383,6 +397,10 @@ class DraftExecutionService(
                     tier = validatedData.saveTier,
                     roundIndex = forRound - 1,
                     indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
+                    tierInsertIndex = ctx.getTierInsertIndex(validatedData.currentPicks.filter { !it.quit && it.showdownId != input.oldmon } + DraftPokemon(
+                        input.pokemon,
+                        validatedData.saveTier
+                    )),
                     oldTlName = displayService.getDisplayName(input.oldmon, ctx),
                     oldShowdownId = input.oldmon
                 )
@@ -412,6 +430,7 @@ class DraftExecutionService(
                     tier = validatedData.saveTier,
                     roundIndex = forRound - 1,
                     indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
+                    tierInsertIndex = 0
                 )
                 leagueData.draftData.draftBan.bannedMons.getOrPut(leagueData.round) { mutableSetOf() }.add(
                     DraftPokemon(
@@ -457,6 +476,7 @@ private abstract class DraftData(
     val tier: String,
     private val roundIndex: Int,
     private val indexInRound: Int,
+    private val tierInsertIndex: Int
 ) : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
@@ -467,6 +487,7 @@ private abstract class DraftData(
             TIER -> tier
             ROUND_INDEX -> roundIndex
             INDEX_IN_ROUND -> indexInRound
+            TIER_INSERT_INDEX -> tierInsertIndex
             else -> resolveSpecific(variable)
         }
         if (clazz != String::class)
@@ -484,6 +505,7 @@ private abstract class DraftData(
         const val TIER = "TIER"
         const val ROUND_INDEX = "ROUND_INDEX"
         const val INDEX_IN_ROUND = "INDEX_IN_ROUND"
+        const val TIER_INSERT_INDEX = "TIER_INSERT_INDEX"
     }
 }
 
@@ -495,11 +517,12 @@ private class PickData(
     tier: String,
     roundIndex: Int,
     indexInRound: Int,
+    tierInsertIndex: Int,
     val free: Boolean,
     val updrafted: Boolean,
     val tera: Boolean,
     val points: Int?
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
     override fun resolveSpecific(variable: String): Any {
         return when (variable) {
             "FREE" -> free
@@ -531,9 +554,10 @@ private class SwitchData(
     tier: String,
     roundIndex: Int,
     indexInRound: Int,
+    tierInsertIndex: Int,
     val oldTlName: String,
     val oldShowdownId: ShowdownID
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
     override fun resolveSpecific(variable: String): Any {
         return when (variable) {
             OLD_TL_NAME -> oldTlName
@@ -560,8 +584,9 @@ private class BanData(
     showdownId: ShowdownID,
     tier: String,
     roundIndex: Int,
-    indexInRound: Int
-) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound) {
+    indexInRound: Int,
+    tierInsertIndex: Int
+) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
     override fun resolveSpecific(variable: String): Any {
         throw IllegalArgumentException("No specific variables for BanData (trying $variable)")
     }

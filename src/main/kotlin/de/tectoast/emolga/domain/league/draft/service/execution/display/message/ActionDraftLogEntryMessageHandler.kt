@@ -32,7 +32,7 @@ class ActionDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEn
             when (origin) {
                 DraftActionOrigin.REGULAR -> {}
                 DraftActionOrigin.QUEUE -> {
-                    append(" \uD83D\uDD17")
+                    append(" \uD83D\uDC0D")
                 }
 
                 DraftActionOrigin.RANDOM -> {

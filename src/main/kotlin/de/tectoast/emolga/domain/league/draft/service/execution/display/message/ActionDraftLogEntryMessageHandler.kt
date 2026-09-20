@@ -29,6 +29,7 @@ class ActionDraftLogEntryMessageHandler : DraftLogEntryMessageHandler<DraftLogEn
             append(actionText)
             showTier?.let { append(" ($it)") }
             if (forRound != null) append(" [-> $forRound]")
+            if (input.pokemon.value == "emolga") append(" <:happy:1497617238310785175>")
             when (origin) {
                 DraftActionOrigin.REGULAR -> {}
                 DraftActionOrigin.QUEUE -> {

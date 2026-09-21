@@ -6,13 +6,15 @@ import de.tectoast.emolga.domain.league.draft.model.core.DraftPokemon
 import de.tectoast.emolga.domain.league.tierlist.model.config.TierBasedTierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierBasedTierlistActionDispatcher
+import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierlistActionDispatcher
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import org.koin.core.annotation.Single
 
 @Single
 class TierSortedMonsDocOrderHandler(
     private val tierlistRepo: TierlistRepository,
-    private val tierlistActionDispatcher: TierBasedTierlistActionDispatcher
+    private val tierBasedDispatcher: TierBasedTierlistActionDispatcher,
+    private val generalDispatcher: TierlistActionDispatcher,
 ) : MonsDocOrderHandler<MonsDocOrderConfig.TierSorted> {
     override val targetClass = MonsDocOrderConfig.TierSorted::class
 
@@ -21,7 +23,10 @@ class TierSortedMonsDocOrderHandler(
     ): List<ShowdownID> {
         val tierlistConfig =
             tierlistRepo.getMeta(guild, leagueConfig.tlIdentifier)?.config ?: return picks.map { it.showdownId }
-        if (tierlistConfig !is TierBasedTierlistConfig) return picks.map { it.showdownId }
-        return tierlistActionDispatcher.getSortedPicks(tierlistConfig, picks).map { it.showdownId }
+        if (tierlistConfig !is TierBasedTierlistConfig) {
+            val tierOrder = generalDispatcher.getTiers(tierlistConfig)
+            return picks.sortedBy { tierOrder.indexOf(it.tier) }.map { it.showdownId }
+        }
+        return tierBasedDispatcher.getSortedPicks(tierlistConfig, picks).map { it.showdownId }
     }
 }

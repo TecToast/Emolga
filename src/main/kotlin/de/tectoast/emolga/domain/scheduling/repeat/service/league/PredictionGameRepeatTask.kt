@@ -65,7 +65,7 @@ class PredictionGameRepeatTask(
         scheduler.schedule(
             RepeatTask(
                 RepeatTaskType.PredictionGameLeaderboard(leagueName),
-                lastSending + interval,
+                lastSending + (leaderboardConfig.intervalAfterSend ?: interval),
                 amount,
                 interval,
                 skipFirstN = skipFirstN

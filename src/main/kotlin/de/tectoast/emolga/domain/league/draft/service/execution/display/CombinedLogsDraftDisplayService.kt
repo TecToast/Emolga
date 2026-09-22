@@ -18,6 +18,7 @@ import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
 import de.tectoast.emolga.league.K18n_League
+import de.tectoast.emolga.utils.BotConstants
 import de.tectoast.generic.K18n_MadeUpFor
 import de.tectoast.generic.K18n_Round
 import de.tectoast.k18n.generated.K18nLanguage
@@ -25,6 +26,8 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import net.dv8tion.jda.api.exceptions.ErrorResponseException
+import net.dv8tion.jda.api.requests.ErrorResponse
 import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 
@@ -38,6 +41,7 @@ class CombinedLogsDraftDisplayService(
     private val leagueMemberRepository: LeagueMemberRepository,
     private val pokemonDisplayService: PokemonDisplayService,
     private val draftLogEntryMessageDispatcher: DraftLogEntryMessageDispatcher,
+    private val botConstants: BotConstants,
     baseScope: CoroutineScope
 ) : DraftDisplayService, KoinComponent {
     val scope = baseScope + CoroutineName("DraftDisplayService")
@@ -70,12 +74,23 @@ class CombinedLogsDraftDisplayService(
             val roundMessage = if (round <= maxRound) "$roundBase $round" else K18n_MadeUpFor.translateTo(language)
             val fullMessage = "# $roundMessage\n$logContent"
             val messageId = messageIds[round]
-            if (messageId != null) {
-                channelInterface.editMessage(draftChannel, messageId, fullMessage)
-            } else {
-                channelInterface.sendMessage(draftChannel, fullMessage)?.let {
+            suspend fun sendDraftLogMessage() {
+                channelInterface.sendMessage(draftChannel, fullMessage, mentionUsers = listOf(0L))?.let {
                     draftLogMessageIdRepository.setMessageId(leagueName, session, round, it)
                 }
+            }
+            if (messageId != null) {
+                try {
+                    channelInterface.editMessage(draftChannel, messageId, fullMessage)
+                } catch (e: ErrorResponseException) {
+                    if (e.errorResponse == ErrorResponse.UNKNOWN_MESSAGE) {
+                        sendDraftLogMessage()
+                    } else {
+                        throw e
+                    }
+                }
+            } else {
+                sendDraftLogMessage()
             }
         }
 

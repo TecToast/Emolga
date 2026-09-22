@@ -64,12 +64,12 @@ class JDAChannelInterface(private val jda: JDA) : ChannelInterface {
         channelId: Long, messageId: Long, message: MessageEditData
     ) {
         val channel = jda.getTextChannelById(channelId)
-        channel?.editMessageById(messageId, message)?.queue()
+        channel?.editMessageById(messageId, message)?.await()
     }
 
     override suspend fun deleteMessage(channelId: Long, messageId: Long) {
         val channel = jda.getTextChannelById(channelId)
-        channel?.deleteMessageById(messageId)?.queue()
+        channel?.deleteMessageById(messageId)?.await()
     }
 }
 

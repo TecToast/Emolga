@@ -146,6 +146,7 @@ class CombinedLogsDraftDisplayService(
         pokemonDisplayFn: suspend (ShowdownID) -> String
     ): String {
         val pingPart = idxToIds[idx]?.joinToString { "<@${it}>" } ?: "N/A"
-        return draftLogEntryMessageDispatcher.createMessage(entry, pingPart, pokemonDisplayFn).translateTo(language)
+        return draftLogEntryMessageDispatcher.createMessage(entry, pingPart, pokemonDisplayFn)
+            .translateTo(language) + " <t:${entry.timestamp.epochSeconds}:s>"
     }
 }

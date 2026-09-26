@@ -10,7 +10,7 @@ import org.koin.core.annotation.Single
 @Single
 class TeamGraphicUpdateService(
     private val teamGraphicRepo: TeamGraphicRepository,
-    private val teamGraphicGenerator: TeamGraphicGenerator,
+    private val teamGraphicManager: TeamGraphicManager,
     baseScope: CoroutineScope
 ) {
     private val scope = baseScope + CoroutineName("TeamGraphicUpdateService")
@@ -19,7 +19,7 @@ class TeamGraphicUpdateService(
             ?: return null
         scope.launch {
             val (leagueName, idx) = result
-            teamGraphicGenerator.editTeamGraphicForLeague(leagueName, idx)
+            teamGraphicManager.updateSingleTeamGraphic(leagueName, idx)
         }
         return Unit
     }

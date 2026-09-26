@@ -10,10 +10,10 @@ data class TeamGraphicUserNameSettings(
     fun formatUserName(userName: String): String {
         var formattedName = userName
         for (removeString in removeStrings) {
-            formattedName = formattedName.replace(removeString, "")
+            formattedName = formattedName.replace(Regex(removeString), "")
         }
         for ((key, value) in replaceStrings) {
-            formattedName = formattedName.replace(key, value)
+            formattedName = formattedName.replace(Regex(key), value)
         }
         return formattedName
     }

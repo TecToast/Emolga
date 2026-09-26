@@ -4,6 +4,7 @@ import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.liveteam.repository.LiveTeamRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
+import de.tectoast.emolga.domain.league.teamgraphic.model.TeamGraphicParameters
 import de.tectoast.emolga.domain.league.teamgraphic.service.DynamicTeamGraphicService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,7 +27,7 @@ class LiveTeamService(
         if (numRaw < 0) {
             if (style.individualBackgrounds) return null
             return withContext(Dispatchers.IO) {
-                Files.readAllBytes(Path(style.backgroundPath(leaguename)))
+                Files.readAllBytes(Path(style.backgroundPath(TeamGraphicParameters(leagueName = leaguename))))
             }
         }
         val num = numRaw / 2

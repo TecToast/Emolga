@@ -1,26 +1,17 @@
 package de.tectoast.emolga.domain.league.teamgraphic.service
 
-import de.tectoast.emolga.discord.ChannelInterface
-import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
-import de.tectoast.emolga.domain.league.teamgraphic.model.DrawData
-import de.tectoast.emolga.domain.league.teamgraphic.model.TeamData
-import de.tectoast.emolga.domain.league.teamgraphic.model.TeamGraphicStyle
-import de.tectoast.emolga.domain.league.teamgraphic.model.TeamgraphicSpriteStyle
+import de.tectoast.emolga.domain.league.teamgraphic.model.*
 import de.tectoast.emolga.domain.league.teamgraphic.repository.PokemonCropRepository
 import de.tectoast.emolga.domain.league.teamgraphic.repository.TeamGraphicMetaRepository
-import de.tectoast.emolga.domain.league.teamgraphic.repository.TeamGraphicRepository
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
-import de.tectoast.emolga.utils.joinToTeammates
 import de.tectoast.emolga.utils.newThreadSafeCache
 import de.tectoast.emolga.utils.teamgraphics.ImageUtils
-import dev.minn.jda.ktx.messages.MessageCreate
-import dev.minn.jda.ktx.messages.MessageEdit
-import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.FileUpload
 import org.koin.core.annotation.Single
+import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Shape
@@ -34,73 +25,15 @@ import kotlin.math.min
 
 @Single
 class TeamGraphicGenerator(
-    private val leagueConfigRepo: LeagueConfigRepository,
-    private val teamDataCreationService: TeamDataCreationService,
     private val metaRepo: TeamGraphicMetaRepository,
-    private val teamgraphicRepo: TeamGraphicRepository,
     private val cropRepo: PokemonCropRepository,
     private val pokedexRepo: PokedexRepository,
-    private val channelInterface: ChannelInterface
 ) {
     private val logger = KotlinLogging.logger {}
 
     data class Options(val blankBackground: Boolean = false)
 
-    private suspend fun getTeamGraphicStyleOfLeague(leagueName: String): TeamGraphicStyle {
-        return leagueConfigRepo.getConfig(leagueName).teamgraphics?.style!!
-    }
 
-    private suspend fun generateForLeague(
-        leagueName: String, style: TeamGraphicStyle? = null
-    ): List<Pair<TeamData, BufferedImage>> {
-        val teamDataList = teamDataCreationService.allFromLeague(leagueName)
-        val style = style ?: getTeamGraphicStyleOfLeague(leagueName)
-        return teamDataList.map { teamData ->
-            logger.info { "Generating team graphic for ${teamData.teamOwner ?: "Unknown Owner"}" }
-            teamData to generate(teamData, style)
-        }
-    }
-
-    suspend fun generateAndSendForLeague(leagueName: String, channelId: Long, style: TeamGraphicStyle? = null) {
-        teamgraphicRepo.setChannelId(leagueName, channelId)
-        for ((idx, data) in generateForLeague(leagueName, style).withIndex()) {
-            val (teamData, image) = data
-            val id = channelInterface.sendMessage(
-                channelId,
-                MessageCreate(
-                    teamData.users.joinToTeammates(),
-                    files = image.toFileUpload().into()
-                )
-            )
-            if (id != null)
-                teamgraphicRepo.setMessageId(leagueName, idx, id)
-        }
-    }
-
-    suspend fun generateAndStoreInFS(leagueName: String, style: TeamGraphicStyle?) {
-        val targetDir = File("/teamgraphics/generated/${leagueName}")
-        targetDir.mkdirs()
-        withContext(Dispatchers.IO) {
-            generateForLeague(leagueName, style).forEachIndexed { index, (_, image) ->
-                ImageIO.write(image, "png", targetDir.resolve("$index.png"))
-            }
-        }
-    }
-
-    suspend fun editTeamGraphicForLeague(leagueName: String, idx: Int, style: TeamGraphicStyle? = null) {
-        val teamData = teamDataCreationService.singleFromLeague(leagueName, idx)
-        val tcid = teamgraphicRepo.getChannelId(leagueName) ?: return
-        val msgid = teamgraphicRepo.getMessageId(leagueName, idx) ?: return
-        val style = style ?: getTeamGraphicStyleOfLeague(leagueName)
-        channelInterface.editMessage(
-            channelId = tcid,
-            messageId = msgid,
-            MessageEdit(
-                content = teamData.users.joinToTeammates(),
-                files = generate(teamData, style).toFileUpload().into()
-            )
-        )
-    }
 
     suspend fun generate(
         teamData: TeamData, style: TeamGraphicStyle, options: Options = Options()
@@ -154,7 +87,8 @@ class TeamGraphicGenerator(
         style: TeamGraphicStyle,
         options: Options
     ): BufferedImage {
-        val bgPath = style.backgroundPath(leaguename, idx)
+        val parameters = TeamGraphicParameters(leaguename, idx)
+        val bgPath = style.backgroundPath(parameters)
         val backgroundImage = loadImageForBase(bgPath)
         val image = if (options.blankBackground && !style.individualBackgrounds) {
             BufferedImage(backgroundImage.width, backgroundImage.height, BufferedImage.TYPE_INT_ARGB)
@@ -164,16 +98,20 @@ class TeamGraphicGenerator(
         val g2d = image.createGraphics()
         val spriteStyle = metaRepo.getSpriteStyle(style.guild) ?: TeamgraphicSpriteStyle.SUGIMORI
         g2d.setCommonRenderingHints(spriteStyle.nearestNeighborInterpolation)
-        g2d.drawOptionalText(teamOwner?.let {
-            style.userNameSettings.formatUserName(it)
-        }, style.playerText)
-        g2d.drawOptionalText(teamName, style.teamnameText)
+        with(style) {
+            with(parameters) {
+                g2d.drawOptionalText(teamOwner?.let {
+                    style.userNameSettings.formatUserName(it)
+                }, style.playerText)
+                g2d.drawOptionalText(teamName, style.teamnameText)
+            }
+        }
         g2d.drawMons(
             monData,
             style,
             spriteStyle
         )
-        style.overlayPath(leaguename, idx)?.let {
+        style.overlayPath(parameters)?.let {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
         g2d.drawLogo(
@@ -197,7 +135,8 @@ class TeamGraphicGenerator(
         this.drawImage(logo, x, y, newWidth, newHeight, null)
     }
 
-    private fun Graphics2D.drawOptionalText(
+    context(style: TeamGraphicStyle, parameters: TeamGraphicParameters)
+    private suspend fun Graphics2D.drawOptionalText(
         text: String?, settings: TeamGraphicStyle.TextProperties?
     ) {
         if (text != null && settings != null) {
@@ -205,13 +144,14 @@ class TeamGraphicGenerator(
         }
     }
 
-    private fun Graphics2D.drawText(text: String, settings: TeamGraphicStyle.TextProperties) {
+    context(style: TeamGraphicStyle, parameters: TeamGraphicParameters)
+    private suspend fun Graphics2D.drawText(text: String, settings: TeamGraphicStyle.TextProperties) {
         this.font = settings.font
         while (this.fontMetrics.stringWidth(text) > (settings.maxSize ?: Int.MAX_VALUE)) {
             val newSize = this.font.size2D - 1f
             this.font = this.font.deriveFont(newSize)
         }
-        this.color = settings.fontColor
+        this.color = settings.fontColor.toColor()
         val (x, y) = settings.orientation.calculateTextCoordinates(
             this, text, settings.xCoord, settings.yCoord
         )
@@ -224,6 +164,18 @@ class TeamGraphicGenerator(
         }
 
         this.drawString(text, x, y)
+    }
+
+    context(style: TeamGraphicStyle, parameters: TeamGraphicParameters)
+    suspend fun FontColorProvider.toColor(): Color {
+        return when (this) {
+            is FontColorProvider.Fixed -> this.color
+            is FontColorProvider.FromOverlay -> {
+                val overlayPath = style.overlayPath(parameters) ?: return Color(0, 0, 0, 0)
+                val overlayImage = fromCacheOrLoad(overlayPath)
+                Color(overlayImage.getRGB(this.xCoord, this.yCoord))
+            }
+        }
     }
 
     private val pathCache = newThreadSafeCache<String, String>(1000)

@@ -23,17 +23,17 @@ data class TeamGraphicStyle(
     val userNameSettings: TeamGraphicUserNameSettings = TeamGraphicUserNameSettings()
 ) {
 
-    fun backgroundPath(leagueName: String? = null, idx: Int? = null): String {
-        return backgroundPathTemplate.applyTemplate(leagueName, idx)
+    fun backgroundPath(parameters: TeamGraphicParameters): String {
+        return backgroundPathTemplate.applyTemplate(parameters)
     }
 
-    fun overlayPath(leagueName: String? = null, idx: Int? = null): String? {
-        return overlayPathTemplate?.applyTemplate(leagueName, idx)
+    fun overlayPath(parameters: TeamGraphicParameters): String? {
+        return overlayPathTemplate?.applyTemplate(parameters)
     }
 
-    private fun String.applyTemplate(leagueName: String? = null, idx: Int? = null): String {
-        return replace("{leagueName}", leagueName ?: "")
-            .replace("{idx}", idx?.toString() ?: "")
+    private fun String.applyTemplate(parameters: TeamGraphicParameters): String {
+        return replace("{leagueName}", parameters.leagueName ?: "")
+            .replace("{idx}", parameters.idx?.toString() ?: "")
     }
 
     @Serializable
@@ -48,7 +48,7 @@ data class TeamGraphicStyle(
     @Serializable
     data class TextProperties(
         val fontPath: String,
-        @Serializable(with = ColorSerializer::class) val fontColor: Color,
+        val fontColor: FontColorProvider,
         val fontSize: Float,
         val xCoord: Int,
         val yCoord: Int,

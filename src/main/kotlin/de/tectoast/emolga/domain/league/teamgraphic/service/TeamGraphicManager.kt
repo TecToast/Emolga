@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.teamgraphic.service
 
 import de.tectoast.emolga.discord.ChannelInterface
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
+import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.teamgraphic.model.TeamData
 import de.tectoast.emolga.domain.league.teamgraphic.model.TeamGraphicStyle
 import de.tectoast.emolga.domain.league.teamgraphic.repository.TeamGraphicRepository
@@ -10,16 +11,19 @@ import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.MessageEdit
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import org.koin.core.annotation.Single
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.time.Duration.Companion.seconds
 
 @Single
 class TeamGraphicManager(
     private val teamDataCreationService: TeamDataCreationService,
+    private val leagueCoreRepo: LeagueCoreRepository,
     private val leagueConfigRepo: LeagueConfigRepository,
     private val teamgraphicRepo: TeamGraphicRepository,
     private val channelInterface: ChannelInterface,
@@ -36,6 +40,17 @@ class TeamGraphicManager(
         return teamDataList.map { teamData ->
             logger.info { "Generating team graphic for ${teamData.teamOwner ?: "Unknown Owner"}" }
             teamData to generator.generate(teamData, style)
+        }
+    }
+
+    suspend fun generateAndSendInDraftChannels(guild: Long) {
+        val leagues = leagueCoreRepo.getAllScalarLeagueData(guild)
+        for (league in leagues) {
+            val channel = league.draftChannel ?: continue
+            val leagueName = league.leagueName
+            logger.info { "Generating and sending team graphics for league $leagueName in channel $channel" }
+            generateAndSendForLeague(leagueName, channel)
+            delay(10.seconds)
         }
     }
 

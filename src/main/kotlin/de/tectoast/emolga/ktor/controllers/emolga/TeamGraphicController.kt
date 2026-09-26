@@ -20,7 +20,7 @@ class TeamGraphicController(private val service: SingleTeamGraphicService) : Emo
             val mons = call.queryParameters["mons"]?.toIntOrNull()
             val result = service.getSingleTeamGraphic(token, idx, mons)
             if (result != null) {
-                call.respondBytes(result, contentType = ContentType.Image.PNG)
+                call.respondBytes(result, contentType = ContentType.Image.WEBP)
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }

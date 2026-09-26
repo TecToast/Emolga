@@ -1,5 +1,7 @@
 package de.tectoast.emolga.domain.league.liveteam.service
 
+import com.sksamuel.scrimage.ImmutableImage
+import com.sksamuel.scrimage.webp.WebpWriter
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.liveteam.repository.LiveTeamRepository
@@ -9,8 +11,7 @@ import de.tectoast.emolga.domain.league.teamgraphic.service.DynamicTeamGraphicSe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
-import java.nio.file.Files
-import kotlin.io.path.Path
+import java.io.File
 import kotlin.uuid.Uuid
 
 @Single
@@ -27,7 +28,9 @@ class LiveTeamService(
         if (numRaw < 0) {
             if (style.individualBackgrounds) return null
             return withContext(Dispatchers.IO) {
-                Files.readAllBytes(Path(style.backgroundPath(TeamGraphicParameters(leagueName = leaguename))))
+                ImmutableImage.loader()
+                    .fromFile(File(style.backgroundPath(TeamGraphicParameters(leagueName = leaguename))))
+                    .bytes(WebpWriter())
             }
         }
         val num = numRaw / 2

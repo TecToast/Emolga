@@ -16,12 +16,13 @@ class LiveTeamController(private val service: LiveTeamService) : EmolgaWebContro
     override fun Route.setup() {
         get("/liveteam") {
             val token = Uuid.parseHexDashOrNull(call.requireQueryParameter("token")) ?: return@get call.bad()
+            val numRaw = call.requireQueryParameter("num").toIntOrNull() ?: return@get call.bad()
             val result = service.getLiveTeamGraphic(
                 token,
-                call.requireQueryParameter("num").toIntOrNull() ?: return@get call.bad()
+                numRaw
             )
             if (result != null) {
-                call.respondBytes(result, contentType = ContentType.Image.PNG)
+                call.respondBytes(result, contentType = ContentType.Image.WEBP)
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }

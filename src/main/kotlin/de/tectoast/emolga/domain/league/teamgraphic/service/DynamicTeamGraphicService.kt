@@ -1,11 +1,11 @@
 package de.tectoast.emolga.domain.league.teamgraphic.service
 
+import com.sksamuel.scrimage.ImmutableImage
+import com.sksamuel.scrimage.webp.WebpWriter
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.draft.repository.LeaguePickRepository
 import de.tectoast.emolga.utils.newThreadSafeCache
 import org.koin.core.annotation.Single
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
 
 @Single
 class DynamicTeamGraphicService(
@@ -27,10 +27,7 @@ class DynamicTeamGraphicService(
                 leagueConfigRepo.getConfig(leagueName).teamgraphics?.style ?: return null,
                 TeamGraphicGenerator.Options(blankBackground)
             )
-            ByteArrayOutputStream().use {
-                ImageIO.write(img, "png", it)
-                it.toByteArray()
-            }
+            ImmutableImage.fromAwt(img).bytes(WebpWriter())
         }
     }
 }

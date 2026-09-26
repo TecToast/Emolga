@@ -20,6 +20,7 @@ mockk = "1.14.11"
 r2dbc-pool = "1.0.2.RELEASE"
 r2dbc-postgresql = "1.1.3.RELEASE"
 r2dbc-spi = "1.0.0.RELEASE"
+scrimage = "4.6.8"
 serialization-json = "1.11.0"
 slf4j = "2.0.20"
 
@@ -75,6 +76,8 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 r2dbc-spi = { module = "io.r2dbc:r2dbc-spi", version.ref = "r2dbc-spi" }
+scrimage-core = { module = "com.sksamuel.scrimage:scrimage-core", version.ref = "scrimage" }
+scrimage-webp = { module = "com.sksamuel.scrimage:scrimage-webp", version.ref = "scrimage" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 
 [bundles]
@@ -121,6 +124,10 @@ logging = [
     "logback-classic",
     "loki-logback-appender",
     "slf4j-api",
+]
+scrimage = [
+    "scrimage-core",
+    "scrimage-webp",
 ]
 testing = [
     "kotest-assertions-core",

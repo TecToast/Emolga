@@ -92,6 +92,9 @@ dependencies {
     // Ktor
     implementation(libs.bundles.ktor)
 
+    // Image manipulation
+    implementation(libs.bundles.scrimage)
+
     // Utils
     implementation(libs.jsoup)
 

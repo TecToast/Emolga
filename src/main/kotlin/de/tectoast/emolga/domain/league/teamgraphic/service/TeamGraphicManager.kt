@@ -36,7 +36,7 @@ class TeamGraphicManager(
         leagueName: String, style: TeamGraphicStyle? = null
     ): List<Pair<TeamData, BufferedImage>> {
         val teamDataList = teamDataCreationService.allFromLeague(leagueName)
-        val style = style ?: getTeamGraphicStyleOfLeague(leagueName)
+        val style = style ?: getTeamGraphicStyleOfLeague(leagueName) ?: return emptyList()
         return teamDataList.map { teamData ->
             logger.info { "Generating team graphic for ${teamData.teamOwner ?: "Unknown Owner"}" }
             teamData to generator.generate(teamData, style)
@@ -84,7 +84,7 @@ class TeamGraphicManager(
         val teamData = teamDataCreationService.singleFromLeague(leagueName, idx)
         val tcid = teamgraphicRepo.getChannelId(leagueName) ?: return
         val msgid = teamgraphicRepo.getMessageId(leagueName, idx) ?: return
-        val style = style ?: getTeamGraphicStyleOfLeague(leagueName)
+        val style = style ?: getTeamGraphicStyleOfLeague(leagueName) ?: return
         channelInterface.editMessage(
             channelId = tcid,
             messageId = msgid,
@@ -95,7 +95,7 @@ class TeamGraphicManager(
         )
     }
 
-    private suspend fun getTeamGraphicStyleOfLeague(leagueName: String): TeamGraphicStyle {
-        return leagueConfigRepo.getConfig(leagueName).teamgraphics?.style!!
+    private suspend fun getTeamGraphicStyleOfLeague(leagueName: String): TeamGraphicStyle? {
+        return leagueConfigRepo.getConfig(leagueName).teamgraphics?.style
     }
 }

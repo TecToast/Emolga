@@ -6,6 +6,7 @@ import de.tectoast.emolga.discord.GuildMemberRepository
 import de.tectoast.emolga.discord.editMessage
 import de.tectoast.emolga.discord.sendMessage
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.league.showdownnames.service.ShowdownNameInsertService
 import de.tectoast.emolga.domain.league.signup.model.*
 import de.tectoast.emolga.domain.league.signup.model.form.*
@@ -57,6 +58,7 @@ class SignupService(
     private val youTubeChannelsRepository: YouTubeChannelsRepository,
     private val messageSyncWorker: SignupMessageSyncWorker,
     private val ytChannelIdService: YouTubeChannelIdService,
+    private val eventBus: EventBus,
     baseScope: CoroutineScope,
 ) : KoinComponent {
 
@@ -355,7 +357,9 @@ class SignupService(
         val signup = signupRepo.getLeagueSignupOfUser(guild, userId) ?: return K18n_Signup.NotSignedUp.error()
         val (entryId, _) = signupRepo.getSignupEntryByUserId(signup.id, userId)
             ?: return K18n_Signup.NotSignedUp.error()
-        return insertLogo(entryId, logo, signup).map { K18n_Logo.Success }
+        insertLogo(entryId, logo, signup).getOrReturn { return it }
+        eventBus.emit(LogoChangedEvent(guild, userId))
+        return K18n_Logo.Success.success()
     }
 
     private suspend fun insertLogo(entryId: Int, logo: FileSubmission, leagueSignup: LeagueSignup): CalcResult<Unit> =

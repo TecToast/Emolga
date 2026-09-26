@@ -1,8 +1,9 @@
 package de.tectoast.emolga.domain.league.draft.repository
 
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.league.core.repository.referencesLeagueName
 import de.tectoast.emolga.domain.league.draft.model.core.DraftPokemon
-import de.tectoast.emolga.domain.league.draft.service.core.PicksModifiedFlow
+import de.tectoast.emolga.domain.league.draft.model.core.PicksModifiedEvent
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.model.showdownIDColumn
 import de.tectoast.emolga.domain.pokemon.repository.referencesPokedex
@@ -18,7 +19,7 @@ import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.koin.core.annotation.Single
 
 @Single
-class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModifiedFlow: PicksModifiedFlow) {
+class LeaguePickRepository(private val db: R2dbcDatabase, private val eventBus: EventBus) {
     suspend fun getPicksForUser(leagueName: String, userIndex: Int) = suspendTransaction(db) {
         LeaguePickTable.selectAll()
             .where { (LeaguePickTable.leagueName eq leagueName) and (LeaguePickTable.userIndex eq userIndex) }
@@ -73,7 +74,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
             it[LeaguePickTable.tera] = pokemon.tera
         }
         nextIndex
-    }.also { picksModifiedFlow.tryEmit(guild) }
+    }.also { eventBus.emit(PicksModifiedEvent(guild)) }
 
 
     suspend fun saveSwitch(
@@ -105,7 +106,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
             }
             nextIndex
         }
-    }.also { picksModifiedFlow.tryEmit(guild) }
+    }.also { eventBus.emit(PicksModifiedEvent(guild)) }
 
     suspend fun storeNewPickList(guild: Long, leagueName: String, idx: Int, myPicks: List<DraftPokemon>) {
         suspendTransaction(db, LeaguePickTable) {
@@ -122,7 +123,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val picksModif
                 this[LeaguePickTable.tera] = pokemon.tera
             }
         }
-        picksModifiedFlow.tryEmit(guild)
+        eventBus.emit(PicksModifiedEvent(guild))
     }
 
     private fun ResultRow.toDraftPokemon() = DraftPokemon(

@@ -1,5 +1,6 @@
 package de.tectoast.emolga.domain.league.doc.service
 
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.game.model.FullInputGame
 import de.tectoast.emolga.domain.game.model.GameSource
 import de.tectoast.emolga.domain.game.model.SingleGame
@@ -43,7 +44,7 @@ class DocEntryService(
     private val leagueEventRepo: LeagueEventRepository,
     private val repeatTaskScheduler: RepeatTaskScheduler,
     private val transactionExecutionService: TransactionExecutionService,
-    private val hideGamesInsertFlow: HideGamesInsertFlow,
+    private val eventBus: EventBus,
 ) {
     private val logger = KotlinLogging.logger {}
     suspend fun checkAndProcess(
@@ -67,7 +68,7 @@ class DocEntryService(
             if (week in hideGamesConfig.weeks) {
                 replayDataRepo.getFullGameDataForWeekIfAllPresent(leagueName, week)?.let { allData ->
                     val guild = leagueCoreRepo.getScalarLeagueData(leagueName).guild
-                    hideGamesInsertFlow.tryEmit(
+                    eventBus.emit(
                         allData.toHideGamesInsertData(leagueName, hideGamesConfig, guild)
                     )
                 }

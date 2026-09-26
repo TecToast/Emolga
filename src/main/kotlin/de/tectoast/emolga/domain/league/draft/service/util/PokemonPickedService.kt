@@ -1,12 +1,13 @@
 package de.tectoast.emolga.domain.league.draft.service.util
 
 import de.tectoast.emolga.di.StartupTask
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
+import de.tectoast.emolga.domain.league.draft.model.core.PicksModifiedEvent
 import de.tectoast.emolga.domain.league.draft.model.util.DivisionPickedData
 import de.tectoast.emolga.domain.league.draft.model.util.PokemonPickedData
 import de.tectoast.emolga.domain.league.draft.repository.LeaguePickRepository
-import de.tectoast.emolga.domain.league.draft.service.core.PicksModifiedFlow
 import de.tectoast.emolga.domain.league.tierlist.repository.TierlistRepository
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
 import de.tectoast.emolga.domain.pokemon.service.PokemonDisplayService
@@ -25,14 +26,14 @@ class PokemonPickedService(
     private val leaguePickRepo: LeaguePickRepository,
     private val pokemonDisplayService: PokemonDisplayService,
     private val pokedexRepo: PokedexRepository,
-    private val picksModifiedFlow: PicksModifiedFlow,
+    private val eventBus: EventBus,
     baseScope: CoroutineScope
 ) : StartupTask {
     private val pickedDataCache = newThreadSafeCache<Long, List<PokemonPickedData>>()
     private val scope = baseScope + CoroutineName("PokemonPicksModified")
 
     override suspend fun onStartup() {
-        picksModifiedFlow.launch(scope) { pickedDataCache.remove(it) }
+        eventBus.collect<PicksModifiedEvent>(scope) { pickedDataCache.remove(it.guild) }
     }
 
     suspend fun getPokemonPickedData(guild: Long): List<PokemonPickedData> = pickedDataCache.getOrPut(guild) {

@@ -1,5 +1,6 @@
 package de.tectoast.emolga.domain.guildspecific.flegmon.dsb.service
 
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.guildspecific.flegmon.dsb.model.DSBMessage
 import de.tectoast.emolga.domain.pokemon.model.ShowdownID
 import de.tectoast.emolga.domain.pokemon.repository.PokedexRepository
@@ -8,14 +9,14 @@ import org.koin.core.annotation.Single
 
 @Single
 class DSBSubmissionService(
-    private val dsbFlow: DSBFlow,
+    private val eventBus: EventBus,
     private val pokedexRepo: PokedexRepository,
     private val pokemonNamesRepo: PokemonNamesRepository,
 ) {
 
     suspend fun handleMonSubmission(userId: Long, showdownId: ShowdownID) {
         val rawData = pokemonNamesRepo.getRawNames(listOf(showdownId), guild = 0).first()
-        dsbFlow.emit(
+        eventBus.emit(
             DSBMessage(
                 userId.toString(),
                 rawData.nameDe + " / " + rawData.nameEn,
@@ -27,7 +28,7 @@ class DSBSubmissionService(
         )
     }
 
-    suspend fun handleTextSubmission(userId: Long, text: String) {
-        dsbFlow.emit(DSBMessage(userId.toString(), text, timestamp = System.currentTimeMillis().toHexString()))
+    fun handleTextSubmission(userId: Long, text: String) {
+        eventBus.emit(DSBMessage(userId.toString(), text, timestamp = System.currentTimeMillis().toHexString()))
     }
 }

@@ -4,12 +4,13 @@ import de.tectoast.emolga.di.StartupTask
 import de.tectoast.emolga.discord.*
 import de.tectoast.emolga.domain.config.model.GuildConfigType
 import de.tectoast.emolga.domain.config.repository.GuildConfigRepository
+import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.game.model.FullInputGame
 import de.tectoast.emolga.domain.game.model.GameSource
 import de.tectoast.emolga.domain.game.model.ResultMessage
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
+import de.tectoast.emolga.domain.league.doc.model.HideGamesInsertData
 import de.tectoast.emolga.domain.league.doc.service.DocEntryService
-import de.tectoast.emolga.domain.league.doc.service.HideGamesInsertFlow
 import de.tectoast.emolga.domain.league.gamedata.model.FullGameData
 import de.tectoast.emolga.domain.league.gamedata.model.GameData
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
@@ -36,7 +37,7 @@ class GameProcessService(
     private val resultMessageBuilder: ResultMessageBuilder,
     private val docEntryService: DocEntryService,
     private val languageRepo: GuildConfigRepository,
-    private val hideGamesInsertFlow: HideGamesInsertFlow,
+    private val eventBus: EventBus,
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
     private val guildConfigRepo: GuildConfigRepository,
@@ -47,7 +48,7 @@ class GameProcessService(
     private val logger = KotlinLogging.logger {}
 
     override suspend fun onStartup() {
-        hideGamesInsertFlow.launch(scope) { (games, config, guild) ->
+        eventBus.collect<HideGamesInsertData>(scope) { (games, config, guild) ->
             scope.launch {
                 val infoSender = K18nMessageSender {
                     logger.warn("Info/Error sent in hide games insertion: $it")

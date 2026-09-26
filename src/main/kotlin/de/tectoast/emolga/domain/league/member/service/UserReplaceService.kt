@@ -4,7 +4,7 @@ import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.member.repository.LeagueMemberRepository
 import de.tectoast.emolga.domain.league.signup.model.SignupInput
 import de.tectoast.emolga.domain.league.signup.repository.SignupRepository
-import de.tectoast.emolga.domain.league.teamgraphic.service.TeamGraphicGenerator
+import de.tectoast.emolga.domain.league.teamgraphic.service.TeamGraphicManager
 import org.koin.core.annotation.Single
 
 @Single
@@ -12,7 +12,7 @@ class UserReplaceService(
     private val leagueCoreRepo: LeagueCoreRepository,
     private val leagueMemberRepo: LeagueMemberRepository,
     private val leagueSignupRepo: SignupRepository,
-    private val teamGraphicGenerator: TeamGraphicGenerator
+    private val teamGraphicManager: TeamGraphicManager
 ) {
     suspend fun replaceUser(
         guild: Long,
@@ -34,7 +34,7 @@ class UserReplaceService(
         }
         newTeamName?.let {
             entry.data[SignupInput.TEAMNAME_ID] = it
-        } ?: teamGraphicGenerator.editTeamGraphicForLeague(leagueName, idx)
+        } ?: teamGraphicManager.updateSingleTeamGraphic(leagueName, idx)
         leagueSignupRepo.editSignupEntry(entryId, entry)
         return true
     }

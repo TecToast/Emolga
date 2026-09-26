@@ -11,6 +11,4 @@ interface TierBasedTierlistActionOperations<C : TierBasedTierlistConfig> : Tierl
     fun getCurrentAvailableTiers(config: C, picks: List<DraftPokemon>): List<String>
 
     fun getTierInsertIndex(config: C, picks: List<DraftPokemon>): Int
-
-    fun getPicksWithInsertOrder(config: C, picks: List<DraftPokemon>): Map<Int, DraftPokemon>
 }

@@ -57,8 +57,7 @@ class TeamDataCreationService(
             val tlMeta = tierlistRepo.getMeta(leagueData.guild, config.tlIdentifier) ?: return defaultDocOrderProvider
             val tierlistConfig = tlMeta.config
             return {
-                tierlistActionDispatcher.getSortedPicks(tierlistConfig, it)
-                    .mapIndexed { index, pokemon -> index to pokemon }.toMap()
+                tierlistActionDispatcher.getPicksWithInsertOrder(tierlistConfig, it)
             }
         }
 

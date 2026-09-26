@@ -13,7 +13,7 @@ abstract class TierBasedTierlistActionHandler<C : TierBasedTierlistConfig> :
         picks: List<DraftPokemon>
     ): List<DraftPokemon> {
         val indexMap = getPicksWithInsertOrder(config, picks)
-        return picks.indices.map { indexMap[it]!! }
+        return picks.indices.mapNotNull { indexMap[it] }
     }
 
     override fun getPicksWithInsertOrder(

@@ -30,6 +30,13 @@ abstract class TierlistActionHandler<C : TierlistConfig> : BaseHandler<C>,
         return picks.sortedWith(getTierOrderingComparatorWithoutName(config))
     }
 
+    override fun getPicksWithInsertOrder(
+        config: C,
+        picks: List<DraftPokemon>
+    ): Map<Int, DraftPokemon> {
+        return getSortedPicks(config, picks).mapIndexed { index, draftPokemon -> index to draftPokemon }.toMap()
+    }
+
     context(data: ValidationRelevantData)
     abstract fun handleDraftActionAfterGenericChecks(
         config: C,

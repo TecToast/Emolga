@@ -28,4 +28,6 @@ interface TierlistActionOperations<C : TierlistConfig> {
     fun getTierOrderingComparatorWithoutName(config: C): Comparator<DraftPokemon>
 
     fun getSortedPicks(config: C, picks: List<DraftPokemon>): List<DraftPokemon>
+
+    fun getPicksWithInsertOrder(config: C, picks: List<DraftPokemon>): Map<Int, DraftPokemon>
 }

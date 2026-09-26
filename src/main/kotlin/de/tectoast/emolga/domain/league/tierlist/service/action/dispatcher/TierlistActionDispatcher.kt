@@ -58,4 +58,9 @@ class TierlistActionDispatcher(handlers: List<TierlistActionHandler<TierlistConf
         config: TierlistConfig,
         picks: List<DraftPokemon>
     ) = registry.getHandler(config).getSortedPicks(config, picks)
+
+    override fun getPicksWithInsertOrder(
+        config: TierlistConfig,
+        picks: List<DraftPokemon>
+    ) = registry.getHandler(config).getPicksWithInsertOrder(config, picks)
 }

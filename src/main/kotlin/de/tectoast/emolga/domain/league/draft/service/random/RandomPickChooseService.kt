@@ -29,13 +29,13 @@ class RandomPickChooseService(
         return list.firstNotNullOfOrNull l@{ showdownID ->
             if (showdownID in alreadyPicked) return@l null
             if (showdownID in input.skipMons) return@l null
+            if (doTypeCheck && input.type != null && input.type !in pokedexRepo.get(showdownID)!!.types) return@l null
             with(validationRelevantData) {
                 dispatcher.handleDraftActionWithGeneralChecks(
                     tierlistConfig,
                     DraftAction(showdownID, tier)
                 )?.let { return@l null }
             }
-            if (doTypeCheck && input.type != null && input.type !in pokedexRepo.get(showdownID)!!.types) return@l null
             return@l showdownID
         }
     }

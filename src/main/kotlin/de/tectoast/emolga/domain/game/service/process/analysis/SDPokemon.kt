@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.toShowdownID
 
 context(context: BattleContext)
 fun SDPokemon.withZoroCheck(): SDPokemon =
-    this.zoroLines.toList().firstOrNull { context.currentLineIndex in it.first }?.second ?: this
+    this.zoroLines.entries.firstOrNull { context.currentLineIndex in it.key }?.value ?: this
 
 data class SDPokemon(
     var pokemon: String, val player: Int, val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()

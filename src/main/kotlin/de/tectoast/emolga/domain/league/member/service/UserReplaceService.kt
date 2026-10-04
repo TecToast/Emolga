@@ -34,8 +34,11 @@ class UserReplaceService(
         }
         newTeamName?.let {
             entry.data[SignupInput.TEAMNAME_ID] = it
-        } ?: teamGraphicManager.updateSingleTeamGraphic(leagueName, idx)
+        }
         leagueSignupRepo.editSignupEntry(entryId, entry)
+        if (newTeamName == null) {
+            teamGraphicManager.updateSingleTeamGraphic(leagueName, idx)
+        }
         return true
     }
 }

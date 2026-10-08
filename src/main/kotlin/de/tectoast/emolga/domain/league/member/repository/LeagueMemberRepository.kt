@@ -147,8 +147,8 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
         }
     }
 
-    suspend fun modifyUserPing(leagueName: String, idx: Int, user: Long, shouldPing: Boolean) = suspendTransaction(db) {
-        LeagueUserTable.update({ (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) and (LeagueUserTable.userId eq user) }) {
+    suspend fun modifyPrimaryUserPing(leagueName: String, idx: Int, shouldPing: Boolean) = suspendTransaction(db) {
+        LeagueUserTable.update({ (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) and (LeagueUserTable.substitute eq false) }) {
             it[LeagueUserTable.shouldPing] = shouldPing
         }
     }

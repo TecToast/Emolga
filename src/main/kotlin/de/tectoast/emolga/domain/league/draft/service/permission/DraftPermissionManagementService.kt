@@ -35,7 +35,7 @@ class DraftPermissionManagementService(
         substitute: Boolean = true
     ) {
         leagueMemberRepo.addUser(leagueName, idx, toAdd, substitute, withMention.othermention)
-        leagueMemberRepo.modifyUserPing(leagueName, idx, toAdd, withMention.selfmention)
+        leagueMemberRepo.modifyPrimaryUserPing(leagueName, idx, withMention.selfmention)
     }
 
     suspend fun removeUser(guild: Long, user: Long, toRemove: Long): CalcResult<List<LeagueParticipant>> {

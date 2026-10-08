@@ -36,7 +36,8 @@ class ReplayService(
             infoSender = infoSender,
             replaySender = replaySender,
             resultchannelParam = channel,
-            guildOfChannel = guild
+            guildOfChannel = guild,
+            usedReplayChannel = tcId
         )
         return Unit.success()
     }
@@ -58,7 +59,8 @@ class ReplayService(
             infoSender = infoSender,
             replaySender = replaySender,
             resultchannelParam = channel,
-            guildOfChannel = guild
+            guildOfChannel = guild,
+            usedReplayChannel = tcId
         )
         return Unit.success()
     }

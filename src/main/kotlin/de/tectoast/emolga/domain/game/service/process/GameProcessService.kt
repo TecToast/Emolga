@@ -8,6 +8,8 @@ import de.tectoast.emolga.domain.eventbus.EventBus
 import de.tectoast.emolga.domain.game.model.FullInputGame
 import de.tectoast.emolga.domain.game.model.GameSource
 import de.tectoast.emolga.domain.game.model.ResultMessage
+import de.tectoast.emolga.domain.game.repository.LeagueUsedReplayChannelRepository
+import de.tectoast.emolga.domain.game.repository.ReplayChannelRepository
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.doc.model.HideGamesInsertData
 import de.tectoast.emolga.domain.league.doc.service.DocEntryService
@@ -41,6 +43,8 @@ class GameProcessService(
     private val channelPermissionChecker: ChannelPermissionChecker,
     private val channelInterface: ChannelInterface,
     private val guildConfigRepo: GuildConfigRepository,
+    private val usedReplayChannelRepo: LeagueUsedReplayChannelRepository,
+    private val replayChannelRepository: ReplayChannelRepository,
     baseScope: CoroutineScope
 ) : StartupTask {
 
@@ -48,13 +52,14 @@ class GameProcessService(
     private val logger = KotlinLogging.logger {}
 
     override suspend fun onStartup() {
-        eventBus.collect<HideGamesInsertData>(scope) { (games, config, guild) ->
+        eventBus.collect<HideGamesInsertData>(scope) { (games, guild, leagueName) ->
             scope.launch {
                 val infoSender = K18nMessageSender {
                     logger.warn("Info/Error sent in hide games insertion: $it")
                 }
-                val replaySender = channelInterface.createSingleChannel(config.replayChannel)
-                val resultChannelParam = config.resultChannel
+                val replayChannel = usedReplayChannelRepo.getUsedReplayChannels(leagueName) ?: return@launch
+                val resultChannelParam = replayChannelRepository.getResultChannel(replayChannel) ?: return@launch
+                val replaySender = channelInterface.createSingleChannel(replayChannel)
                 games.forEachIndexed { index, game ->
                     analyseGame(
                         fullInputGame = game,
@@ -81,6 +86,7 @@ class GameProcessService(
         withSort: Boolean = true,
         errorSender: K18nMessageSender = infoSender,
         ignoreHideGames: Boolean = false,
+        usedReplayChannel: Long? = null
     ) {
         val guildId = customGuild ?: guildOfChannel
         val language = languageRepo.getLanguage(guildId)
@@ -201,13 +207,16 @@ class GameProcessService(
             sendResultMessages(guildId, allResultMessages, finalResultChannel, matchUpData?.week, language)
         }
         if (games.isNotEmpty() && matchUpData != null) {
+            if (usedReplayChannel != null) {
+                usedReplayChannelRepo.setUsedReplayChannel(matchUpData.leagueName, usedReplayChannel)
+            }
             docEntryService.checkAndProcess(
                 matchUpData.leagueName, FullGameData(
                     uindices = matchUpData.uindicesInOrder,
                     week = matchUpData.week,
                     battleIndex = matchUpData.battleIndex,
                     games = games
-                ), withSort = withSort
+                ), withSort = withSort, ignoreHideGames = ignoreHideGames
             )
         }
     }

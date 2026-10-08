@@ -40,7 +40,8 @@ class MultiReplayService(
                 resultchannelParam = resultChannel,
                 guildOfChannel = guild,
                 customGuild = guild,
-                withSort = index == lastIndex
+                withSort = index == lastIndex,
+                usedReplayChannel = replayChannel
             )
         }
         return Unit.success()

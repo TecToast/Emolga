@@ -7,7 +7,6 @@ import de.tectoast.emolga.domain.game.model.SingleGame
 import de.tectoast.emolga.domain.league.config.repository.LeagueConfigRepository
 import de.tectoast.emolga.domain.league.core.repository.LeagueCoreRepository
 import de.tectoast.emolga.domain.league.doc.model.AdditionalDataProvider
-import de.tectoast.emolga.domain.league.doc.model.HideGamesConfig
 import de.tectoast.emolga.domain.league.doc.model.HideGamesInsertData
 import de.tectoast.emolga.domain.league.doc.service.provider.event.AnalysisEventProvider
 import de.tectoast.emolga.domain.league.doc.service.provider.monname.MonNameProviderFactory
@@ -69,7 +68,7 @@ class DocEntryService(
                 replayDataRepo.getFullGameDataForWeekIfAllPresent(leagueName, week)?.let { allData ->
                     val guild = leagueCoreRepo.getScalarLeagueData(leagueName).guild
                     eventBus.emit(
-                        allData.toHideGamesInsertData(leagueName, hideGamesConfig, guild)
+                        allData.toHideGamesInsertData(leagueName, guild)
                     )
                 }
                 return
@@ -80,7 +79,6 @@ class DocEntryService(
 
     private fun List<FullGameData>.toHideGamesInsertData(
         leagueName: String,
-        hideGames: HideGamesConfig,
         guild: Long
     ): HideGamesInsertData = HideGamesInsertData(
         this.map {
@@ -93,7 +91,7 @@ class DocEntryService(
                     ), is4v4 = false, winnerIndex = gd.winnerIndex, kd = gd.kd
                 )
             }, false)
-        }, hideGames, guild
+        }, guild, leagueName = leagueName
     )
 
     suspend fun process(leagueName: String, fullGameData: FullGameData, withSort: Boolean = true) {

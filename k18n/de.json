@@ -43,6 +43,16 @@
                 "DenyArgUser": "Die Person, der du das Ersatzdraften entziehen möchtest",
                 "DenyYourself": "Du darfst tatsächlich immer picken :)"
               },
+              "SubstituteDrafter_nested": {
+                "Help": "Konfiguriert die Ersatzdrafter für andere",
+                "SetHelp": "Setzt einen Ersatzdrafter für eine Person",
+                "SetArgUser": "Die Person, für die du einen Ersatzdrafter setzen möchtest",
+                "SetArgSubstitute": "Der Ersatzdrafter",
+                "RemoveHelp": "Entfernt einen Ersatzdrafter für eine Person",
+                "RemoveArgUser": "Die Person, die bearbeitet werden soll",
+                "RemoveArgSubstitute": "Der Ersatzdrafter, der entfernt werden soll",
+                "EmbedTitle": "Draftberechtigungen"
+              },
               "Draftsetup_nested": {
                 "Help": "Startet das Draften der Liga in diesem Channel",
                 "ArgName": "Der Name der Liga",

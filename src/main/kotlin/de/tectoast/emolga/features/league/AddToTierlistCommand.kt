@@ -4,6 +4,7 @@ import de.tectoast.emolga.domain.league.draft.repository.DraftAdminRepository
 import de.tectoast.emolga.domain.league.tierlist.service.core.TierDataService
 import de.tectoast.emolga.domain.pokemon.repository.PokemonNamesRepository
 import de.tectoast.emolga.features.interaction.InteractionData
+import de.tectoast.emolga.features.interaction.isDraftAdmin
 import de.tectoast.emolga.features.system.Arguments
 import de.tectoast.emolga.features.system.CommandSpec
 import de.tectoast.emolga.features.system.types.CommandFeature
@@ -39,7 +40,7 @@ class AddToTierlistCommand(
     }
 
     init {
-        restrict { admin(this) || draftAdminRepo.isAdmin(gid, user, data.memberRoles) }
+        restrict { admin(this) || isDraftAdmin(draftAdminRepo) }
     }
 
     context(iData: InteractionData)

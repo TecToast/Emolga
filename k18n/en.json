@@ -43,6 +43,16 @@
                 "DenyArgUser": "The person whose backup drafting you want to revoke",
                 "DenyYourself": "You’re actually always allowed to pick :)"
               },
+              "SubstituteDrafter_nested": {
+                "Help": "Configures the substitute drafters for others",
+                "SetHelp": "Sets a substitute drafter for a person",
+                "SetArgUser": "The person for whom you want to set a substitute drafter",
+                "SetArgSubstitute": "The substitute drafter",
+                "RemoveHelp": "Removes a substitute drafter for a person",
+                "RemoveArgUser": "The person to be edited",
+                "RemoveArgSubstitute": "The substitute drafter to be removed",
+                "EmbedTitle": "Draft permissions"
+              },
               "Draftsetup_nested": {
                 "Help": "Starts the draft of the league in this channel",
                 "ArgName": "The name of the league",

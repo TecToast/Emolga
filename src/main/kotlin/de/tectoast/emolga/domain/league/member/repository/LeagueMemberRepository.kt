@@ -110,14 +110,21 @@ class LeagueMemberRepository(private val db: R2dbcDatabase) {
 
     suspend fun addUser(leagueName: String, idx: Int, userId: Long, substitute: Boolean, shouldPing: Boolean) =
         suspendTransaction(db) {
-            val nextUserOrder = getNextUserOrder(leagueName, idx)
-            LeagueUserTable.upsert {
-                it[LeagueUserTable.leagueName] = leagueName
-                it[LeagueUserTable.idx] = idx
-                it[LeagueUserTable.userId] = userId
-                it[LeagueUserTable.userOrder] = nextUserOrder
+            LeagueUserTable.updateReturning(where = {
+                (LeagueUserTable.leagueName eq leagueName) and (LeagueUserTable.idx eq idx) and (LeagueUserTable.userId eq userId)
+            }) {
                 it[LeagueUserTable.substitute] = substitute
                 it[LeagueUserTable.shouldPing] = shouldPing
+            }.firstOrNull() ?: run {
+                val nextUserOrder = getNextUserOrder(leagueName, idx)
+                LeagueUserTable.upsert {
+                    it[LeagueUserTable.leagueName] = leagueName
+                    it[LeagueUserTable.idx] = idx
+                    it[LeagueUserTable.userId] = userId
+                    it[LeagueUserTable.userOrder] = nextUserOrder
+                    it[LeagueUserTable.substitute] = substitute
+                    it[LeagueUserTable.shouldPing] = shouldPing
+                }
             }
         }
 

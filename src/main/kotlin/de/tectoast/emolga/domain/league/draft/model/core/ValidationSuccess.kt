@@ -5,5 +5,6 @@ data class ValidationSuccess(
     val freePick: Boolean,
     val updrafted: Boolean,
     val points: Int?,
+    val oldPoints: Int?,
     val currentPicks: List<DraftPokemon>
 )

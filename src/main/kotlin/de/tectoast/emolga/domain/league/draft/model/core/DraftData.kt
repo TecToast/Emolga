@@ -12,9 +12,10 @@ abstract class DraftData(
     private val tlName: String,
     val showdownId: ShowdownID,
     val tier: String,
+    val points: Int?,
     private val roundIndex: Int,
     private val indexInRound: Int,
-    private val tierInsertIndex: Int
+    private val tierInsertIndex: Int,
 ) : AstEnvironment {
     override fun <T : Any> resolve(variable: String, clazz: KClass<T>): T {
         val result = when (variable) {
@@ -26,6 +27,7 @@ abstract class DraftData(
             ROUND_INDEX -> roundIndex
             INDEX_IN_ROUND -> indexInRound
             TIER_INSERT_INDEX -> tierInsertIndex
+            POINTS -> points ?: 0
             else -> resolveSpecific(variable)
         }
         if (clazz != String::class)
@@ -45,6 +47,7 @@ abstract class DraftData(
         const val ROUND_INDEX = "ROUND_INDEX"
         const val INDEX_IN_ROUND = "INDEX_IN_ROUND"
         const val TIER_INSERT_INDEX = "TIER_INSERT_INDEX"
+        const val POINTS = "POINTS"
     }
 
     class Pick(
@@ -56,17 +59,16 @@ abstract class DraftData(
         roundIndex: Int,
         indexInRound: Int,
         tierInsertIndex: Int,
+        points: Int?,
         val free: Boolean,
         val updrafted: Boolean,
-        val tera: Boolean,
-        val points: Int?
-    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
+        val tera: Boolean
+    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, points, roundIndex, indexInRound, tierInsertIndex) {
         override fun resolveSpecific(variable: String): Any {
             return when (variable) {
-                "FREE" -> free
-                "UPDRAFTED" -> updrafted
-                "TERA" -> tera
-                "POINTS" -> points ?: 0
+                FREE -> free
+                UPDRAFTED -> updrafted
+                TERA -> tera
                 else -> throw IllegalArgumentException("Unknown variable: $variable")
             }
         }
@@ -79,7 +81,6 @@ abstract class DraftData(
             const val FREE = "FREE"
             const val UPDRAFTED = "UPDRAFTED"
             const val TERA = "TERA"
-            const val POINTS = "POINTS"
 
         }
     }
@@ -93,25 +94,33 @@ abstract class DraftData(
         roundIndex: Int,
         indexInRound: Int,
         tierInsertIndex: Int,
+        points: Int?,
         val oldTlName: String,
-        val oldShowdownId: ShowdownID
-    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
+        val oldShowdownId: ShowdownID,
+        val oldTier: String,
+        val oldPoints: Int?,
+    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, points, roundIndex, indexInRound, tierInsertIndex) {
         override fun resolveSpecific(variable: String): Any {
             return when (variable) {
-                OLD_TL_NAME -> oldTlName
+                OLD_POKEMON -> oldTlName
                 OLD_SHOWDOWN_ID -> oldShowdownId
+                OLD_TIER -> oldTier
+                OLD_POINTS -> oldPoints ?: 0
+
                 else -> throw IllegalArgumentException("Unknown variable: $variable")
             }
         }
 
         companion object : ValidVariableProvider {
             override val validVariables = setOf(
-                OLD_TL_NAME, OLD_SHOWDOWN_ID,
+                OLD_POKEMON, OLD_SHOWDOWN_ID, OLD_TIER, OLD_POINTS,
                 IDX, PICK_INDEX, POKEMON, SHOWDOWN_ID, TIER, ROUND_INDEX
             )
 
-            const val OLD_TL_NAME = "OLD_TL_NAME"
+            const val OLD_POKEMON = "OLD_POKEMON"
             const val OLD_SHOWDOWN_ID = "OLD_SHOWDOWN_ID"
+            const val OLD_TIER = "OLD_TIER"
+            const val OLD_POINTS = "OLD_POINTS"
         }
     }
 
@@ -123,8 +132,9 @@ abstract class DraftData(
         tier: String,
         roundIndex: Int,
         indexInRound: Int,
-        tierInsertIndex: Int
-    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, roundIndex, indexInRound, tierInsertIndex) {
+        tierInsertIndex: Int,
+        points: Int?
+    ) : DraftData(userIndex, pickIndex, tlName, showdownId, tier, points, roundIndex, indexInRound, tierInsertIndex) {
         override fun resolveSpecific(variable: String): Any {
             throw IllegalArgumentException("No specific variables for BanData (trying $variable)")
         }

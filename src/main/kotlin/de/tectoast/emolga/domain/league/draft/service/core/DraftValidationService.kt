@@ -6,6 +6,7 @@ import de.tectoast.emolga.domain.league.draft.service.core.ban.BanRoundConfigDis
 import de.tectoast.emolga.domain.league.draft.util.getDisplayName
 import de.tectoast.emolga.domain.league.tierlist.model.TierData
 import de.tectoast.emolga.domain.league.tierlist.model.config.PointBasedTierlistConfig
+import de.tectoast.emolga.domain.league.tierlist.model.config.TierlistConfig
 import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.PointBasedTierlistActionDispatcher
 import de.tectoast.emolga.domain.league.tierlist.service.action.dispatcher.TierlistActionDispatcher
 import de.tectoast.emolga.domain.league.tierlist.service.core.TierDataService
@@ -73,14 +74,17 @@ class DraftValidationService(
         val saveTier = context.saveTier ?: tierData.specified
         return ValidationSuccess(
             saveTier = saveTier, freePick = context.freePick, updrafted = saveTier != tierData.official,
-            points = (tl.config as? PointBasedTierlistConfig)?.let {
-                pointConfigDispatcher.getPointsForTier(
-                    it,
-                    saveTier
-                )
-            },
+            points = tl.config.getPoints(saveTier),
+            oldPoints = null,
             currentPicks = picks
         ).success()
+    }
+
+    private fun TierlistConfig.getPoints(tier: String): Int? = (this as? PointBasedTierlistConfig)?.let {
+        pointConfigDispatcher.getPointsForTier(
+            it,
+            tier
+        )
     }
 
     private suspend fun validateSwitchInput(
@@ -111,7 +115,8 @@ class DraftValidationService(
             saveTier = tierData.specified,
             freePick = false,
             updrafted = false,
-            points = null,
+            points = tl.config.getPoints(tierData.specified),
+            oldPoints = tl.config.getPoints(oldDraftMon.tier),
             currentPicks = picks
         ).success()
     }
@@ -139,7 +144,8 @@ class DraftValidationService(
             saveTier = tier,
             freePick = false,
             updrafted = false,
-            points = null,
+            points = tl.config.getPoints(tier),
+            oldPoints = null,
             currentPicks = emptyList()
         ).success()
     }

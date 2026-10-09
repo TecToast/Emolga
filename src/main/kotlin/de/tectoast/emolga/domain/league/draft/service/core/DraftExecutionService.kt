@@ -397,8 +397,11 @@ class DraftExecutionService(
                         input.pokemon,
                         validatedData.saveTier
                     )),
+                    points = validatedData.points,
                     oldTlName = displayService.getDisplayName(input.oldmon, ctx),
-                    oldShowdownId = input.oldmon
+                    oldShowdownId = input.oldmon,
+                    oldTier = validatedData.currentPicks.first { it.showdownId == input.oldmon }.tier,
+                    oldPoints = validatedData.oldPoints
                 )
                 DraftActionResult.UserAction(
                     round = ctx.league.round,
@@ -426,7 +429,8 @@ class DraftExecutionService(
                     tier = validatedData.saveTier,
                     roundIndex = forRound - 1,
                     indexInRound = ctx.league.draftOrder[forRound]!!.indexOf(idx),
-                    tierInsertIndex = 0
+                    tierInsertIndex = 0,
+                    points = validatedData.points
                 )
                 leagueData.draftData.draftBan.bannedMons.getOrPut(leagueData.round) { mutableSetOf() }.add(
                     DraftPokemon(

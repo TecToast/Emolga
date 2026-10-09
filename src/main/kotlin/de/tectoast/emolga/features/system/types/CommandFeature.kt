@@ -52,7 +52,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
             }
             val options = cmd.autoCompletableOptions
             options[focusedOption.name]?.let { ac ->
-                val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
+                val list = ac(focusedOption.value, it)
                 it.replyChoiceStrings(
                     list.convertListToAutoCompleteReply(languageRepo.getLanguage(it.guild?.idLong))
                 )

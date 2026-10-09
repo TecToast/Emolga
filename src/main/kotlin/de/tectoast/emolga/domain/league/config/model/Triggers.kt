@@ -10,7 +10,7 @@ data class Triggers(
     val bo3: Boolean = false,
     val teamSubmit: Boolean = false,
     val randomBattle: Boolean = false,
-    val replaceOnSwitch: Boolean = false,
+    val replaceOnSwitch: Boolean = true,
 ) {
     operator fun plus(other: TriggersOverride?): Triggers {
         if (other == null) return this

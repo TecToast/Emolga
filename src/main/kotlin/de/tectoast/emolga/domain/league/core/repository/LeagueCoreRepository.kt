@@ -189,6 +189,9 @@ class LeagueCoreRepository(private val db: R2dbcDatabase) {
         val lastSessionNum =
             LeagueCoreTable.select(LeagueCoreTable.draftData).where { LeagueCoreTable.leagueName eq leagueName }
                 .map { it[LeagueCoreTable.draftData].draftSessionNum }.firstOrNull() ?: return@suspendTransaction
+        LeagueCoreTable.update({ (LeagueCoreTable.leagueName neq leagueName) and (LeagueCoreTable.draftChannel eq tcId) }) {
+            it[LeagueCoreTable.draftChannel] = null
+        }
         LeagueCoreTable.update({ LeagueCoreTable.leagueName eq leagueName }) {
             it[LeagueCoreTable.draftChannel] = tcId
             it[LeagueCoreTable.isSwitchDraft] = isSwitchDraft

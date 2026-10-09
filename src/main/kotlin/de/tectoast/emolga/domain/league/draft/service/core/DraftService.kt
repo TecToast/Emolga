@@ -77,7 +77,8 @@ class DraftService(
         leagueCoreRepo.setDraftStartData(leagueName, tcId, switchDraft)
         val leagueData =
             leagueCoreRepo.getDraftRelevantData(tcId) ?: return@tx K18n_League.NoDraftInChannel.error<Unit>()
-        leaguePicksRepo.deleteFromLeague(leagueName)
+        if (!switchDraft)
+            leaguePicksRepo.deleteFromLeague(leagueName)
         val draftRunContext =
             draftRunContextBuilder.build(leagueData).getOrReturn<DraftRunContext, Unit> { return@tx it }
         val result =

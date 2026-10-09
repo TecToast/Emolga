@@ -25,6 +25,7 @@ class ReplaceUserCommand(private val service: UserReplaceService) :
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
+        iData.deferReply(true)
         val result = service.replaceUser(iData.gid, e.oldUser.idLong, e.newUser.idLong, e.sdName, e.teamName)
         if (result) {
             iData.done(true)

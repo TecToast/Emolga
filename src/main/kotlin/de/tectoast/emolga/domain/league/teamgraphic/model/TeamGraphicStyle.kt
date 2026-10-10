@@ -2,6 +2,7 @@ package de.tectoast.emolga.domain.league.teamgraphic.model
 
 import de.tectoast.emolga.utils.serializer.ColorSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
@@ -13,8 +14,8 @@ import java.io.File
 data class TeamGraphicStyle(
     val guild: Long,
     val shapeInfo: TeamGraphicShapeInfo,
-    val backgroundPathTemplate: String,
-    val overlayPathTemplate: String? = null,
+    val backgroundPathTemplates: List<String>,
+    val overlayPathTemplates: List<String> = emptyList(),
     val dataForIndex: Map<Int, CanvasCoordinate>,
     val individualBackgrounds: Boolean,
     val playerText: TextProperties? = null,
@@ -23,17 +24,23 @@ data class TeamGraphicStyle(
     val userNameSettings: TeamGraphicUserNameSettings = TeamGraphicUserNameSettings()
 ) {
 
-    fun backgroundPath(parameters: TeamGraphicParameters): String {
-        return backgroundPathTemplate.applyTemplate(parameters)
+    @Transient
+    private val shortIdentRegex = Regex(".*S\\d+(.*)")
+
+    fun backgroundPaths(parameters: TeamGraphicParameters): List<String> {
+        return backgroundPathTemplates.map { it.applyTemplate(parameters) }
     }
 
-    fun overlayPath(parameters: TeamGraphicParameters): String? {
-        return overlayPathTemplate?.applyTemplate(parameters)
+    fun overlayPaths(parameters: TeamGraphicParameters): List<String> {
+        return overlayPathTemplates.map { it.applyTemplate(parameters) }
     }
 
     private fun String.applyTemplate(parameters: TeamGraphicParameters): String {
         return replace("{leagueName}", parameters.leagueName ?: "")
             .replace("{idx}", parameters.idx?.toString() ?: "")
+            .replace("{shortIdent}", parameters.leagueName?.let {
+                shortIdentRegex.find(it)?.groupValues?.get(1)
+            } ?: "")
     }
 
     @Serializable

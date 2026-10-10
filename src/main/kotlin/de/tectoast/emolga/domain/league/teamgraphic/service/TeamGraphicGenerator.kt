@@ -88,14 +88,17 @@ class TeamGraphicGenerator(
         options: Options
     ): BufferedImage {
         val parameters = TeamGraphicParameters(leaguename, idx)
-        val bgPath = style.backgroundPath(parameters)
-        val backgroundImage = loadImageForBase(bgPath)
+        val bgPath = style.backgroundPaths(parameters)
+        val backgroundImage = loadImageForBase(bgPath.first())
         val image = if (options.blankBackground && !style.individualBackgrounds) {
             BufferedImage(backgroundImage.width, backgroundImage.height, BufferedImage.TYPE_INT_ARGB)
         } else {
             backgroundImage
         }
         val g2d = image.createGraphics()
+        for (otherBgLayers in bgPath.drop(1)) {
+            g2d.drawImage(fromCacheOrLoad(otherBgLayers), 0, 0, null)
+        }
         val spriteStyle = metaRepo.getSpriteStyle(style.guild) ?: TeamgraphicSpriteStyle.SUGIMORI
         g2d.setCommonRenderingHints(spriteStyle.nearestNeighborInterpolation)
         with(style) {
@@ -111,7 +114,7 @@ class TeamGraphicGenerator(
             style,
             spriteStyle
         )
-        style.overlayPath(parameters)?.let {
+        style.overlayPaths(parameters).forEach {
             g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
         g2d.drawLogo(
@@ -171,7 +174,7 @@ class TeamGraphicGenerator(
         return when (this) {
             is FontColorProvider.Fixed -> this.color
             is FontColorProvider.FromOverlay -> {
-                val overlayPath = style.overlayPath(parameters) ?: return Color(0, 0, 0, 0)
+                val overlayPath = style.overlayPaths(parameters).firstOrNull() ?: return Color(0, 0, 0, 0)
                 val overlayImage = fromCacheOrLoad(overlayPath)
                 Color(overlayImage.getRGB(this.xCoord, this.yCoord))
             }

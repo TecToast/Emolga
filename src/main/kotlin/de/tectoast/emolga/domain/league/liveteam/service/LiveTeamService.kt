@@ -28,8 +28,10 @@ class LiveTeamService(
         if (numRaw < 0) {
             if (style.individualBackgrounds) return null
             return withContext(Dispatchers.IO) {
-                ImmutableImage.loader()
-                    .fromFile(File(style.backgroundPath(TeamGraphicParameters(leagueName = leaguename))))
+                val bgPaths = style.backgroundPaths(TeamGraphicParameters(leagueName = leaguename))
+                if (bgPaths.isEmpty()) return@withContext null
+                bgPaths.map { ImmutableImage.loader().fromFile(File(it)) }
+                    .reduce { acc, image -> acc.overlay(image) }
                     .bytes(WebpWriter())
             }
         }

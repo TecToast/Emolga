@@ -16,7 +16,7 @@ data class FullGameData(
         groupedByWinnerIndex.maxBy { it.value.size }.key
     }
     val winnerIdx by lazy {
-        uindices[winnerIndex]
+        uindices.getOrElse(winnerIndex) { -1 }
     }
 }
 

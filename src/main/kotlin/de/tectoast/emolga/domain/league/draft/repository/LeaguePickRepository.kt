@@ -91,6 +91,7 @@ class LeaguePickRepository(private val db: R2dbcDatabase, private val eventBus: 
                 listOf(LeaguePickTable.pickIndex),
                 { (LeaguePickTable.leagueName eq leagueName) and (LeaguePickTable.userIndex eq userIndex) and (LeaguePickTable.showdownId eq oldPokemonId) }) {
                 it[showdownId] = newPokemonId
+                it[LeaguePickTable.tier] = tier
             }.firstOrNull()?.get(LeaguePickTable.pickIndex) ?: -1
         } else {
             LeaguePickTable.update({ (LeaguePickTable.leagueName eq leagueName) and (LeaguePickTable.userIndex eq userIndex) and (LeaguePickTable.showdownId eq oldPokemonId) }) {

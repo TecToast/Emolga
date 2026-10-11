@@ -88,6 +88,25 @@ abstract class InteractionData(
         )
     )
 
+    suspend fun replyAwait(
+        content: K18nMessage,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault,
+    ) = replyAwait(
+        ephemeral, MessageCreate(
+            content = content.t(),
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    )
+
     fun editRaw(
         content: String? = null,
         embeds: Collection<MessageEmbed>? = null,

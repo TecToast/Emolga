@@ -5,8 +5,9 @@ import de.tectoast.emolga.discord.MessageSender
 import de.tectoast.emolga.domain.league.draft.repository.DraftAdminRepository
 import de.tectoast.emolga.utils.Constants
 
-fun InteractionData.toMessageSender(ephemeral: Boolean) = MessageSender { reply(ephemeral = ephemeral, it) }
-fun InteractionData.toK18nMessageSender(ephemeral: Boolean) = K18nMessageSender { reply(it, ephemeral = ephemeral) }
+fun InteractionData.toMessageSender(ephemeral: Boolean) = MessageSender { replyAwait(ephemeral = ephemeral, it) }
+fun InteractionData.toK18nMessageSender(ephemeral: Boolean) =
+    K18nMessageSender { replyAwait(it, ephemeral = ephemeral) }
 
 val InteractionData.validationCompleteCallback
     get() = suspend {

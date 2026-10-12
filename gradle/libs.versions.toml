@@ -1,6 +1,6 @@
 [versions]
 coroutines = "1.11.0"
-exposed = "1.5.0"
+exposed = "1.5.1"
 google-drive = "v3-rev20260916-2.0.0"
 google-sheets = "v4-rev20260930-2.0.0"
 google-youtube = "v3-rev20261001-2.0.0"

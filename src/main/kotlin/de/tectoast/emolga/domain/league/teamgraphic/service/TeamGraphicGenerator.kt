@@ -34,7 +34,6 @@ class TeamGraphicGenerator(
     data class Options(val blankBackground: Boolean = false)
 
 
-
     suspend fun generate(
         teamData: TeamData, style: TeamGraphicStyle, options: Options = Options()
     ): BufferedImage {

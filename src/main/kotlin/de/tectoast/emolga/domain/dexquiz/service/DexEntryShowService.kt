@@ -5,7 +5,7 @@ import org.koin.core.annotation.Single
 
 @Single
 class DexEntryShowService(private val provideService: DexEntryProvideService) {
-    val idToEntryCache = mutableMapOf<Int, DexEntry>()
+    val idToEntryCache = mutableMapOf<Int, DexEntry?>()
     suspend fun generateNewDexEntry(): DexEntry? {
         val newEntry = provideService.getRandomDexEntry() ?: return null
         idToEntryCache[newEntry.id] = newEntry
@@ -13,6 +13,6 @@ class DexEntryShowService(private val provideService: DexEntryProvideService) {
     }
 
     suspend fun lookupDexEntryById(id: Int): DexEntry? {
-        return idToEntryCache[id] ?: provideService.getDexEntryById(id)?.also { idToEntryCache[id] = it }
+        return idToEntryCache.getOrPut(id) { provideService.getDexEntryById(id) }
     }
 }

@@ -122,7 +122,10 @@ class PredictionGameService(
             val guildId = scalarLeagueData.guild
             val prettyName = scalarLeagueData.prettyName
             val config = leagueConfigRepo.getConfig(leagueName).predictionGame ?: return@launch
-            val matchUps = leagueScheduleRepo.getMatchUpsForWeek(leagueName, week)
+            val matchUps = leagueScheduleRepo.getMatchUpsForWeek(leagueName, week).filter {
+                it.indices.none { idx -> idx in config.idxToSkip }
+            }
+            if (matchUps.isEmpty()) return@launch
             val users = leagueMemberRepo.getPrimaryIds(leagueName)
             val names = discordUserService.getNames(guildId, users.values.flatten())
             val channel = channelId ?: config.channel

@@ -21,7 +21,8 @@ data class PredictionGameConfig(
     val leaderboardConfig: PredictionGameLeaderboardConfig? = null,
     val docConfig: PredictionGameDocConfig? = null,
     val skipFirstN: Int = 0,
-    val formattedEmojis: List<String>? = null
+    val formattedEmojis: List<String>? = null,
+    val idxToSkip: Set<Int> = emptySet()
 )
 
 

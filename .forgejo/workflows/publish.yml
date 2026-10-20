@@ -1,0 +1,39 @@
+name: Build and publish
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: discord-bot-production
+  cancel-in-progress: false
+
+jobs:
+  publish-image:
+    runs-on: debian
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v7
+
+      - name: Set up Java
+        uses: https://data.forgejo.org/actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '26'
+
+      - name: Build and push image
+        env:
+          REGISTRY_IMAGE: ${{ vars.REGISTRY_IMAGE }}
+          REGISTRY_USERNAME: ${{ vars.REGISTRY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          IMAGE_TAG: ${{ forgejo.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Publishing ${REGISTRY_IMAGE}:${IMAGE_TAG}"
+          ./gradlew --no-daemon jib \
+            "-Djib.to.image=${REGISTRY_IMAGE}:${IMAGE_TAG}" \
+            "-Djib.to.auth.username=${REGISTRY_USERNAME}" \
+            "-Djib.to.auth.password=${REGISTRY_TOKEN}"
+        shell: bash

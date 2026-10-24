@@ -132,9 +132,14 @@ class GameDataRepository(private val db: R2dbcDatabase) {
 }
 
 object GameDataTable : Table("game_data") {
+    val id = integer("id").autoIncrement()
     val scheduleId = integer("schedule_id").referencesCascade(LeagueScheduleTable.id)
     val matchNum = integer("matchnum")
     val data = jsonb<GameData>("data")
 
-    override val primaryKey = PrimaryKey(scheduleId, matchNum)
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        index(true, scheduleId, matchNum)
+    }
 }

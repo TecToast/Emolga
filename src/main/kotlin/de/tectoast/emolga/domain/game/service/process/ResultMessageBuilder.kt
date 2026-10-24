@@ -48,7 +48,7 @@ class ResultMessageBuilder(
             sanitizedPlayerNames = sanitizedPlayerNames,
         )
         val resultMessages = mutableListOf<ResultMessage>()
-        resultMessages += ResultMessage.Game(description)
+        resultMessages += ResultMessage.Game(description, urlIfPresent)
         var illusionMonPresent = false
         for ((index, ga) in game.kd.withIndex()) {
             if (ga.containsIllusionMon()) {

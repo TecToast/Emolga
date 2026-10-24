@@ -164,7 +164,8 @@ class GameProcessService(
                                 fromReplay.showdownUserNames[index]
                             } ?: "N/A"
                         },
-                        gid = guildId
+                        gid = guildId,
+                        urlIfPresent = fromReplay?.url
                     )
                 } else {
                     replaySender.sendMessage(Constants.CHECKMARK)
@@ -184,6 +185,7 @@ class GameProcessService(
                     dontTranslateFromReplayServer = fullInputGame.dontTranslatePokemon,
                     playerNames = source.showdownUserNames,
                     gid = guildId,
+                    urlIfPresent = fromReplay?.url
                 )
             } else {
                 error("Should not happen, source without league data should be of type Direct with leagueResult null")
@@ -240,7 +242,8 @@ class GameProcessService(
                         if (embedResults) MessageCreate(
                             embeds = Embed(
                                 description = message.description,
-                                title = week?.let { "${K18n_Week.translateTo(language)} $it" }
+                                title = week?.let { "${K18n_Week.translateTo(language)} $it" },
+                                url = message.url
                             ).into()
                         ) else MessageCreate(content = buildString {
                             if (week != null) {
